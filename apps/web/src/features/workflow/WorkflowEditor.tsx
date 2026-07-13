@@ -11,6 +11,7 @@ import {
   GripVertical,
   Play,
   Search,
+  Save,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
@@ -58,7 +59,7 @@ const nodeInfo: Record<string, { label: string; group: string; subtitle: string;
   knowledge_search: { label: "Knowledge Search", group: "AI ve Analiz", subtitle: "Bilgi bankası araması", tone: "violet", icon: FileSearch, output: "evidence", config: { query: "growth evidence" } },
   agent_run: { label: "Agent Run", group: "AI ve Analiz", subtitle: "Analiz ajanı çalıştır", tone: "violet", icon: Bot, output: "agent_result", config: { agent_id: "company-analyst", model_profile: "local-balanced", output_type: "CompanyAnalysis" } },
   deterministic_score: { label: "Deterministic Score", group: "AI ve Analiz", subtitle: "Skor hesaplama", tone: "violet", icon: Sparkles, output: "scored_opportunities" },
-  condition: { label: "Condition", group: "Kontrol", subtitle: "Eşik kontrolü", tone: "amber", icon: GitBranch, output: "control", config: { expression: "score >= 60" } },
+  condition: { label: "Condition", group: "Kontrol", subtitle: "Eşik kontrolü", tone: "amber", icon: GitBranch, output: "control", config: { field: "scores.energy-retrofit", operator: "gte", value: 60 } },
   policy_check: { label: "Policy Check", group: "Kontrol", subtitle: "Politika kontrolü", tone: "amber", icon: ShieldCheck, output: "control", config: { policy_id: "material-claim-evidence" } },
   approval: { label: "Approval", group: "Kontrol", subtitle: "Onay gerektirir", tone: "amber", icon: Check, output: "approved", config: { role: "approver", timeout_days: 7 } },
   report_output: { label: "Report Output", group: "Çıktı", subtitle: "Rapor çıktısı", tone: "blue", icon: FileOutput, output: "artifact", config: { format: "okf+html" } },
@@ -73,7 +74,12 @@ function WorkflowNode({ data, selected }: NodeProps<FlowNode>) {
       <span className="flow-node__icon"><Icon size={16} /></span>
       <span><strong>{data.label}</strong><small>{data.subtitle}</small></span>
       <Check size={13} className="flow-node__valid" />
-      <Handle type="source" position={Position.Right} />
+      {data.kind === "condition" ? (
+        <>
+          <Handle id="true" type="source" position={Position.Right} style={{ top: "36%" }} />
+          <Handle id="false" type="source" position={Position.Right} style={{ top: "70%" }} />
+        </>
+      ) : <Handle type="source" position={Position.Right} />}
     </div>
   );
 }
@@ -102,6 +108,7 @@ function toFlow(workflow: WorkflowDefinition): { nodes: FlowNode[]; edges: Edge[
     source: edge.source,
     target: edge.target,
     data: { dataType: edge.data_type },
+    sourceHandle: edge.branch ?? undefined,
     markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
     style: { stroke: "#637083", strokeWidth: 1.4 },
   }));
@@ -147,7 +154,7 @@ function Inspector({ node, onChange, onDelete }: { node: FlowNode | null; onChan
   if (!node) return <aside className="node-inspector node-inspector--empty"><SlidersHorizontal size={28} /><h2>Node seçin</h2><p>Konfigürasyonu burada düzenleyebilirsiniz.</p></aside>;
   const currentNode = node;
   const config = currentNode.data.config;
-  function updateConfig(key: string, value: string) {
+  function updateConfig(key: string, value: unknown) {
     onChange({ ...currentNode, data: { ...currentNode.data, config: { ...config, [key]: value } } });
   }
   return (
@@ -162,6 +169,14 @@ function Inspector({ node, onChange, onDelete }: { node: FlowNode | null; onChan
           <label>Çıktı tipi<select value={String(config.output_type ?? "CompanyAnalysis")} onChange={(event) => updateConfig("output_type", event.target.value)}><option>CompanyAnalysis</option><option>OpportunityHypotheses</option><option>EvidenceReview</option></select></label>
         </section>
       ) : null}
+      {node.data.kind === "condition" ? (
+        <section>
+          <h3>Güvenli koşul</h3>
+          <label>Alan<input value={String(config.field ?? "")} onChange={(event) => updateConfig("field", event.target.value)} /></label>
+          <label>Operatör<select value={String(config.operator ?? "gte")} onChange={(event) => updateConfig("operator", event.target.value)}><option value="eq">eşit</option><option value="ne">eşit değil</option><option value="gt">büyük</option><option value="gte">büyük/eşit</option><option value="lt">küçük</option><option value="lte">küçük/eşit</option><option value="contains">içerir</option></select></label>
+          <label>Değer<input value={String(config.value ?? "")} onChange={(event) => updateConfig("value", Number.isNaN(Number(event.target.value)) ? event.target.value : Number(event.target.value))} /></label>
+        </section>
+      ) : null}
       <div className="inspector-note">Bu node, yalnız registry'de izin verilen capability ve typed output sözleşmesini kullanır.</div>
       <button className="delete-button" type="button" onClick={onDelete}><Trash2 size={16} /> Node'u sil</button>
     </aside>
@@ -174,37 +189,91 @@ function EditorSurface() {
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [validation, setValidation] = useState("Geçerli graph");
-  const [saved, setSaved] = useState("Otomatik kaydedildi");
+  const [saved, setSaved] = useState("Yükleniyor…");
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
 
   useEffect(() => {
-    api.workflow().then((definition) => {
-      const flow = toFlow(definition);
-      setWorkflow(definition);
+    api.workflow().then(async (definition) => {
+      const editable = definition.status === "published"
+        ? await api.cloneWorkflow(definition)
+        : definition;
+      const flow = toFlow(editable);
+      setWorkflow(editable);
       setNodes(flow.nodes);
       setEdges(flow.edges);
       setSelectedId("company_agent");
       requestAnimationFrame(() => fitView({ padding: 0.2 }));
-    });
+      setSaved("Taslak yüklendi");
+    }).catch((reason: Error) => setActionError(reason.message));
   }, [fitView, setEdges, setNodes]);
 
   const selectedNode = nodes.find((node) => node.id === selectedId) ?? null;
   const onConnect = useCallback((connection: Connection) => setEdges((current) => addEdge({ ...connection, markerEnd: { type: MarkerType.ArrowClosed } }, current)), [setEdges]);
   const updateSelected = useCallback((updated: FlowNode) => {
     setNodes((current) => current.map((node) => node.id === updated.id ? updated : node));
-    setSaved("Değişiklik kaydediliyor…");
-    window.setTimeout(() => setSaved("Otomatik kaydedildi"), 500);
+    setSaved("Kaydedilmemiş değişiklikler");
   }, [setNodes]);
   const buildDto = useCallback((): WorkflowDefinition | null => workflow ? ({
     ...workflow,
     nodes: nodes.map((node) => ({ id: node.id, kind: node.data.kind, label: node.data.label, position: node.position, config: node.data.config, output_type: node.data.outputType })),
-    edges: edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target, data_type: String(edge.data?.dataType ?? nodes.find((node) => node.id === edge.source)?.data.outputType ?? "control") })),
+    edges: edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target, data_type: String(edge.data?.dataType ?? nodes.find((node) => node.id === edge.source)?.data.outputType ?? "control"), branch: edge.sourceHandle === "true" || edge.sourceHandle === "false" ? edge.sourceHandle : null })),
   }) : null, [edges, nodes, workflow]);
   async function validate() {
     const dto = buildDto();
     if (!dto) return;
     const result = await api.validateWorkflow(dto);
     setValidation(result.valid ? "Geçerli graph" : `${result.issues.length} doğrulama hatası`);
+  }
+  async function save() {
+    const dto = buildDto();
+    if (!dto) return null;
+    setBusy(true);
+    setActionError(null);
+    try {
+      const persisted = await api.saveWorkflow({ ...dto, status: "draft" });
+      setWorkflow(persisted);
+      setSaved(`Taslak v${persisted.version} kaydedildi`);
+      return persisted;
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : "Taslak kaydedilemedi");
+      return null;
+    } finally { setBusy(false); }
+  }
+  async function dryRun() {
+    const dto = buildDto();
+    if (!dto) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      const result = await api.dryRunWorkflow(dto);
+      setValidation(result.status === "dry-run-completed" ? "Dry-run tamamlandı" : "Dry-run sonucu alındı");
+    } catch (reason) { setActionError(reason instanceof Error ? reason.message : "Dry-run tamamlanamadı"); }
+    finally { setBusy(false); }
+  }
+  async function publish() {
+    const persisted = await save();
+    if (!persisted) return;
+    setBusy(true);
+    try {
+      const published = await api.publishWorkflow(persisted);
+      setWorkflow(published);
+      setSaved(`v${published.version} immutable olarak yayınlandı`);
+    } catch (reason) { setActionError(reason instanceof Error ? reason.message : "Workflow yayınlanamadı"); }
+    finally { setBusy(false); }
+  }
+  async function run() {
+    if (!workflow || workflow.status !== "published") {
+      setActionError("Production run öncesinde workflow yayınlanmalıdır.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await api.runWorkflow(workflow);
+      setSaved(`Run ${result.run_id.slice(0, 8)} · ${result.status}`);
+    } catch (reason) { setActionError(reason instanceof Error ? reason.message : "Workflow çalıştırılamadı"); }
+    finally { setBusy(false); }
   }
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -219,8 +288,8 @@ function EditorSurface() {
   return (
     <div className="workflow-screen">
       <header className="workflow-toolbar">
-        <div><h1>Growth Diagnostic v1</h1><span>Taslak</span></div>
-        <div><button type="button" onClick={() => setValidation("Dry-run tamamlandı")}><CirclePlay size={17} /> Dry-run</button><button type="button" onClick={validate}><Check size={17} /> Doğrula</button><button className="publish-button" type="button" onClick={() => setSaved("Yayın için onay bekliyor")}><Upload size={17} /> Yayınla<ChevronDown size={15} /></button></div>
+        <div><h1>{workflow?.name ?? "Growth Diagnostic"}</h1><span>{workflow?.status === "published" ? "Yayınlandı" : `Taslak v${workflow?.version ?? "–"}`}</span></div>
+        <div><button type="button" onClick={save} disabled={busy || workflow?.status === "published"}><Save size={17} /> Kaydet</button><button type="button" onClick={dryRun} disabled={busy}><CirclePlay size={17} /> Dry-run</button><button type="button" onClick={validate} disabled={busy}><Check size={17} /> Doğrula</button><button type="button" onClick={run} disabled={busy || workflow?.status !== "published"}><Play size={17} /> Çalıştır</button><button className="publish-button" type="button" onClick={publish} disabled={busy || workflow?.status === "published"}><Upload size={17} /> Yayınla<ChevronDown size={15} /></button></div>
       </header>
       <div className="workflow-body">
         <NodeCatalog />
@@ -245,6 +314,7 @@ function EditorSurface() {
         </div>
         <Inspector node={selectedNode} onChange={updateSelected} onDelete={() => { if (selectedId) setNodes((current) => current.filter((node) => node.id !== selectedId)); setSelectedId(null); }} />
       </div>
+      {actionError ? <div className="inline-alert inline-alert--error" role="alert">{actionError}</div> : null}
       <footer className="workflow-status"><span><GitBranch size={15} /> {nodes.length} node</span><span><i /> <strong>{validation}:</strong> Growth Diagnostic v1</span><span><Check size={15} /> {saved} · 10:24:31</span></footer>
     </div>
   );

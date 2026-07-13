@@ -131,8 +131,11 @@ async def run_managed_agent(
     *,
     profile_id: str,
     model_override=None,
+    spec_override: ManagedAgentSpec | None = None,
 ) -> AgentExecution:
-    spec = AgentRegistry().get(agent_id)
+    spec = spec_override or AgentRegistry().get(agent_id)
+    if spec.id != agent_id:
+        raise ValueError("Agent specification ID does not match requested agent")
     output_type = OUTPUT_TYPES[spec.output_type]
     profile = resolve_model_profile(profile_id, settings)
     agent = build_pydantic_ai_agent(

@@ -68,7 +68,7 @@ NODE_CATALOG: dict[NodeKind, NodeSpec] = {
         "Kontrol",
         frozenset({"control", "agent_result", "scored_opportunities"}),
         "control",
-        frozenset({"expression"}),
+        frozenset({"field", "operator", "value"}),
     ),
     NodeKind.POLICY_CHECK: NodeSpec(
         "Policy Check",
@@ -80,7 +80,7 @@ NODE_CATALOG: dict[NodeKind, NodeSpec] = {
     NodeKind.APPROVAL: NodeSpec(
         "Approval",
         "Kontrol",
-        frozenset({"control", "agent_result", "scored_opportunities"}),
+        frozenset({"control", "agent_result", "scored_opportunities", "artifact"}),
         "approved",
         frozenset({"role", "timeout_days"}),
         risk="medium",
@@ -88,7 +88,7 @@ NODE_CATALOG: dict[NodeKind, NodeSpec] = {
     NodeKind.REPORT_OUTPUT: NodeSpec(
         "Report Output",
         "Çıktı",
-        frozenset({"approved", "scored_opportunities", "agent_result"}),
+        frozenset({"approved", "control", "scored_opportunities", "agent_result"}),
         "artifact",
         frozenset({"format"}),
     ),

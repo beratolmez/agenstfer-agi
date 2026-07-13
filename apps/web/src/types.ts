@@ -60,6 +60,7 @@ export interface WorkflowEdgeDto {
   source: string;
   target: string;
   data_type: string;
+  branch?: "true" | "false" | null;
 }
 
 export interface WorkflowDefinition {
@@ -89,6 +90,52 @@ export interface SetupStatus {
   bootstrap_required: boolean;
   auth_enabled: boolean;
   cloud_models_enabled: boolean;
+}
+
+export interface SetupProgress {
+  current_step: number;
+  completed_steps: number[];
+  configuration: Record<string, string | boolean | number>;
+  status: "in_progress" | "completed";
+  updated_at: string | null;
+}
+
+export interface WorkflowRunView {
+  id: string;
+  workflow_id: string;
+  workflow_version: number;
+  status: string;
+  current_step: string | null;
+  model_profile: string | null;
+  token_usage: Record<string, number> | null;
+  started_at: string;
+  completed_at: string | null;
+}
+
+export interface ApprovalView {
+  id: string;
+  run_id: string;
+  kind: string;
+  status: string;
+  artifact_uri: string;
+  requested_role: string;
+  candidate_id: string | null;
+  decision_by: string | null;
+  decision_reason: string | null;
+  expires_at: string;
+  decided_at: string | null;
+}
+
+export interface OKFCandidateView {
+  id: string;
+  run_id: string | null;
+  status: string;
+  base_revision: string;
+  candidate_revision: string | null;
+  validation_report: { errors?: unknown[]; warnings?: unknown[] };
+  created_at: string;
+  expires_at: string;
+  decision_reason: string | null;
 }
 
 export interface DataSourceView {

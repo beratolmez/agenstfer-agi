@@ -11,6 +11,7 @@ from agi_server.workflow.models import (
 )
 
 TRIGGERS = {NodeKind.MANUAL_TRIGGER, NodeKind.ONBOARDING_TRIGGER, NodeKind.SCHEDULE_TRIGGER}
+CONDITION_OPERATORS = {"eq", "ne", "gt", "gte", "lt", "lte", "contains"}
 
 
 def validate_workflow(workflow: WorkflowDefinition) -> WorkflowValidation:
@@ -37,6 +38,30 @@ def validate_workflow(workflow: WorkflowDefinition) -> WorkflowValidation:
                     message=f"Zorunlu config eksik: {', '.join(missing)}",
                 )
             )
+        if node.kind == NodeKind.CONDITION:
+            field = node.config.get("field")
+            operator = node.config.get("operator")
+            safe_field = (
+                isinstance(field, str) and field.replace("_", "").replace(".", "").isalnum()
+            )
+            if not safe_field:
+                issues.append(
+                    WorkflowIssue(
+                        code="condition.field",
+                        node_id=node.id,
+                        message=(
+                            "Condition field yalnız güvenli dotted-field biçimini kullanabilir."
+                        ),
+                    )
+                )
+            if operator not in CONDITION_OPERATORS:
+                issues.append(
+                    WorkflowIssue(
+                        code="condition.operator",
+                        node_id=node.id,
+                        message="Condition operator allowlist içinde değil.",
+                    )
+                )
 
     for edge in workflow.edges:
         source = nodes.get(edge.source)
@@ -70,6 +95,27 @@ def validate_workflow(workflow: WorkflowDefinition) -> WorkflowValidation:
         outgoing[source.id].append(target.id)
         incoming[target.id].append(source.id)
         indegree[target.id] += 1
+
+    for node in workflow.nodes:
+        node_edges = [edge for edge in workflow.edges if edge.source == node.id]
+        if node.kind == NodeKind.CONDITION:
+            branches = [edge.branch for edge in node_edges]
+            if sorted(branch for branch in branches if branch is not None) != ["false", "true"]:
+                issues.append(
+                    WorkflowIssue(
+                        code="condition.branches",
+                        node_id=node.id,
+                        message="Condition tam bir true ve bir false branch içermelidir.",
+                    )
+                )
+        elif any(edge.branch is not None for edge in node_edges):
+            issues.append(
+                WorkflowIssue(
+                    code="edge.unexpected_branch",
+                    node_id=node.id,
+                    message="Yalnız Condition node branch etiketi kullanabilir.",
+                )
+            )
 
     queue = deque(sorted(node_id for node_id, degree in indegree.items() if degree == 0))
     order: list[str] = []
@@ -106,4 +152,22 @@ def validate_workflow(workflow: WorkflowDefinition) -> WorkflowValidation:
         issues.append(
             WorkflowIssue(code="output.missing", message="En az bir Report Output gerekir.")
         )
+    approvals = [node for node in workflow.nodes if node.kind == NodeKind.APPROVAL]
+    if len(approvals) != 1:
+        issues.append(
+            WorkflowIssue(
+                code="approval.count",
+                message="Published MVP workflow tam bir Approval node içermelidir.",
+            )
+        )
+    elif outputs and order:
+        positions = {node_id: index for index, node_id in enumerate(order)}
+        if any(positions[approvals[0].id] <= positions[output.id] for output in outputs):
+            issues.append(
+                WorkflowIssue(
+                    code="approval.order",
+                    node_id=approvals[0].id,
+                    message="Approval node report candidate üretildikten sonra çalışmalıdır.",
+                )
+            )
     return WorkflowValidation(valid=not issues, issues=issues, topological_order=order)

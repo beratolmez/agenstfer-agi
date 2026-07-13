@@ -37,6 +37,9 @@ build-backend = "setuptools.build_meta"
 where = ["apps/api"]
 include = ["agi_server*"]
 
+[tool.setuptools.package-data]
+"agi_server.agents" = ["specs/*.yaml"]
+
 [tool.pytest.ini_options]
 pythonpath = ["apps/api"]
 testpaths = ["apps/api/tests"]

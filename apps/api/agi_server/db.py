@@ -52,6 +52,20 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class InstallationState(Base):
+    __tablename__ = "installation_state"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default="default")
+    current_step: Mapped[int] = mapped_column(Integer, default=0)
+    completed_steps: Mapped[list[int]] = mapped_column(JSON, default=list)
+    configuration: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(30), default="in_progress", index=True)
+    updated_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+
 class DataSource(Base):
     __tablename__ = "data_sources"
     id: Mapped[str] = mapped_column(String(120), primary_key=True)
@@ -158,6 +172,49 @@ class WorkflowDefinitionRow(Base):
     definition: Mapped[dict[str, Any]] = mapped_column(JSON)
     created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+
+class AgentDefinitionRow(Base):
+    __tablename__ = "agent_definitions"
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(160))
+    status: Mapped[str] = mapped_column(String(30), index=True)
+    definition: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+
+class CapabilityDefinitionRow(Base):
+    __tablename__ = "capability_definitions"
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(160))
+    status: Mapped[str] = mapped_column(String(30), index=True, default="published")
+    definition: Mapped[dict[str, Any]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class WorkflowSchedule(Base):
+    __tablename__ = "workflow_schedules"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    workflow_id: Mapped[str] = mapped_column(String(80), index=True)
+    workflow_version: Mapped[int]
+    cron: Mapped[str] = mapped_column(String(120))
+    timezone: Mapped[str] = mapped_column(String(80))
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    last_fire_key: Mapped[str | None] = mapped_column(String(180), nullable=True, unique=True)
+    created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
 
 
 class WorkflowRun(Base):
@@ -211,8 +268,12 @@ class ApprovalRequest(Base):
     status: Mapped[str] = mapped_column(String(30), index=True, default="pending")
     artifact_uri: Mapped[str] = mapped_column(Text)
     requested_role: Mapped[str] = mapped_column(String(30), default="approver")
+    candidate_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
     decision_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     decision_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    decision_idempotency_key: Mapped[str | None] = mapped_column(
+        String(180), nullable=True, unique=True
+    )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     run: Mapped[WorkflowRun] = relationship(back_populates="approvals")

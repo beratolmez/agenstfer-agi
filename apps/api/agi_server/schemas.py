@@ -92,3 +92,10 @@ class SourceMappingRequest(BaseModel):
     entity_type: str = Field(min_length=2, max_length=60, pattern=r"^[a-z][a-z0-9_]*$")
     field_mapping: dict[str, str]
     classification: Literal["public", "internal", "confidential", "restricted"] = "internal"
+
+
+class SetupProgressUpdate(BaseModel):
+    current_step: int = Field(ge=0, le=9)
+    completed_steps: list[int] = Field(max_length=10)
+    configuration: dict[str, str | bool | int] = Field(default_factory=dict)
+    status: Literal["in_progress", "completed"] = "in_progress"

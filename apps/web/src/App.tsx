@@ -5,7 +5,10 @@ import { Sidebar, type ViewId } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { Dashboard } from "./features/dashboard/Dashboard";
 import { Knowledge } from "./features/knowledge/Knowledge";
+import { Opportunities } from "./features/opportunities/Opportunities";
+import { ApprovalCenter } from "./features/approvals/ApprovalCenter";
 import { SetupWizard } from "./features/setup/SetupWizard";
+import { Settings } from "./features/settings/Settings";
 import { Sources } from "./features/sources/Sources";
 import type { SetupStatus, UserView } from "./types";
 
@@ -66,21 +69,6 @@ function AuthGate({ status, onAuthenticated }: { status: SetupStatus; onAuthenti
   );
 }
 
-function Placeholder({ view, onSetup }: { view: ViewId; onSetup: () => void }) {
-  const titles: Partial<Record<ViewId, string>> = {
-    opportunities: "Fırsatlar",
-    approvals: "Onay Merkezi",
-    settings: "Ayarlar",
-  };
-  return (
-    <main className="page page--placeholder">
-      <h1>{titles[view]}</h1>
-      <p>Bu yüzey henüz tamamlanmamış MVP çalışma alanıdır.</p>
-      {view === "settings" ? <button className="primary-button" onClick={onSetup}>Kurulum sihirbazını aç</button> : null}
-    </main>
-  );
-}
-
 export default function App() {
   const [view, setView] = useState<ViewId>(initialView);
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
@@ -125,7 +113,8 @@ export default function App() {
       <Sidebar active={view} onNavigate={navigate} />
       <div className="app-main">
         {showTopbar && user ? <Topbar user={user} onLogout={async () => { await api.logout(); setUser(null); }} /> : null}
-        {view === "dashboard" || view === "opportunities" ? <Dashboard /> : null}
+        {view === "dashboard" ? <Dashboard /> : null}
+        {view === "opportunities" ? <Opportunities /> : null}
         {view === "knowledge" ? <Knowledge /> : null}
         {view === "workflow" ? (
           <Suspense fallback={<div className="loading-state">Workflow editörü yükleniyor…</div>}>
@@ -134,7 +123,8 @@ export default function App() {
         ) : null}
         {view === "setup" ? <SetupWizard onComplete={() => navigate("dashboard")} /> : null}
         {view === "sources" ? <Sources /> : null}
-        {(["approvals", "settings"] as ViewId[]).includes(view) ? <Placeholder view={view} onSetup={() => navigate("setup")} /> : null}
+        {view === "approvals" ? <ApprovalCenter /> : null}
+        {view === "settings" ? <Settings onSetup={() => navigate("setup")} /> : null}
       </div>
     </div>
   );

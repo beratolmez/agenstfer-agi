@@ -111,8 +111,8 @@ def build_default_workflow() -> WorkflowDefinition:
         ("company_agent", "growth_agent", "agent_result"),
         ("growth_agent", "score", "hypotheses"),
         ("score", "review", "scored_opportunities"),
-        ("review", "approval", "agent_result"),
-        ("approval", "report", "approved"),
+        ("review", "report", "agent_result"),
+        ("report", "approval", "artifact"),
     ]
     edges = [
         WorkflowEdge(id=f"e-{source}-{target}", source=source, target=target, data_type=data_type)

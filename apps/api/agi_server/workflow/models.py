@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -36,6 +36,7 @@ class WorkflowEdge(BaseModel):
     source: str
     target: str
     data_type: str = "control"
+    branch: Literal["true", "false"] | None = None
 
 
 class WorkflowDefinition(BaseModel):

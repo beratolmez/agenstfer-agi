@@ -7,7 +7,7 @@ def test_default_workflow_is_valid_and_topologically_sorted():
     result = validate_workflow(workflow)
     assert result.valid, result.issues
     assert result.topological_order[0] == "trigger"
-    assert result.topological_order[-1] == "report"
+    assert result.topological_order[-1] == "approval"
 
 
 def test_cycle_is_rejected():

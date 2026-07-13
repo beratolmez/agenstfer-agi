@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
 
 import httpx
-from dbos import DBOS, DBOSConfig, SetWorkflowID
+from dbos import DBOS, DBOSConfig
 from fastapi import (
     Depends,
     FastAPI,
@@ -29,19 +31,25 @@ from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
 from agi_server import __version__
-from agi_server.agents import AgentRegistry
 from agi_server.agents.model_gateway import resolve_model_profile
 from agi_server.agents.probe import probe_model_profile
+from agi_server.agents.registry import ManagedAgentSpec
 from agi_server.config import Settings, get_settings
 from agi_server.connectors.files import MAX_FILE_BYTES, ReadOnlyTabularConnector
 from agi_server.db import (
+    AgentDefinitionRow,
+    ApprovalRequest,
     Artifact,
+    CapabilityDefinitionRow,
     DataSource,
+    InstallationState,
     OKFCandidate,
     SourceMapping,
     SourceSyncRun,
     User,
+    WorkflowDefinitionRow,
     WorkflowRun,
+    WorkflowSchedule,
     WorkflowStepRun,
     engine,
     get_db,
@@ -68,14 +76,22 @@ from agi_server.okf.lifecycle import (
     request_qmd_reindex,
 )
 from agi_server.okf.search import KnowledgeSearch
-from agi_server.schemas import GrowthDiagnostic, HealthResponse, SourceMappingRequest
+from agi_server.schemas import (
+    GrowthDiagnostic,
+    HealthResponse,
+    SetupProgressUpdate,
+    SourceMappingRequest,
+)
 from agi_server.security import (
     AuthSessionView,
     BootstrapRequest,
     LoginRequest,
+    UserCreateRequest,
+    UserRolesRequest,
     UserView,
     authenticate,
     bootstrap_admin,
+    create_user,
     current_user,
     record_audit,
     require_role,
@@ -83,7 +99,25 @@ from agi_server.security import (
 )
 from agi_server.workflow import build_default_workflow, validate_workflow
 from agi_server.workflow.models import WorkflowDefinition, WorkflowValidation
-from agi_server.workflow.runtime import durable_workflow_interpreter, run_workflow_locally
+from agi_server.workflow.persistent_runtime import (
+    decide_persisted_approval,
+    start_persisted_workflow,
+)
+from agi_server.workflow.registry_service import (
+    agent_from_row,
+    clone_agent_version,
+    clone_workflow_version,
+    create_schedule,
+    ensure_platform_registry,
+    latest_workflow,
+    publish_agent,
+    publish_workflow,
+    save_agent_draft,
+    save_workflow_draft,
+    workflow_from_row,
+)
+from agi_server.workflow.runtime import run_workflow_locally
+from agi_server.workflow.scheduler import scheduler_loop
 
 
 @asynccontextmanager
@@ -91,9 +125,15 @@ async def lifespan(_: FastAPI):
     run_migrations()
     settings = get_settings()
     ensure_active_repository(settings.company_bundle)
+    with Session(engine) as db:
+        ensure_platform_registry(db)
+    schedule_task = asyncio.create_task(scheduler_loop(settings))
     if settings.enable_dbos:
         DBOS.launch()
     yield
+    schedule_task.cancel()
+    with suppress(asyncio.CancelledError):
+        await schedule_task
     if settings.enable_dbos:
         DBOS.destroy(workflow_completion_timeout_sec=5)
 
@@ -363,6 +403,76 @@ def auth_logout(
     return Response(status_code=204)
 
 
+@app.get("/api/users")
+def user_list(
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User | None, Depends(require_role("admin"))],
+) -> dict[str, Any]:
+    rows = db.query(User).order_by(User.created_at).all()
+    return {
+        "items": [
+            {
+                **UserView.from_row(row).model_dump(),
+                "active": row.active,
+                "created_at": row.created_at,
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.post("/api/users", response_model=UserView, status_code=201)
+def user_create(
+    payload: UserCreateRequest,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+) -> UserView:
+    user = create_user(payload, db)
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="user.created",
+        target_type="user",
+        target_id=user.id,
+        metadata={"roles": user.roles},
+    )
+    db.commit()
+    return UserView.from_row(user)
+
+
+@app.put("/api/users/{user_id}/roles", response_model=UserView)
+def user_roles_update(
+    user_id: str,
+    payload: UserRolesRequest,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+) -> UserView:
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    removing_admin = "admin" in user.roles and ("admin" not in payload.roles or not payload.active)
+    if removing_admin:
+        active_admins = [
+            row
+            for row in db.query(User).filter(User.active.is_(True)).all()
+            if "admin" in row.roles
+        ]
+        if len(active_admins) <= 1:
+            raise HTTPException(status_code=409, detail="Son aktif admin kaldırılamaz")
+    user.roles = sorted(set(payload.roles))
+    user.active = payload.active
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="user.roles_updated",
+        target_type="user",
+        target_id=user.id,
+        metadata={"roles": user.roles, "active": user.active},
+    )
+    db.commit()
+    return UserView.from_row(user)
+
+
 @app.get("/api/setup/status")
 def setup_status(
     db: Annotated[Session, Depends(get_db)],
@@ -385,6 +495,73 @@ def setup_status(
         "bootstrap_required": db.scalar(select(func.count()).select_from(User)) == 0,
         "auth_enabled": not settings.demo_no_auth,
         "cloud_models_enabled": settings.cloud_models_enabled,
+    }
+
+
+@app.get("/api/setup/progress")
+def setup_progress(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    row = db.get(InstallationState, "default")
+    if row is None:
+        return {
+            "current_step": 0,
+            "completed_steps": [],
+            "configuration": {},
+            "status": "in_progress",
+            "updated_at": None,
+        }
+    return {
+        "current_step": row.current_step,
+        "completed_steps": row.completed_steps,
+        "configuration": row.configuration,
+        "status": row.status,
+        "updated_at": row.updated_at,
+    }
+
+
+@app.put("/api/setup/progress")
+def setup_progress_update(
+    payload: SetupProgressUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+) -> dict[str, Any]:
+    allowed_keys = {"company_name", "objective", "model_profile", "source_mode", "locale"}
+    unknown = sorted(set(payload.configuration) - allowed_keys)
+    if unknown:
+        raise HTTPException(
+            status_code=422,
+            detail={"unsupported_configuration_keys": unknown},
+        )
+    completed = sorted(set(payload.completed_steps))
+    if payload.status == "completed" and completed != list(range(10)):
+        raise HTTPException(status_code=409, detail="Tüm kurulum adımları tamamlanmalıdır")
+    row = db.get(InstallationState, "default")
+    if row is None:
+        row = InstallationState(id="default")
+        db.add(row)
+    row.current_step = payload.current_step
+    row.completed_steps = completed
+    row.configuration = payload.configuration
+    row.status = payload.status
+    row.updated_by = None if actor is None else actor.id
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="setup.progress_updated",
+        target_type="installation",
+        target_id="default",
+        metadata={
+            "current_step": payload.current_step,
+            "completed_steps": completed,
+            "status": payload.status,
+        },
+    )
+    db.commit()
+    return {
+        "current_step": row.current_step,
+        "completed_steps": row.completed_steps,
+        "configuration": row.configuration,
+        "status": row.status,
+        "updated_at": row.updated_at,
     }
 
 
@@ -439,8 +616,13 @@ def dashboard(db: Annotated[Session, Depends(get_db)]) -> GrowthDiagnostic:
         .order_by(WorkflowRun.started_at.desc())
     )
     if latest and latest.output_json and latest.output_json.get("diagnostic"):
-        return GrowthDiagnostic.model_validate(latest.output_json["diagnostic"])
-    return build_growth_diagnostic(db)
+        diagnostic = GrowthDiagnostic.model_validate(latest.output_json["diagnostic"])
+    else:
+        diagnostic = build_growth_diagnostic(db)
+    open_approvals = db.scalar(
+        select(func.count()).select_from(OKFCandidate).where(OKFCandidate.status == "pending")
+    )
+    return diagnostic.model_copy(update={"open_approvals": int(open_approvals or 0)})
 
 
 @app.post("/api/diagnostics/run", response_model=GrowthDiagnostic)
@@ -598,6 +780,102 @@ def workflow_run_artifact(
     if actual != expected:
         raise HTTPException(status_code=409, detail="Artifact bütünlük kontrolü başarısız")
     return FileResponse(path, filename=path.name)
+
+
+@app.post("/api/runs/{run_id}/cancel")
+def workflow_run_cancel(
+    run_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("analyst"))],
+    reason: Annotated[str, Query(min_length=8, max_length=500)],
+) -> dict[str, str]:
+    run = db.get(WorkflowRun, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Workflow run bulunamadı")
+    if run.status not in {"running", "awaiting_approval"}:
+        raise HTTPException(status_code=409, detail="Bu run iptal edilebilir durumda değil")
+    approvals = (
+        db.query(ApprovalRequest)
+        .filter(ApprovalRequest.run_id == run_id, ApprovalRequest.status == "pending")
+        .all()
+    )
+    for approval in approvals:
+        approval.status = "cancelled"
+        approval.decision_reason = reason
+        approval.decided_at = datetime.now(UTC)
+        candidate = db.get(OKFCandidate, approval.candidate_id) if approval.candidate_id else None
+        if candidate is not None and candidate.status == "pending":
+            candidate.status = "rejected"
+            candidate.decision_reason = reason
+            candidate.decided_at = datetime.now(UTC)
+    run.status = "cancelled"
+    run.completed_at = datetime.now(UTC)
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="workflow.run_cancelled",
+        target_type="workflow_run",
+        target_id=run_id,
+        metadata={"reason": reason},
+    )
+    db.commit()
+    return {"run_id": run_id, "status": run.status}
+
+
+@app.post("/api/runs/{run_id}/retry", status_code=202)
+async def workflow_run_retry(
+    run_id: str,
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("analyst"))],
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=180)],
+) -> dict[str, Any]:
+    previous = db.get(WorkflowRun, run_id)
+    if previous is None:
+        raise HTTPException(status_code=404, detail="Workflow run bulunamadı")
+    if previous.status not in {"failed", "cancelled", "rejected", "expired"}:
+        raise HTTPException(
+            status_code=409, detail="Yalnız terminal başarısız run yeniden denenebilir"
+        )
+    if previous.workflow_id == "builtin-growth-diagnostic":
+        try:
+            result = await run_growth_diagnostic(
+                db,
+                settings,
+                actor_id=None if actor is None else actor.id,
+                idempotency_key=idempotency_key,
+            )
+            run = result.run
+        except Exception as error:
+            raise HTTPException(status_code=409, detail="Diagnostic retry tamamlanamadı") from error
+    else:
+        row = db.get(
+            WorkflowDefinitionRow,
+            (previous.workflow_id, previous.workflow_version),
+        )
+        if row is None:
+            raise HTTPException(status_code=409, detail="Pinned workflow version bulunamadı")
+        try:
+            run = await start_persisted_workflow(
+                db,
+                settings,
+                row,
+                idempotency_key,
+                None if actor is None else actor.id,
+                input_json={"retry_of": run_id},
+            )
+        except Exception as error:
+            raise HTTPException(status_code=409, detail="Workflow retry tamamlanamadı") from error
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="workflow.run_retried",
+        target_type="workflow_run",
+        target_id=run.id,
+        metadata={"retry_of": run_id},
+    )
+    db.commit()
+    return {"run_id": run.id, "status": run.status, "retry_of": run_id}
 
 
 @app.get("/api/sources")
@@ -900,6 +1178,7 @@ def okf_candidates(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
         "items": [
             {
                 "id": row.id,
+                "run_id": row.run_id,
                 "status": row.status,
                 "base_revision": row.base_revision,
                 "candidate_revision": row.candidate_revision,
@@ -1090,13 +1369,284 @@ def evidence(
 
 
 @app.get("/api/agents")
-def agents() -> list[dict[str, Any]]:
-    return [spec.model_dump(exclude={"system_prompt"}) for spec in AgentRegistry().list()]
+def agents(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    ensure_platform_registry(db)
+    rows = (
+        db.query(AgentDefinitionRow)
+        .order_by(AgentDefinitionRow.id, AgentDefinitionRow.version.desc())
+        .all()
+    )
+    return {
+        "items": [
+            {
+                **agent_from_row(row).model_dump(exclude={"system_prompt"}),
+                "status": row.status,
+                "created_at": row.created_at,
+                "updated_at": row.updated_at,
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.get("/api/agents/{agent_id}/versions")
+def agent_versions(
+    agent_id: str,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    rows = (
+        db.query(AgentDefinitionRow)
+        .filter(AgentDefinitionRow.id == agent_id)
+        .order_by(AgentDefinitionRow.version.desc())
+        .all()
+    )
+    return {
+        "items": [
+            {
+                **agent_from_row(row).model_dump(exclude={"system_prompt"}),
+                "status": row.status,
+                "created_at": row.created_at,
+                "updated_at": row.updated_at,
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.post("/api/agents/{agent_id}/versions/{version}/clone", status_code=201)
+def agent_clone(
+    agent_id: str,
+    version: int,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+) -> dict[str, Any]:
+    source = db.get(AgentDefinitionRow, (agent_id, version))
+    if source is None:
+        raise HTTPException(status_code=404, detail="Agent version bulunamadı")
+    row = clone_agent_version(db, source, None if actor is None else actor.id)
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="agent.version_cloned",
+        target_type="agent_version",
+        target_id=f"{row.id}:{row.version}",
+        metadata={"source_version": version},
+    )
+    db.commit()
+    return {**agent_from_row(row).model_dump(), "status": row.status}
+
+
+@app.put("/api/agents/{agent_id}/draft")
+def agent_draft_save(
+    agent_id: str,
+    payload: ManagedAgentSpec,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+) -> dict[str, Any]:
+    if payload.id != agent_id:
+        raise HTTPException(status_code=422, detail="Agent ID payload ile eşleşmiyor")
+    try:
+        row = save_agent_draft(db, payload, None if actor is None else actor.id)
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="agent.draft_saved",
+        target_type="agent_version",
+        target_id=f"{row.id}:{row.version}",
+    )
+    db.commit()
+    return {**agent_from_row(row).model_dump(), "status": row.status}
+
+
+@app.post("/api/agents/{agent_id}/versions/{version}/publish")
+def agent_publish(
+    agent_id: str,
+    version: int,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+) -> dict[str, Any]:
+    row = db.get(AgentDefinitionRow, (agent_id, version))
+    if row is None:
+        raise HTTPException(status_code=404, detail="Agent draft bulunamadı")
+    try:
+        publish_agent(db, row)
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="agent.version_published",
+        target_type="agent_version",
+        target_id=f"{row.id}:{row.version}",
+    )
+    db.commit()
+    return {**agent_from_row(row).model_dump(exclude={"system_prompt"}), "status": row.status}
+
+
+@app.get("/api/capabilities")
+def capabilities(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    ensure_platform_registry(db)
+    rows = (
+        db.query(CapabilityDefinitionRow)
+        .order_by(CapabilityDefinitionRow.id, CapabilityDefinitionRow.version.desc())
+        .all()
+    )
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "version": row.version,
+                "name": row.name,
+                "status": row.status,
+                "definition": row.definition,
+            }
+            for row in rows
+        ]
+    }
 
 
 @app.get("/api/workflows/default", response_model=WorkflowDefinition)
-def default_workflow() -> WorkflowDefinition:
-    return build_default_workflow()
+def default_workflow(db: Annotated[Session, Depends(get_db)]) -> WorkflowDefinition:
+    ensure_platform_registry(db)
+    row = latest_workflow(db, "growth-diagnostic")
+    if row is None:
+        return build_default_workflow()
+    return workflow_from_row(row)
+
+
+@app.get("/api/workflows")
+def workflow_list(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    ensure_platform_registry(db)
+    rows = (
+        db.query(WorkflowDefinitionRow)
+        .order_by(WorkflowDefinitionRow.id, WorkflowDefinitionRow.version.desc())
+        .all()
+    )
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "version": row.version,
+                "name": row.name,
+                "status": row.status,
+                "created_at": row.created_at,
+                "updated_at": row.updated_at,
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.get("/api/workflows/{workflow_id}/versions")
+def workflow_versions(
+    workflow_id: str,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    rows = (
+        db.query(WorkflowDefinitionRow)
+        .filter(WorkflowDefinitionRow.id == workflow_id)
+        .order_by(WorkflowDefinitionRow.version.desc())
+        .all()
+    )
+    return {"items": [workflow_from_row(row).model_dump(mode="json") for row in rows]}
+
+
+@app.get(
+    "/api/workflows/{workflow_id}/versions/{version}",
+    response_model=WorkflowDefinition,
+)
+def workflow_version_detail(
+    workflow_id: str,
+    version: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> WorkflowDefinition:
+    row = db.get(WorkflowDefinitionRow, (workflow_id, version))
+    if row is None:
+        raise HTTPException(status_code=404, detail="Workflow version bulunamadı")
+    return workflow_from_row(row)
+
+
+@app.post("/api/workflows", response_model=WorkflowDefinition, status_code=201)
+def workflow_create(
+    workflow: WorkflowDefinition,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("analyst"))],
+) -> WorkflowDefinition:
+    try:
+        row = save_workflow_draft(db, workflow, None if actor is None else actor.id)
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="workflow.draft_created",
+        target_type="workflow_version",
+        target_id=f"{row.id}:{row.version}",
+    )
+    db.commit()
+    return workflow_from_row(row)
+
+
+@app.put("/api/workflows/{workflow_id}/draft", response_model=WorkflowDefinition)
+def workflow_draft_save(
+    workflow_id: str,
+    workflow: WorkflowDefinition,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("analyst"))],
+) -> WorkflowDefinition:
+    if workflow.id != workflow_id:
+        raise HTTPException(status_code=422, detail="Workflow ID payload ile eşleşmiyor")
+    try:
+        row = save_workflow_draft(db, workflow, None if actor is None else actor.id)
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="workflow.draft_saved",
+        target_type="workflow_version",
+        target_id=f"{row.id}:{row.version}",
+    )
+    db.commit()
+    return workflow_from_row(row)
+
+
+@app.post(
+    "/api/workflows/{workflow_id}/versions/{version}/clone",
+    response_model=WorkflowDefinition,
+    status_code=201,
+)
+def workflow_clone(
+    workflow_id: str,
+    version: int,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("analyst"))],
+    target_id: Annotated[str | None, Query(max_length=80)] = None,
+) -> WorkflowDefinition:
+    source = db.get(WorkflowDefinitionRow, (workflow_id, version))
+    if source is None:
+        raise HTTPException(status_code=404, detail="Workflow version bulunamadı")
+    try:
+        row = clone_workflow_version(
+            db,
+            source,
+            None if actor is None else actor.id,
+            target_id=target_id,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="workflow.version_cloned",
+        target_type="workflow_version",
+        target_id=f"{row.id}:{row.version}",
+        metadata={"source": f"{source.id}:{source.version}"},
+    )
+    db.commit()
+    return workflow_from_row(row)
 
 
 @app.post("/api/workflows/validate", response_model=WorkflowValidation)
@@ -1123,87 +1673,212 @@ def workflow_dry_run(
     return result
 
 
-@app.post("/api/workflows/run", status_code=202)
-def workflow_run(
-    workflow: WorkflowDefinition,
+@app.post("/api/workflows/{workflow_id}/versions/{version}/dry-run")
+def workflow_version_dry_run(
+    workflow_id: str,
+    version: int,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("analyst"))],
+) -> dict[str, Any]:
+    row = db.get(WorkflowDefinitionRow, (workflow_id, version))
+    if row is None:
+        raise HTTPException(status_code=404, detail="Workflow version bulunamadı")
+    result = run_workflow_locally(workflow_from_row(row))
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="workflow.version_dry_run",
+        target_type="workflow_version",
+        target_id=f"{workflow_id}:{version}",
+    )
+    db.commit()
+    return result
+
+
+@app.post(
+    "/api/workflows/{workflow_id}/versions/{version}/publish",
+    response_model=WorkflowDefinition,
+)
+def workflow_publish(
+    workflow_id: str,
+    version: int,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+) -> WorkflowDefinition:
+    row = db.get(WorkflowDefinitionRow, (workflow_id, version))
+    if row is None:
+        raise HTTPException(status_code=404, detail="Workflow draft bulunamadı")
+    try:
+        publish_workflow(db, row)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="workflow.version_published",
+        target_type="workflow_version",
+        target_id=f"{workflow_id}:{version}",
+    )
+    db.commit()
+    return workflow_from_row(row)
+
+
+@app.post("/api/workflows/{workflow_id}/versions/{version}/run", status_code=202)
+async def workflow_version_run(
+    workflow_id: str,
+    version: int,
     settings: Annotated[Settings, Depends(get_settings)],
     db: Annotated[Session, Depends(get_db)],
     actor: Annotated[User | None, Depends(require_role("analyst"))],
-    idempotency_key: Annotated[str, Query(min_length=8, max_length=180)],
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=180)],
 ) -> dict[str, Any]:
-    validation = validate_workflow(workflow)
-    if not validation.valid:
-        raise HTTPException(
-            status_code=422, detail=[item.model_dump() for item in validation.issues]
-        )
-    if not settings.enable_dbos:
-        response = {
-            "workflow_id": idempotency_key,
-            "status": "dry-run",
-            "result": run_workflow_locally(workflow),
-        }
-        record_audit(
+    row = db.get(WorkflowDefinitionRow, (workflow_id, version))
+    if row is None:
+        raise HTTPException(status_code=404, detail="Published workflow version bulunamadı")
+    try:
+        run = await start_persisted_workflow(
             db,
-            actor_id=None if actor is None else actor.id,
-            action="workflow.local_run",
-            target_type="workflow",
-            target_id=workflow.id,
-            metadata={"version": workflow.version, "idempotency_key": idempotency_key},
+            settings,
+            row,
+            idempotency_key,
+            None if actor is None else actor.id,
         )
-        db.commit()
-        return response
-    with SetWorkflowID(idempotency_key):
-        handle = DBOS.start_workflow(
-            durable_workflow_interpreter,
-            workflow.model_dump(mode="json"),
-            {"dry_run": False},
-        )
-    workflow_id = handle.get_workflow_id()
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    except Exception as error:
+        raise HTTPException(status_code=409, detail="Workflow run tamamlanamadı") from error
     record_audit(
         db,
         actor_id=None if actor is None else actor.id,
         action="workflow.started",
         target_type="workflow_run",
-        target_id=workflow_id,
-        metadata={"workflow_id": workflow.id, "version": workflow.version},
+        target_id=run.id,
+        metadata={"workflow_id": workflow_id, "version": version},
     )
     db.commit()
-    return {"workflow_id": workflow_id, "status": "started"}
+    return {"run_id": run.id, "status": run.status, "current_step": run.current_step}
 
 
-@app.post("/api/workflows/{workflow_id}/approval", status_code=202)
-def workflow_approval(
+@app.post("/api/workflows/{workflow_id}/versions/{version}/schedules", status_code=201)
+def workflow_schedule_create(
     workflow_id: str,
+    version: int,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+    cron: Annotated[str, Query(min_length=9, max_length=120)],
+    timezone: Annotated[str, Query(min_length=3, max_length=80)] = "Europe/Istanbul",
+) -> dict[str, Any]:
+    workflow = db.get(WorkflowDefinitionRow, (workflow_id, version))
+    if workflow is None:
+        raise HTTPException(status_code=404, detail="Workflow version bulunamadı")
+    try:
+        row = create_schedule(
+            db,
+            workflow,
+            cron,
+            timezone,
+            None if actor is None else actor.id,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="workflow.schedule_created",
+        target_type="workflow_schedule",
+        target_id=row.id,
+        metadata={"workflow_id": workflow_id, "version": version},
+    )
+    db.commit()
+    return {
+        "id": row.id,
+        "workflow_id": row.workflow_id,
+        "workflow_version": row.workflow_version,
+        "cron": row.cron,
+        "timezone": row.timezone,
+        "enabled": row.enabled,
+    }
+
+
+@app.get("/api/workflow-schedules")
+def workflow_schedules(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    rows = db.query(WorkflowSchedule).order_by(WorkflowSchedule.created_at.desc()).all()
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "workflow_id": row.workflow_id,
+                "workflow_version": row.workflow_version,
+                "cron": row.cron,
+                "timezone": row.timezone,
+                "enabled": row.enabled,
+                "last_fire_key": row.last_fire_key,
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.get("/api/approvals")
+def approval_list(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    rows = db.query(ApprovalRequest).order_by(ApprovalRequest.expires_at.desc()).all()
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "run_id": row.run_id,
+                "kind": row.kind,
+                "status": row.status,
+                "artifact_uri": row.artifact_uri,
+                "requested_role": row.requested_role,
+                "candidate_id": row.candidate_id,
+                "decision_by": row.decision_by,
+                "decision_reason": row.decision_reason,
+                "expires_at": row.expires_at,
+                "decided_at": row.decided_at,
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.post("/api/approvals/{approval_id}/decision")
+async def approval_decision(
+    approval_id: str,
     settings: Annotated[Settings, Depends(get_settings)],
     db: Annotated[Session, Depends(get_db)],
     actor: Annotated[User | None, Depends(require_role("approver"))],
     decision: Annotated[str, Query(pattern="^(approved|rejected)$")],
-    node_id: Annotated[str, Query(min_length=2, max_length=64)] = "approval",
-    reason: Annotated[str, Query(min_length=3, max_length=500)] = "Reviewed in MVP console",
-) -> dict[str, str]:
-    if not settings.enable_dbos:
-        raise HTTPException(status_code=409, detail="DBOS runtime bu profilde kapalı")
-    DBOS.send(
-        workflow_id,
-        {
-            "decision": decision,
-            "actor_role": "approver",
-            "actor_id": None if actor is None else actor.id,
-            "reason": reason,
-        },
-        topic=f"approval:{node_id}",
-        idempotency_key=f"{workflow_id}:{node_id}:{decision}",
-    )
+    reason: Annotated[str, Query(min_length=8, max_length=500)],
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=180)],
+) -> dict[str, Any]:
+    approval = db.get(ApprovalRequest, approval_id)
+    if approval is None:
+        raise HTTPException(status_code=404, detail="Approval bulunamadı")
+    try:
+        run, qmd = await decide_persisted_approval(
+            db,
+            settings,
+            approval,
+            decision=decision,
+            reason=reason,
+            actor_id=None if actor is None else actor.id,
+            idempotency_key=idempotency_key,
+        )
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except (ValueError, RuntimeError) as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
     record_audit(
         db,
         actor_id=None if actor is None else actor.id,
-        action=f"workflow.approval_{decision}",
-        target_type="workflow_run",
-        target_id=workflow_id,
-        metadata={"node_id": node_id, "reason": reason},
+        action=f"approval.{decision}",
+        target_type="approval_request",
+        target_id=approval_id,
+        metadata={"run_id": run.id, "reason": reason, "qmd": qmd},
     )
     db.commit()
-    return {"workflow_id": workflow_id, "decision": decision}
+    return {"approval_id": approval_id, "decision": decision, "run_status": run.status, "qmd": qmd}
 
 
 static_dir = Path(settings.static_dir)

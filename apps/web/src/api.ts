@@ -3,9 +3,14 @@ import type {
   DataSourceView,
   FilePreview,
   GrowthDiagnostic,
+  OKFCandidateView,
+  ApprovalView,
+  SetupProgress,
   SetupStatus,
   SourceSyncRunView,
+  UserView,
   WorkflowDefinition,
+  WorkflowRunView,
 } from "./types";
 
 let csrfToken: string | null = null;
@@ -56,6 +61,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   setupStatus: () => request<SetupStatus>("/api/setup/status"),
+  setupProgress: () => request<SetupProgress>("/api/setup/progress"),
+  saveSetupProgress: (payload: Omit<SetupProgress, "updated_at">) =>
+    request<SetupProgress>("/api/setup/progress", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
   me: () => request<AuthSession>("/api/auth/me").then(rememberSession),
   bootstrap: (payload: { token: string; email: string; name: string; password: string }) =>
     request<AuthSession>("/api/auth/bootstrap", {
@@ -86,14 +97,65 @@ export const api = {
     headers: { "Idempotency-Key": `diagnostic-${crypto.randomUUID()}` },
   }),
   workflow: () => request<WorkflowDefinition>("/api/workflows/default"),
+  cloneWorkflow: (workflow: WorkflowDefinition) =>
+    request<WorkflowDefinition>(
+      `/api/workflows/${encodeURIComponent(workflow.id)}/versions/${workflow.version}/clone`,
+      { method: "POST" },
+    ),
+  saveWorkflow: (workflow: WorkflowDefinition) =>
+    request<WorkflowDefinition>(`/api/workflows/${encodeURIComponent(workflow.id)}/draft`, {
+      method: "PUT",
+      body: JSON.stringify(workflow),
+    }),
   validateWorkflow: (workflow: WorkflowDefinition) =>
     request<{ valid: boolean; issues: Array<{ message: string }> }>("/api/workflows/validate", {
       method: "POST",
       body: JSON.stringify(workflow),
     }),
+  dryRunWorkflow: (workflow: WorkflowDefinition) =>
+    request<Record<string, unknown>>("/api/workflows/dry-run", {
+      method: "POST",
+      body: JSON.stringify(workflow),
+    }),
+  publishWorkflow: (workflow: WorkflowDefinition) =>
+    request<WorkflowDefinition>(
+      `/api/workflows/${encodeURIComponent(workflow.id)}/versions/${workflow.version}/publish`,
+      { method: "POST" },
+    ),
+  runWorkflow: (workflow: WorkflowDefinition) =>
+    request<{ run_id: string; status: string; current_step?: string }>(
+      `/api/workflows/${encodeURIComponent(workflow.id)}/versions/${workflow.version}/run`,
+      {
+        method: "POST",
+        headers: { "Idempotency-Key": `workflow-${crypto.randomUUID()}` },
+      },
+    ),
   knowledge: (query = "") =>
     request<{ items: Array<Record<string, unknown>> }>(`/api/knowledge?query=${encodeURIComponent(query)}`),
   setupDemo: () => request<Record<string, unknown>>("/api/setup/demo", { method: "POST" }),
+  syncDemoSource: () => request<{ total_records: number; sources: Array<{ source_id: string; records: number }> }>("/api/sources/demo/sync", { method: "POST" }),
+  validateOkf: () => request<{ valid: boolean; errors: unknown[]; warnings: unknown[] }>("/api/okf/validate"),
+  okfCandidates: () => request<{ items: OKFCandidateView[] }>("/api/okf/candidates"),
+  candidateDiff: (candidateId: string) => request<{ diff: string; status: string }>(`/api/okf/candidates/${encodeURIComponent(candidateId)}/diff`),
+  decideCandidate: (candidateId: string, decision: "approved" | "rejected", reason: string) =>
+    request<{ status: string; revision: string; qmd: string }>(
+      `/api/okf/candidates/${encodeURIComponent(candidateId)}/decision?decision=${decision}&reason=${encodeURIComponent(reason)}`,
+      { method: "POST" },
+    ),
+  approvals: () => request<{ items: ApprovalView[] }>("/api/approvals"),
+  decideApproval: (approvalId: string, decision: "approved" | "rejected", reason: string) =>
+    request<{ run_status: string; qmd: string }>(
+      `/api/approvals/${encodeURIComponent(approvalId)}/decision?decision=${decision}&reason=${encodeURIComponent(reason)}`,
+      { method: "POST", headers: { "Idempotency-Key": `approval-${crypto.randomUUID()}` } },
+    ),
+  runs: () => request<{ items: WorkflowRunView[] }>("/api/runs"),
+  runDetail: (runId: string) => request<Record<string, unknown>>(`/api/runs/${encodeURIComponent(runId)}`),
+  evidence: (evidenceId: string) => request<Record<string, unknown>>(`/api/evidence/${encodeURIComponent(evidenceId)}`),
+  agents: () => request<{ items: Array<Record<string, unknown>> }>("/api/agents"),
+  capabilities: () => request<{ items: Array<Record<string, unknown>> }>("/api/capabilities"),
+  users: () => request<{ items: Array<UserView & { active: boolean; created_at: string }> }>("/api/users"),
+  createUser: (payload: { email: string; name: string; password: string; roles: string[] }) =>
+    request<UserView>("/api/users", { method: "POST", body: JSON.stringify(payload) }),
   sources: () => request<{ items: DataSourceView[] }>("/api/sources"),
   sourceSyncRuns: () => request<{ items: SourceSyncRunView[] }>("/api/sources/sync-runs"),
   previewSourceFile: (file: File, entityType: string) => {

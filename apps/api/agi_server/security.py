@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hmac
 import secrets
-from typing import Annotated
+from typing import Annotated, Literal
 
 from argon2 import PasswordHasher
 from fastapi import Depends, HTTPException, Request, status
@@ -26,6 +26,21 @@ class BootstrapRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+RoleName = Literal["admin", "analyst", "approver"]
+
+
+class UserCreateRequest(BaseModel):
+    email: EmailStr
+    name: str = Field(min_length=2, max_length=120)
+    password: str = Field(min_length=12, max_length=256)
+    roles: list[RoleName] = Field(min_length=1, max_length=3)
+
+
+class UserRolesRequest(BaseModel):
+    roles: list[RoleName] = Field(min_length=1, max_length=3)
+    active: bool = True
 
 
 class UserView(BaseModel):
@@ -105,6 +120,21 @@ def authenticate(payload: LoginRequest, db: Session) -> User:
         password_hasher.verify(user.password_hash, payload.password)
     except Exception as error:
         raise HTTPException(status_code=401, detail="E-posta veya parola hatalı") from error
+    return user
+
+
+def create_user(payload: UserCreateRequest, db: Session) -> User:
+    email = str(payload.email).lower()
+    if db.scalar(select(User.id).where(User.email == email)):
+        raise HTTPException(status_code=409, detail="Bu e-posta zaten kullanılıyor")
+    user = User(
+        email=email,
+        name=payload.name,
+        password_hash=password_hasher.hash(payload.password),
+        roles=sorted(set(payload.roles)),
+    )
+    db.add(user)
+    db.flush()
     return user
 
 
