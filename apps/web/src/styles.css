@@ -27,6 +27,20 @@ button, input, textarea, select { font: inherit; }
 button { color: inherit; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #0a8d96; outline-offset: 2px; }
 
+.auth-page { display: grid; min-height: 100vh; place-items: center; padding: 28px; background: radial-gradient(circle at 25% 15%, #e7f5f5 0, transparent 35%), #f4f7f9; }
+.auth-card { width: min(480px, 100%); overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: white; box-shadow: 0 24px 70px rgb(16 33 63 / 12%); }
+.auth-card .brand { position: static; }
+.auth-card__body { padding: 34px; }
+.auth-card__body h1 { margin: 4px 0 10px; font-size: 30px; letter-spacing: -1px; }
+.auth-card__body > p { color: var(--muted); line-height: 1.5; }
+.auth-eyebrow { margin: 0; color: var(--teal) !important; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.auth-card form { display: grid; gap: 14px; margin-top: 25px; }
+.auth-card label { display: grid; gap: 7px; color: #32425b; font-size: 12px; font-weight: 600; }
+.auth-card input { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid #cdd6e0; border-radius: 7px; }
+.auth-card .primary-button { min-height: 44px; margin-top: 6px; }
+.auth-error { padding: 12px 14px; border: 1px solid #e5c2bf; border-radius: 7px; background: #fff3f2; color: #a92e26; font-size: 12px; }
+.auth-mode { margin-top: 16px; padding: 0; border: 0; background: transparent; color: var(--teal); font-size: 12px; cursor: pointer; }
+
 .app-shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; }
 .app-main { min-width: 0; min-height: 100vh; }
 

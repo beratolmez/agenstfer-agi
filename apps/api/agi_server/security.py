@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+import secrets
 from typing import Annotated
 
 from argon2 import PasswordHasher
@@ -38,6 +39,38 @@ class UserView(BaseModel):
         return cls(id=user.id, email=user.email, name=user.name, roles=user.roles)
 
 
+class AuthSessionView(BaseModel):
+    user: UserView | None
+    csrf_token: str | None
+
+
+def record_audit(
+    db: Session,
+    *,
+    actor_id: str | None,
+    action: str,
+    target_type: str,
+    target_id: str | None = None,
+    metadata: dict | None = None,
+) -> None:
+    db.add(
+        AuditEvent(
+            actor_id=actor_id,
+            action=action,
+            target_type=target_type,
+            target_id=target_id,
+            metadata_json=metadata or {},
+        )
+    )
+
+
+def start_session(request: Request, user: User) -> AuthSessionView:
+    csrf_token = secrets.token_urlsafe(32)
+    request.session.clear()
+    request.session.update({"user_id": user.id, "csrf_token": csrf_token})
+    return AuthSessionView(user=UserView.from_row(user), csrf_token=csrf_token)
+
+
 def bootstrap_admin(payload: BootstrapRequest, db: Session, settings: Settings) -> User:
     if db.scalar(select(func.count()).select_from(User)):
         raise HTTPException(status_code=409, detail="İlk admin daha önce oluşturulmuş")
@@ -51,8 +84,12 @@ def bootstrap_admin(payload: BootstrapRequest, db: Session, settings: Settings) 
     )
     db.add(user)
     db.flush()
-    db.add(
-        AuditEvent(actor_id=user.id, action="auth.bootstrap", target_type="user", target_id=user.id)
+    record_audit(
+        db,
+        actor_id=user.id,
+        action="auth.bootstrap",
+        target_type="user",
+        target_id=user.id,
     )
     db.commit()
     return user
@@ -78,7 +115,10 @@ def current_user(
 ) -> User | None:
     user_id = request.session.get("user_id")
     if user_id:
-        return db.get(User, user_id)
+        user = db.get(User, user_id)
+        if user and user.active:
+            return user
+        request.session.clear()
     if settings.demo_no_auth:
         return None
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Oturum gerekli")

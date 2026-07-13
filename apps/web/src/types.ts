@@ -71,3 +71,22 @@ export interface WorkflowDefinition {
   edges: WorkflowEdgeDto[];
 }
 
+export interface UserView {
+  id: string;
+  email: string;
+  name: string;
+  roles: string[];
+}
+
+export interface AuthSession {
+  user: UserView | null;
+  csrf_token: string | null;
+}
+
+export interface SetupStatus {
+  steps: string[];
+  demo_available: boolean;
+  bootstrap_required: boolean;
+  auth_enabled: boolean;
+  cloud_models_enabled: boolean;
+}

@@ -33,6 +33,8 @@ cp .env.example .env
 docker compose up --build
 ```
 
+İlk çalıştırmadan önce `.env` içindeki bootstrap token, session secret, master key ve PostgreSQL parolasını değiştirin. Daha önce yalnız PostgreSQL alanlarıyla oluşturulmuş bir development `.env` kullanıyorsanız geçici fallback bootstrap token `local-bootstrap-token` olur; ilk kullanıcıyı oluşturmadan önce bunu özel bir değerle değiştirip app'i yeniden başlatmanız önerilir.
+
 Web arayüzü: `http://localhost:8080`  
 API dokümanı: `http://localhost:8080/api/docs`
 
@@ -43,6 +45,14 @@ docker compose exec ollama ollama pull qwen3.5:9b
 ```
 
 Yerel geliştirmede Ollama olmadan sentetik/deterministik demo çalışır.
+
+Kimlik doğrulamayı yalnız açık bir development override ile bypass etmek için:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+```
+
+Bu override production ortamında kullanılmamalıdır.
 
 ### Geçici cloud model (Groq veya Mistral)
 

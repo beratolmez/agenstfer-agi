@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Building2, ChevronDown, Server } from "lucide-react";
+import { Building2, LogOut, Server } from "lucide-react";
 import { api } from "../api";
+import type { UserView } from "../types";
 
-export function Topbar() {
+export function Topbar({ user, onLogout }: { user: UserView; onLogout: () => Promise<void> }) {
   const [model, setModel] = useState<{ ready: boolean; profile: string; provider: string; model?: string; local?: boolean; message: string } | null>(null);
   useEffect(() => {
     api.modelStatus().then(setModel).catch(() => setModel({ ready: false, profile: "unknown", provider: "unknown", message: "Model durumu alınamadı" }));
@@ -13,7 +14,6 @@ export function Topbar() {
       <button className="topbar__company" type="button">
         <Building2 size={18} />
         <span>Anka Endüstriyel Otomasyon</span>
-        <ChevronDown size={16} />
       </button>
       <div className="topbar__right">
         <div className="model-status">
@@ -21,10 +21,10 @@ export function Topbar() {
           <span><strong>{label}: {model?.ready ? "Hazır" : "Kontrol bekliyor"}</strong><small>{model?.ready ? `${model.profile} · ${model.provider}` : (model?.message ?? "Bağlanıyor…")}</small></span>
         </div>
         <Server size={19} className="topbar__server" />
-        <button className="user-menu" type="button">
-          <span className="avatar">MK</span>
-          <span><strong>Mehmet Kaya</strong><small>Yönetici</small></span>
-          <ChevronDown size={15} />
+        <button className="user-menu" type="button" onClick={onLogout} title="Oturumu kapat">
+          <span className="avatar">{user.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</span>
+          <span><strong>{user.name}</strong><small>{user.roles.join(" · ")}</small></span>
+          <LogOut size={15} />
         </button>
       </div>
     </header>

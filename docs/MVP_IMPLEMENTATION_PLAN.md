@@ -22,13 +22,13 @@ Exit: a new engineer can identify implemented, simulated, disabled, and missing 
 
 ## Phase 1 — Trustworthy platform foundation
 
-- Replace startup `create_all()` with mandatory explicit Alembic migrations.
-- Implement bootstrap/login/logout/current-user UI and API behavior.
-- Disable demo auth in standard Compose and reject default production secrets.
-- Protect non-public routes with session auth, roles, and CSRF.
-- Audit material mutations and approval/configuration events.
-- Query PostgreSQL in readiness checks and report qmd/model readiness separately.
-- Return structured API errors with request IDs.
+- [x] Replace startup `create_all()` with mandatory explicit Alembic migrations.
+- [x] Implement bootstrap/login/logout/current-user UI and API behavior.
+- [x] Disable demo auth in standard Compose and reject default production secrets.
+- [x] Protect non-public routes with session auth, roles, and CSRF.
+- [x] Audit current material mutations and approval/authentication events.
+- [x] Query PostgreSQL in readiness checks and report qmd/model readiness separately.
+- [x] Return structured API errors with request IDs.
 
 Exit: a clean deployment migrates, bootstraps one admin, enforces roles/CSRF, and records security-relevant operations.
 

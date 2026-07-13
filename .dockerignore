@@ -8,5 +8,5 @@ data
 **/dist
 **/__pycache__
 **/*.pyc
+**/*.egg-info
 docs/design/*.png
-

@@ -6,6 +6,7 @@ services:
     env_file: .env
     environment:
       AGI_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-agi}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-agi}
+      AGI_DEMO_NO_AUTH: "false"
       AGI_ENABLE_DBOS: "true"
       AGI_KNOWLEDGE_ROOT: /data/knowledge
       AGI_OLLAMA_BASE_URL: http://ollama:11434/v1

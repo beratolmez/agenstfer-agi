@@ -13,7 +13,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 10001 agi
 COPY --from=ghcr.io/astral-sh/uv:0.11.17 /uv /uvx /bin/
-COPY pyproject.toml uv.lock README.md ./
+COPY pyproject.toml uv.lock README.md alembic.ini ./
 COPY apps/api/ ./apps/api/
 RUN uv sync --frozen --no-dev --no-install-project && uv pip install --no-deps .
 COPY --from=web /build/apps/web/dist ./apps/web/dist

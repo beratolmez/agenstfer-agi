@@ -1,0 +1,6 @@
+services:
+  app:
+    environment:
+      # Explicit convenience override. Never use this overlay in production.
+      AGI_DEMO_NO_AUTH: "true"
+      AGI_ENABLE_DBOS: "false"

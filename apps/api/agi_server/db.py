@@ -147,10 +147,6 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
-def init_db() -> None:
-    Base.metadata.create_all(engine)
-
-
 def get_db() -> Generator[Session, None, None]:
     with SessionLocal() as session:
         yield session
