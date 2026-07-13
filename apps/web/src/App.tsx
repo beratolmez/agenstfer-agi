@@ -6,6 +6,7 @@ import { Topbar } from "./components/Topbar";
 import { Dashboard } from "./features/dashboard/Dashboard";
 import { Knowledge } from "./features/knowledge/Knowledge";
 import { SetupWizard } from "./features/setup/SetupWizard";
+import { Sources } from "./features/sources/Sources";
 import type { SetupStatus, UserView } from "./types";
 
 const WorkflowEditor = lazy(() => import("./features/workflow/WorkflowEditor"));
@@ -69,7 +70,6 @@ function Placeholder({ view, onSetup }: { view: ViewId; onSetup: () => void }) {
   const titles: Partial<Record<ViewId, string>> = {
     opportunities: "Fırsatlar",
     approvals: "Onay Merkezi",
-    sources: "Veri Kaynakları",
     settings: "Ayarlar",
   };
   return (
@@ -133,7 +133,8 @@ export default function App() {
           </Suspense>
         ) : null}
         {view === "setup" ? <SetupWizard onComplete={() => navigate("dashboard")} /> : null}
-        {(["approvals", "sources", "settings"] as ViewId[]).includes(view) ? <Placeholder view={view} onSetup={() => navigate("setup")} /> : null}
+        {view === "sources" ? <Sources /> : null}
+        {(["approvals", "settings"] as ViewId[]).includes(view) ? <Placeholder view={view} onSetup={() => navigate("setup")} /> : null}
       </div>
     </div>
   );

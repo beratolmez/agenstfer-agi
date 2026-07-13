@@ -62,7 +62,7 @@ services:
     profiles: [search]
     build: ./infra/qmd
     environment:
-      QMD_COLLECTION_PATH: /knowledge
+      QMD_COLLECTION_PATH: /knowledge/bundles/company
       QMD_COLLECTION_NAME: company
     volumes:
       - knowledge_data:/knowledge:ro

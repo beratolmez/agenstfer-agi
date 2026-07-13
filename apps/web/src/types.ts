@@ -90,3 +90,37 @@ export interface SetupStatus {
   auth_enabled: boolean;
   cloud_models_enabled: boolean;
 }
+
+export interface DataSourceView {
+  id: string;
+  name: string;
+  connector_type: string;
+  read_only: boolean;
+  status: string;
+  updated_at: string;
+}
+
+export interface SourceSyncRunView {
+  id: string;
+  source_id: string;
+  status: string;
+  records_seen: number;
+  records_persisted: number;
+  warnings: string[];
+  started_at: string;
+  completed_at: string | null;
+}
+
+export interface FilePreview {
+  source_id: string;
+  filename: string;
+  bytes: number;
+  schema: { source_id: string; entities: Record<string, string[]> };
+  preview: Array<{
+    entity_type: string;
+    external_id: string;
+    data: Record<string, unknown>;
+    locator: Record<string, unknown>;
+  }>;
+  warnings: string[];
+}

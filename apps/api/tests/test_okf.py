@@ -1,3 +1,6 @@
+import io
+import stat
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -53,3 +56,21 @@ def test_zip_export_import_preserves_concepts_and_blocks_traversal(tmp_path: Pat
     assert [item.model_dump() for item in imported.list_concepts()] == [
         item.model_dump() for item in bundle.list_concepts()
     ]
+
+
+def test_zip_import_rejects_cumulative_limit_and_symlinks(tmp_path: Path):
+    cumulative = io.BytesIO()
+    with zipfile.ZipFile(cumulative, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("one.md", "a" * 120)
+        archive.writestr("two.md", "b" * 120)
+    with pytest.raises(ValueError, match="cumulative"):
+        FileSystemOKFBundle.import_zip(cumulative.getvalue(), tmp_path / "too-large", 220)
+
+    symlink = io.BytesIO()
+    with zipfile.ZipFile(symlink, "w") as archive:
+        info = zipfile.ZipInfo("link.md")
+        info.create_system = 3
+        info.external_attr = (stat.S_IFLNK | 0o777) << 16
+        archive.writestr(info, "target.md")
+    with pytest.raises(ValueError, match="symbolic"):
+        FileSystemOKFBundle.import_zip(symlink.getvalue(), tmp_path / "symlink")

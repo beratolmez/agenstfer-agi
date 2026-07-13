@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import json
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated, Any
 
 import httpx
 from dbos import DBOS, DBOSConfig, SetWorkflowID
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,17 +21,38 @@ from agi_server import __version__
 from agi_server.agents import AgentRegistry
 from agi_server.agents.model_gateway import resolve_model_profile
 from agi_server.config import Settings, get_settings
-from agi_server.db import User, engine, get_db
+from agi_server.connectors.files import MAX_FILE_BYTES, ReadOnlyTabularConnector
+from agi_server.db import (
+    DataSource,
+    OKFCandidate,
+    SourceMapping,
+    SourceSyncRun,
+    User,
+    engine,
+    get_db,
+)
 from agi_server.domain.demo import build_demo_dataset, demo_counts
 from agi_server.domain.diagnostic import build_growth_diagnostic
 from agi_server.http_security import RequestSecurityMiddleware
-from agi_server.ingestion import RawVault
+from agi_server.ingestion import (
+    list_sources,
+    resolve_evidence_excerpt,
+    sync_connector,
+    sync_demo_company,
+)
 from agi_server.migrations import run_migrations
 from agi_server.okf import FileSystemOKFBundle
-from agi_server.okf.compiler import compile_demo_bundle
 from agi_server.okf.git_repo import GitKnowledgeRepository
+from agi_server.okf.lifecycle import (
+    approve_candidate,
+    create_demo_candidate,
+    create_import_candidate,
+    ensure_active_repository,
+    reject_candidate,
+    request_qmd_reindex,
+)
 from agi_server.okf.search import KnowledgeSearch
-from agi_server.schemas import GrowthDiagnostic, HealthResponse
+from agi_server.schemas import GrowthDiagnostic, HealthResponse, SourceMappingRequest
 from agi_server.security import (
     AuthSessionView,
     BootstrapRequest,
@@ -53,8 +74,7 @@ from agi_server.workflow.runtime import durable_workflow_interpreter, run_workfl
 async def lifespan(_: FastAPI):
     run_migrations()
     settings = get_settings()
-    if not settings.company_bundle.joinpath("index.md").exists():
-        compile_demo_bundle(settings.company_bundle)
+    ensure_active_repository(settings.company_bundle)
     if settings.enable_dbos:
         DBOS.launch()
     yield
@@ -317,37 +337,43 @@ def setup_demo(
     db: Annotated[Session, Depends(get_db)],
     actor: Annotated[User | None, Depends(require_role("admin"))],
 ) -> dict[str, Any]:
-    bundle = compile_demo_bundle(settings.company_bundle)
+    ingestion = sync_demo_company(db, settings.raw_root)
     dataset = build_demo_dataset()
-    snapshot = RawVault(settings.knowledge_root / "raw").store(
-        "src-demo-company",
-        "dataset.json",
-        json.dumps(dataset, ensure_ascii=False, sort_keys=True).encode("utf-8"),
-        "demo-company",
+    candidate, diff = create_demo_candidate(
+        db,
+        settings.company_bundle,
+        settings.candidates_root,
+        None if actor is None else actor.id,
     )
-    report = bundle.validate()
     record_audit(
         db,
         actor_id=None if actor is None else actor.id,
-        action="setup.demo_compiled",
-        target_type="okf_bundle",
-        target_id="company",
-        metadata={"snapshot_sha256": snapshot.sha256},
+        action="setup.demo_candidate_created",
+        target_type="okf_candidate",
+        target_id=candidate.id,
+        metadata={
+            "sources": [item.source_id for item in ingestion.sources],
+            "records": ingestion.total_records,
+        },
     )
     db.commit()
     return {
         "company": "Anka Endüstriyel Otomasyon",
         "counts": demo_counts(dataset).model_dump(),
-        "bundle": str(bundle.root),
-        "okf_valid": report.valid,
-        "warnings": len(report.warnings),
-        "raw_snapshot_sha256": snapshot.sha256,
+        "active_bundle": str(settings.company_bundle),
+        "candidate_id": candidate.id,
+        "candidate_status": candidate.status,
+        "okf_valid": not candidate.validation_report.get("errors"),
+        "warnings": len(candidate.validation_report.get("warnings", [])),
+        "sources": [item.model_dump(mode="json") for item in ingestion.sources],
+        "records_persisted": ingestion.total_records,
+        "diff": diff,
     }
 
 
 @app.get("/api/dashboard", response_model=GrowthDiagnostic)
-def dashboard() -> GrowthDiagnostic:
-    return build_growth_diagnostic()
+def dashboard(db: Annotated[Session, Depends(get_db)]) -> GrowthDiagnostic:
+    return build_growth_diagnostic(db)
 
 
 @app.post("/api/diagnostics/run", response_model=GrowthDiagnostic)
@@ -356,7 +382,7 @@ def run_diagnostic(
     actor: Annotated[User | None, Depends(require_role("analyst"))],
 ) -> GrowthDiagnostic:
     # The current vertical slice is deterministic; DBOS/Pydantic AI are plugged in by Phase 3/4.
-    result = build_growth_diagnostic()
+    result = build_growth_diagnostic(db)
     record_audit(
         db,
         actor_id=None if actor is None else actor.id,
@@ -369,14 +395,254 @@ def run_diagnostic(
     return result
 
 
+@app.get("/api/sources")
+def sources_list(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    return {
+        "items": [
+            {
+                "id": source.id,
+                "name": source.name,
+                "connector_type": source.connector_type,
+                "read_only": source.read_only,
+                "status": source.status,
+                "updated_at": source.updated_at,
+            }
+            for source in list_sources(db)
+        ]
+    }
+
+
+@app.get("/api/sources/sync-runs")
+def source_sync_runs(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    rows = db.query(SourceSyncRun).order_by(SourceSyncRun.started_at.desc()).limit(100).all()
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "source_id": row.source_id,
+                "status": row.status,
+                "records_seen": row.records_seen,
+                "records_persisted": row.records_persisted,
+                "warnings": row.warnings,
+                "started_at": row.started_at,
+                "completed_at": row.completed_at,
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.post("/api/sources/demo/sync")
+def source_demo_sync(
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+) -> dict[str, Any]:
+    summary = sync_demo_company(db, settings.raw_root)
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="source.demo_synced",
+        target_type="data_source",
+        target_id="src-demo-company",
+        metadata={"records": summary.total_records},
+    )
+    db.commit()
+    return summary.model_dump(mode="json")
+
+
+@app.post("/api/sources/files/preview", status_code=201)
+async def source_file_preview(
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+    file: Annotated[UploadFile, File(...)],
+    entity_type: Annotated[
+        str, Query(min_length=2, max_length=60, pattern=r"^[a-z][a-z0-9_]*$")
+    ] = "accounts",
+) -> dict[str, Any]:
+    original_name = Path(file.filename or "").name
+    suffix = Path(original_name).suffix.lower()
+    if suffix not in {".csv", ".xlsx"}:
+        raise HTTPException(status_code=422, detail="Yalnız CSV/XLSX destekleniyor")
+    source_id = f"src-file-{uuid.uuid4()}"
+    settings.uploads_root.mkdir(parents=True, exist_ok=True)
+    upload_path = (settings.uploads_root / f"{source_id}{suffix}").resolve()
+    if not upload_path.is_relative_to(settings.uploads_root.resolve()):
+        raise HTTPException(status_code=400, detail="Geçersiz dosya yolu")
+    written = 0
+    try:
+        with upload_path.open("xb") as handle:
+            while chunk := await file.read(1024 * 1024):
+                written += len(chunk)
+                if written > MAX_FILE_BYTES:
+                    raise HTTPException(status_code=413, detail="Dosya 25 MB sınırını aşıyor")
+                handle.write(chunk)
+        connector = ReadOnlyTabularConnector(upload_path, source_id, entity_type)
+        health = connector.test_connection()
+        if not health.ok:
+            raise HTTPException(status_code=422, detail=health.message)
+        schema = connector.discover_schema()
+        preview, warnings = connector.preview_with_warnings()
+    except Exception:
+        upload_path.unlink(missing_ok=True)
+        raise
+    finally:
+        await file.close()
+
+    source = DataSource(
+        id=source_id,
+        name=original_name,
+        connector_type="tabular-file",
+        configuration={
+            "upload_path": str(upload_path.relative_to(settings.knowledge_root.resolve())),
+            "original_filename": original_name,
+            "entity_type": entity_type,
+            "classification": "internal",
+        },
+        read_only=True,
+        status="previewed",
+    )
+    db.add(source)
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="source.file_previewed",
+        target_type="data_source",
+        target_id=source_id,
+        metadata={"filename": original_name, "bytes": written},
+    )
+    db.commit()
+    return {
+        "source_id": source_id,
+        "filename": original_name,
+        "bytes": written,
+        "schema": schema.model_dump(mode="json"),
+        "preview": [item.model_dump(mode="json") for item in preview],
+        "warnings": warnings,
+    }
+
+
+@app.post("/api/sources/{source_id}/mapping", status_code=201)
+def source_mapping_create(
+    source_id: str,
+    payload: SourceMappingRequest,
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+) -> dict[str, Any]:
+    source = db.get(DataSource, source_id)
+    if source is None or source.connector_type != "tabular-file":
+        raise HTTPException(status_code=404, detail="Dosya kaynağı bulunamadı")
+    if "id" not in payload.field_mapping:
+        raise HTTPException(status_code=422, detail="Mapping canonical 'id' alanını içermelidir")
+    upload_path = (settings.knowledge_root / source.configuration["upload_path"]).resolve()
+    connector = ReadOnlyTabularConnector(upload_path, source_id, payload.entity_type)
+    available = set(connector.discover_schema().entities[payload.entity_type])
+    unknown = sorted(set(payload.field_mapping.values()) - available)
+    if unknown:
+        raise HTTPException(status_code=422, detail={"unknown_source_fields": unknown})
+    latest = (
+        db.query(SourceMapping)
+        .filter(SourceMapping.source_id == source_id)
+        .order_by(SourceMapping.version.desc())
+        .first()
+    )
+    version = 1 if latest is None else latest.version + 1
+    mapping = SourceMapping(
+        source_id=source_id,
+        version=version,
+        entity_type=payload.entity_type,
+        field_mapping=payload.field_mapping,
+        validation={"classification": payload.classification, "required": ["id"]},
+        created_by=None if actor is None else actor.id,
+    )
+    db.add(mapping)
+    source.configuration = {
+        **source.configuration,
+        "entity_type": payload.entity_type,
+        "classification": payload.classification,
+    }
+    source.status = "mapped"
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="source.mapping_created",
+        target_type="source_mapping",
+        target_id=f"{source_id}:{version}",
+        metadata={"entity_type": payload.entity_type, "fields": sorted(payload.field_mapping)},
+    )
+    db.commit()
+    return {
+        "source_id": source_id,
+        "version": version,
+        "entity_type": payload.entity_type,
+        "field_mapping": payload.field_mapping,
+        "classification": payload.classification,
+    }
+
+
+@app.post("/api/sources/{source_id}/sync")
+def source_file_sync(
+    source_id: str,
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+) -> dict[str, Any]:
+    source = db.get(DataSource, source_id)
+    if source is None or source.connector_type != "tabular-file":
+        raise HTTPException(status_code=404, detail="Dosya kaynağı bulunamadı")
+    mapping = (
+        db.query(SourceMapping)
+        .filter(SourceMapping.source_id == source_id)
+        .order_by(SourceMapping.version.desc())
+        .first()
+    )
+    if mapping is None:
+        raise HTTPException(status_code=409, detail="Kaynak sync öncesinde map edilmelidir")
+    upload_path = (settings.knowledge_root / source.configuration["upload_path"]).resolve()
+    if not upload_path.is_relative_to(settings.uploads_root.resolve()):
+        raise HTTPException(status_code=409, detail="Kaynak dosya yolu geçersiz")
+    connector = ReadOnlyTabularConnector(
+        upload_path,
+        source_id,
+        mapping.entity_type,
+        field_mapping=mapping.field_mapping,
+    )
+    summary = sync_connector(db, connector, settings.raw_root)
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="source.file_synced",
+        target_type="data_source",
+        target_id=source_id,
+        metadata={"records": summary.total_records, "mapping_version": mapping.version},
+    )
+    db.commit()
+    return summary.model_dump(mode="json")
+
+
 @app.get("/api/okf/validate")
 def validate_okf(settings: Annotated[Settings, Depends(get_settings)]) -> dict[str, Any]:
     return FileSystemOKFBundle(settings.company_bundle).validate().model_dump()
 
 
 @app.get("/api/okf/export")
-def export_okf(settings: Annotated[Settings, Depends(get_settings)]) -> Response:
+def export_okf(
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("analyst"))],
+) -> Response:
     payload = FileSystemOKFBundle(settings.company_bundle).export_zip()
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="okf.exported",
+        target_type="okf_revision",
+        target_id=GitKnowledgeRepository(settings.company_bundle).ensure_baseline(),
+        metadata={"bytes": len(payload)},
+    )
+    db.commit()
     return Response(
         payload,
         media_type="application/zip",
@@ -384,34 +650,183 @@ def export_okf(settings: Annotated[Settings, Depends(get_settings)]) -> Response
     )
 
 
-@app.get("/api/okf/diff")
-def okf_diff(settings: Annotated[Settings, Depends(get_settings)]) -> dict[str, str]:
+@app.post("/api/okf/import", status_code=201)
+async def import_okf(
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+    file: Annotated[UploadFile, File(...)],
+) -> dict[str, Any]:
+    payload = await file.read(50_000_001)
+    await file.close()
+    if len(payload) > 50_000_000:
+        raise HTTPException(status_code=413, detail="OKF archive 50 MB sınırını aşıyor")
+    try:
+        candidate, diff = create_import_candidate(
+            db,
+            settings.company_bundle,
+            settings.candidates_root,
+            None if actor is None else actor.id,
+            payload,
+        )
+    except (ValueError, OSError) as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="okf.import_candidate_created",
+        target_type="okf_candidate",
+        target_id=candidate.id,
+        metadata={"archive_bytes": len(payload)},
+    )
+    db.commit()
+    return {
+        "candidate_id": candidate.id,
+        "status": candidate.status,
+        "validation_report": candidate.validation_report,
+        "diff": diff,
+    }
+
+
+@app.get("/api/okf/candidates")
+def okf_candidates(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    rows = db.query(OKFCandidate).order_by(OKFCandidate.created_at.desc()).limit(100).all()
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "status": row.status,
+                "base_revision": row.base_revision,
+                "candidate_revision": row.candidate_revision,
+                "validation_report": row.validation_report,
+                "created_by": row.created_by,
+                "created_at": row.created_at,
+                "expires_at": row.expires_at,
+                "decided_by": row.decided_by,
+                "decided_at": row.decided_at,
+                "decision_reason": row.decision_reason,
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.get("/api/okf/candidates/{candidate_id}/diff")
+def okf_candidate_diff(
+    candidate_id: str,
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, str]:
+    row = db.get(OKFCandidate, candidate_id)
+    if row is None or not row.candidate_revision:
+        raise HTTPException(status_code=404, detail="OKF candidate bulunamadı")
     repository = GitKnowledgeRepository(settings.company_bundle)
-    return {"diff": repository.diff()}
+    return {
+        "candidate_id": candidate_id,
+        "status": row.status,
+        "diff": repository.candidate_diff(row.base_revision, row.candidate_revision),
+    }
+
+
+@app.get("/api/okf/diff")
+def okf_diff(
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, str]:
+    row = (
+        db.query(OKFCandidate)
+        .filter(OKFCandidate.status == "pending")
+        .order_by(OKFCandidate.created_at.desc())
+        .first()
+    )
+    if row is None or not row.candidate_revision:
+        return {"candidate_id": "", "status": "none", "diff": ""}
+    return {
+        "candidate_id": row.id,
+        "status": row.status,
+        "diff": GitKnowledgeRepository(settings.company_bundle).candidate_diff(
+            row.base_revision, row.candidate_revision
+        ),
+    }
+
+
+@app.post("/api/okf/candidates/{candidate_id}/decision")
+async def decide_okf_candidate(
+    candidate_id: str,
+    settings: Annotated[Settings, Depends(get_settings)],
+    actor: Annotated[User | None, Depends(require_role("approver"))],
+    db: Annotated[Session, Depends(get_db)],
+    decision: Annotated[str, Query(pattern="^(approved|rejected)$")],
+    reason: Annotated[str, Query(min_length=8, max_length=500)],
+) -> dict[str, str]:
+    actor_id = None if actor is None else actor.id
+    try:
+        if decision == "approved":
+            row, revision = approve_candidate(
+                db, settings.company_bundle, candidate_id, actor_id, reason
+            )
+            qmd = await request_qmd_reindex(settings.qmd_url)
+        else:
+            row = reject_candidate(db, candidate_id, actor_id, reason)
+            revision = row.base_revision
+            qmd = "unchanged"
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except (ValueError, RuntimeError) as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    record_audit(
+        db,
+        actor_id=actor_id,
+        action=f"okf.candidate_{decision}",
+        target_type="okf_candidate",
+        target_id=candidate_id,
+        metadata={"reason": reason, "revision": revision, "qmd": qmd},
+    )
+    db.commit()
+    return {
+        "candidate_id": candidate_id,
+        "status": row.status,
+        "revision": revision,
+        "qmd": qmd,
+    }
 
 
 @app.post("/api/okf/approve")
-def approve_okf_diff(
+async def approve_okf_diff(
     settings: Annotated[Settings, Depends(get_settings)],
     actor: Annotated[User | None, Depends(require_role("approver"))],
     db: Annotated[Session, Depends(get_db)],
     message: Annotated[str, Query(min_length=8, max_length=180)] = "Approve OKF candidate",
 ) -> dict[str, str]:
-    repository = GitKnowledgeRepository(settings.company_bundle)
+    candidate = (
+        db.query(OKFCandidate)
+        .filter(OKFCandidate.status == "pending")
+        .order_by(OKFCandidate.created_at.desc())
+        .first()
+    )
+    if candidate is None:
+        raise HTTPException(status_code=409, detail="Onaylanacak OKF adayı yok")
     try:
-        revision = repository.commit_approved(message)
-    except Exception as error:
-        raise HTTPException(status_code=409, detail="Onaylanacak OKF değişikliği yok") from error
+        candidate, revision = approve_candidate(
+            db,
+            settings.company_bundle,
+            candidate.id,
+            None if actor is None else actor.id,
+            message,
+        )
+    except (ValueError, RuntimeError) as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    qmd = await request_qmd_reindex(settings.qmd_url)
     record_audit(
         db,
         actor_id=None if actor is None else actor.id,
         action="okf.approved",
         target_type="okf_revision",
-        target_id=revision,
-        metadata={"message": message},
+        target_id=candidate.id,
+        metadata={"message": message, "revision": revision, "qmd": qmd},
     )
     db.commit()
-    return {"status": "approved", "revision": revision}
+    return {"status": "approved", "revision": revision, "qmd": qmd}
 
 
 @app.get("/api/knowledge")
@@ -455,11 +870,17 @@ def knowledge_concept(
 
 
 @app.get("/api/evidence/{evidence_id}")
-def evidence(evidence_id: str) -> dict[str, Any]:
-    for opportunity in build_growth_diagnostic().opportunities:
-        for item in opportunity.evidence:
-            if item.id == evidence_id:
-                return item.model_dump()
+def evidence(
+    evidence_id: str,
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    try:
+        resolved = resolve_evidence_excerpt(db, settings.raw_root, evidence_id)
+    except RuntimeError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    if resolved is not None:
+        return resolved
     raise HTTPException(status_code=404, detail="Evidence bulunamadı")
 
 

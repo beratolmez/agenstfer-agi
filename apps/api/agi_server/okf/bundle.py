@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import re
+import stat
 import zipfile
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -206,8 +207,8 @@ class FileSystemOKFBundle:
     def export_zip(self) -> bytes:
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            for path in sorted(self.root.rglob("*")):
-                if path.is_file():
+            for path in sorted(self.root.rglob("*.md")):
+                if path.is_file() and ".git" not in path.relative_to(self.root).parts:
                     archive.write(path, path.relative_to(self.root).as_posix())
         return buffer.getvalue()
 
@@ -220,12 +221,24 @@ class FileSystemOKFBundle:
         bundle = cls(destination)
         bundle.root.mkdir(parents=True, exist_ok=True)
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+            if len(archive.infolist()) > 10_000:
+                raise ValueError("OKF archive entry count limit exceeded")
+            total_size = 0
             for info in archive.infolist():
                 path = PurePosixPath(info.filename)
                 if path.is_absolute() or ".." in path.parts:
                     raise ValueError("OKF archive path traversal içeriyor")
                 if info.file_size > max_bytes:
                     raise ValueError("OKF archive entry boyut sınırını aşıyor")
+                if ".git" in path.parts:
+                    raise ValueError("OKF archive cannot contain Git internals")
+                if stat.S_ISLNK(info.external_attr >> 16):
+                    raise ValueError("OKF archive cannot contain symbolic links")
+                total_size += info.file_size
+                if total_size > max_bytes:
+                    raise ValueError("OKF archive cumulative size limit exceeded")
+                if not info.is_dir() and path.suffix.lower() != ".md":
+                    raise ValueError("OKF archive can only contain Markdown concepts")
                 target = bundle._safe_path(info.filename)
                 if info.is_dir():
                     target.mkdir(parents=True, exist_ok=True)

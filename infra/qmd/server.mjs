@@ -22,6 +22,16 @@ const server = http.createServer(async (request, response) => {
     response.end(JSON.stringify({ status: "ok", engine: "qmd" }));
     return;
   }
+  if (request.url === "/reindex" && request.method === "POST") {
+    try {
+      await qmd(["update"], 120000);
+      response.end(JSON.stringify({ status: "refreshed", collection }));
+    } catch (error) {
+      response.statusCode = 503;
+      response.end(JSON.stringify({ detail: "qmd reindex failed", reason: error.message }));
+    }
+    return;
+  }
   const url = new URL(request.url, "http://qmd.local");
   if (url.pathname !== "/search") {
     response.statusCode = 404;
@@ -40,4 +50,3 @@ const server = http.createServer(async (request, response) => {
 });
 
 initialise().finally(() => server.listen(8181, "0.0.0.0"));
-

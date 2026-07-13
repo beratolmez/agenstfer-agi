@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from hashlib import sha256
+from typing import TYPE_CHECKING
 
+from sqlalchemy import select
+
+from agi_server.db import EvidenceItem
 from agi_server.domain.demo import DEMO_COMPANY, build_demo_dataset, demo_counts
 from agi_server.schemas import (
     EvidenceRef,
@@ -11,16 +15,35 @@ from agi_server.schemas import (
     ScoreFactors,
 )
 
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+
 
 def _evidence(
-    evidence_id: str, source_id: str, label: str, row: int, coverage: float
+    evidence_id: str,
+    source_id: str,
+    label: str,
+    row: int,
+    coverage: float,
 ) -> EvidenceRef:
-    digest = sha256(f"{source_id}:{row}:{label}".encode()).hexdigest()
+    locator_map = {
+        "ev-energy-accounts": ("accounts", 18),
+        "ev-energy-orders": ("orders_invoices", 44),
+        "ev-maint-installed": ("accounts", 37),
+        "ev-maint-service": ("orders_invoices", 102),
+        "ev-export-segment": ("accounts", 61),
+        "ev-export-kit": ("orders_invoices", 130),
+        "ev-parts-repeat": ("orders_invoices", 211),
+        "ev-digital-projects": ("activities", 319),
+        "ev-strategy": ("strategy_documents", 2),
+    }
+    sheet, resolved_row = locator_map.get(evidence_id, ("records", row))
+    digest = sha256(f"{source_id}:{sheet}:{resolved_row}:{label}".encode()).hexdigest()
     return EvidenceRef(
         id=evidence_id,
         source_id=source_id,
         label=label,
-        locator={"kind": "tabular", "sheet": "records", "row": row, "column": "*"},
+        locator={"kind": "tabular", "sheet": sheet, "row": resolved_row, "column": "*"},
         snapshot_sha256=digest,
         coverage=coverage,
     )
@@ -60,7 +83,37 @@ def _opportunity(
     )
 
 
-def build_growth_diagnostic() -> GrowthDiagnostic:
+def _hydrate_evidence(diagnostic: GrowthDiagnostic, db: Session) -> GrowthDiagnostic:
+    source_ids = {
+        item.source_id for opportunity in diagnostic.opportunities for item in opportunity.evidence
+    }
+    by_source = {
+        source_id: list(db.scalars(select(EvidenceItem).where(EvidenceItem.source_id == source_id)))
+        for source_id in source_ids
+    }
+    for opportunity in diagnostic.opportunities:
+        for index, reference in enumerate(opportunity.evidence):
+            actual = next(
+                (
+                    item
+                    for item in by_source.get(reference.source_id, [])
+                    if item.locator.get("sheet") == reference.locator.get("sheet")
+                    and item.locator.get("row") == reference.locator.get("row")
+                ),
+                None,
+            )
+            if actual is not None:
+                opportunity.evidence[index] = reference.model_copy(
+                    update={
+                        "id": actual.id,
+                        "locator": actual.locator,
+                        "snapshot_sha256": actual.snapshot_sha256,
+                    }
+                )
+    return diagnostic
+
+
+def build_growth_diagnostic(db: Session | None = None) -> GrowthDiagnostic:
     dataset = build_demo_dataset()
     crm = "src-crm-001"
     erp = "src-erp-001"
@@ -160,7 +213,7 @@ def build_growth_diagnostic() -> GrowthDiagnostic:
         ),
     ]
     opportunities.sort(key=lambda item: item.score, reverse=True)
-    return GrowthDiagnostic(
+    diagnostic = GrowthDiagnostic(
         company=DEMO_COMPANY,
         objective="90 gün içinde mevcut müşteri tabanından kârlı büyüme",
         data_readiness=89,
@@ -218,3 +271,4 @@ def build_growth_diagnostic() -> GrowthDiagnostic:
             "stale-and-missing-contact-data",
         ],
     )
+    return _hydrate_evidence(diagnostic, db) if db is not None else diagnostic

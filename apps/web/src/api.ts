@@ -1,4 +1,12 @@
-import type { AuthSession, GrowthDiagnostic, SetupStatus, WorkflowDefinition } from "./types";
+import type {
+  AuthSession,
+  DataSourceView,
+  FilePreview,
+  GrowthDiagnostic,
+  SetupStatus,
+  SourceSyncRunView,
+  WorkflowDefinition,
+} from "./types";
 
 let csrfToken: string | null = null;
 
@@ -21,14 +29,15 @@ function rememberSession(session: AuthSession): AuthSession {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const method = (init?.method ?? "GET").toUpperCase();
   const mutating = !["GET", "HEAD", "OPTIONS"].includes(method);
+  const headers = new Headers(init?.headers);
+  if (!(init?.body instanceof FormData) && !headers.has("content-type")) {
+    headers.set("content-type", "application/json");
+  }
+  if (mutating && csrfToken) headers.set("X-CSRF-Token", csrfToken);
   const response = await fetch(path, {
-    credentials: "include",
-    headers: {
-      "content-type": "application/json",
-      ...(mutating && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
-      ...init?.headers,
-    },
     ...init,
+    credentials: "include",
+    headers,
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as {
@@ -74,4 +83,25 @@ export const api = {
   knowledge: (query = "") =>
     request<{ items: Array<Record<string, unknown>> }>(`/api/knowledge?query=${encodeURIComponent(query)}`),
   setupDemo: () => request<Record<string, unknown>>("/api/setup/demo", { method: "POST" }),
+  sources: () => request<{ items: DataSourceView[] }>("/api/sources"),
+  sourceSyncRuns: () => request<{ items: SourceSyncRunView[] }>("/api/sources/sync-runs"),
+  previewSourceFile: (file: File, entityType: string) => {
+    const body = new FormData();
+    body.append("file", file);
+    return request<FilePreview>(
+      `/api/sources/files/preview?entity_type=${encodeURIComponent(entityType)}`,
+      { method: "POST", body },
+    );
+  },
+  mapSource: (
+    sourceId: string,
+    payload: { entity_type: string; field_mapping: Record<string, string>; classification: string },
+  ) => request<Record<string, unknown>>(`/api/sources/${encodeURIComponent(sourceId)}/mapping`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }),
+  syncSource: (sourceId: string) =>
+    request<{ total_records: number }>(`/api/sources/${encodeURIComponent(sourceId)}/sync`, {
+      method: "POST",
+    }),
 };

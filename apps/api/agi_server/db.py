@@ -6,7 +6,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, String, Text, create_engine
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    create_engine,
+)
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -42,6 +52,60 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class DataSource(Base):
+    __tablename__ = "data_sources"
+    id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    name: Mapped[str] = mapped_column(String(160))
+    connector_type: Mapped[str] = mapped_column(String(60), index=True)
+    configuration: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    read_only: Mapped[bool] = mapped_column(Boolean, default=True)
+    status: Mapped[str] = mapped_column(String(30), default="configured", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+
+class SourceMapping(Base):
+    __tablename__ = "source_mappings"
+    source_id: Mapped[str] = mapped_column(ForeignKey("data_sources.id"), primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, primary_key=True)
+    entity_type: Mapped[str] = mapped_column(String(60), index=True)
+    field_mapping: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    validation: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class SourceSyncRun(Base):
+    __tablename__ = "source_sync_runs"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    source_id: Mapped[str] = mapped_column(ForeignKey("data_sources.id"), index=True)
+    status: Mapped[str] = mapped_column(String(30), index=True)
+    records_seen: Mapped[int] = mapped_column(Integer, default=0)
+    records_persisted: Mapped[int] = mapped_column(Integer, default=0)
+    warnings: Mapped[list[str]] = mapped_column(JSON, default=list)
+    cursor: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class RawSnapshotRow(Base):
+    __tablename__ = "raw_snapshots"
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    source_id: Mapped[str] = mapped_column(ForeignKey("data_sources.id"), index=True)
+    filename: Mapped[str] = mapped_column(String(255))
+    file_path: Mapped[str] = mapped_column(Text)
+    sha256: Mapped[str] = mapped_column(String(64), index=True)
+    bytes: Mapped[int] = mapped_column(Integer)
+    source_type: Mapped[str] = mapped_column(String(60))
+    classification: Mapped[str] = mapped_column(String(30), default="internal")
+    collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    __table_args__ = (Index("ux_raw_snapshot_source_hash", "source_id", "sha256", unique=True),)
+
+
 class EvidenceItem(Base):
     __tablename__ = "evidence_items"
     id: Mapped[str] = mapped_column(String(80), primary_key=True)
@@ -50,6 +114,8 @@ class EvidenceItem(Base):
     locator: Mapped[dict[str, Any]] = mapped_column(JSON)
     excerpt_hash: Mapped[str] = mapped_column(String(64))
     classification: Mapped[str] = mapped_column(String(30), default="internal")
+    raw_snapshot_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    entity_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
     collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     __table_args__ = (Index("ix_evidence_source_snapshot", "source_id", "snapshot_sha256"),)
@@ -134,6 +200,34 @@ class AuditEvent(Base):
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, index=True
     )
+
+
+class Artifact(Base):
+    __tablename__ = "artifacts"
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    run_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    kind: Mapped[str] = mapped_column(String(60), index=True)
+    uri: Mapped[str] = mapped_column(Text)
+    sha256: Mapped[str] = mapped_column(String(64), index=True)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class OKFCandidate(Base):
+    __tablename__ = "okf_candidates"
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    run_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(30), default="draft", index=True)
+    base_revision: Mapped[str] = mapped_column(String(64))
+    candidate_revision: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    worktree_path: Mapped[str] = mapped_column(Text)
+    validation_report: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    decided_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    decision_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 settings = get_settings()

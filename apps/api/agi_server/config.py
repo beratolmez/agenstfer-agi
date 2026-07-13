@@ -57,6 +57,18 @@ class Settings(BaseSettings):
         candidate = root / "bundles" / "company"
         return candidate if root.name != "company" else root
 
+    @property
+    def raw_root(self) -> Path:
+        return self.knowledge_root / "raw"
+
+    @property
+    def candidates_root(self) -> Path:
+        return self.knowledge_root / "candidates"
+
+    @property
+    def uploads_root(self) -> Path:
+        return self.knowledge_root / "uploads"
+
 
 @lru_cache
 def get_settings() -> Settings:

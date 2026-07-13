@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from agi_server.domain.diagnostic import build_growth_diagnostic
 from agi_server.okf.bundle import FileSystemOKFBundle
@@ -12,7 +13,12 @@ def _timestamp() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
-def compile_demo_bundle(root: Path | str) -> FileSystemOKFBundle:
+def compile_demo_bundle(
+    root: Path | str,
+    *,
+    diagnostic=None,
+    source_metadata: dict[str, dict[str, Any]] | None = None,
+) -> FileSystemOKFBundle:
     bundle = FileSystemOKFBundle(root)
     bundle.create("Anka Endüstriyel Otomasyon Bilgi Bundle'ı")
     common = {
@@ -45,11 +51,14 @@ def compile_demo_bundle(root: Path | str) -> FileSystemOKFBundle:
             ),
         )
     )
+    metadata = source_metadata or {}
     for source_id, label, source_type in [
         ("src-crm-001", "Sentetik CRM snapshot", "demo-crm"),
         ("src-erp-001", "Sentetik ERP snapshot", "demo-erp"),
         ("src-strategy-001", "90 günlük strateji belgesi", "markdown"),
     ]:
+        source = metadata.get(source_id, {})
+        snapshot_sha256 = source.get("snapshot_sha256", "unpersisted-demo-fixture")
         bundle.write(
             OKFConcept(
                 path=f"references/{source_id}.md",
@@ -63,14 +72,16 @@ def compile_demo_bundle(root: Path | str) -> FileSystemOKFBundle:
                     "agi": {
                         **common["agi"],
                         "source_ids": [source_id],
-                        "snapshot_sha256": "demo-fixture-hash",
+                        "snapshot_sha256": snapshot_sha256,
                         "source_type": source_type,
+                        "raw_snapshot_id": source.get("snapshot_id"),
+                        "collected_at": source.get("collected_at"),
                     },
                 },
                 body=f"# {label}\n\nKaynak türü: `{source_type}`. Demo fixture'dan üretilmiştir.\n",
             )
         )
-    diagnostic = build_growth_diagnostic()
+    diagnostic = diagnostic or build_growth_diagnostic()
     citation_lines: list[str] = []
     seen: set[str] = set()
     for opportunity in diagnostic.opportunities:

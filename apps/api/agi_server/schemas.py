@@ -86,3 +86,9 @@ class HealthResponse(BaseModel):
     version: str
     mode: str
     components: dict[str, str]
+
+
+class SourceMappingRequest(BaseModel):
+    entity_type: str = Field(min_length=2, max_length=60, pattern=r"^[a-z][a-z0-9_]*$")
+    field_mapping: dict[str, str]
+    classification: Literal["public", "internal", "confidential", "restricted"] = "internal"

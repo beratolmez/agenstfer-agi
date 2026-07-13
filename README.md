@@ -4,9 +4,9 @@ Agentic Growth Intelligence, tek bir şirketin kendi altyapısında çalışan; 
 
 Bu repository, mevcut [PRD](./Agentic_Growth_Intelligence_Server_PRD.md) ile [yönetici mimari bağlamını](./ARCHITECTURE_CONTEXT.md) kaynak olarak korur. Güncel MVP kararları [proje mimarisinde](./docs/PROJECT_ARCHITECTURE.md), uygulama sırası [teknik planda](./docs/MVP_IMPLEMENTATION_PLAN.md), günlük çalışma biçimi [sonraki adımlar rehberinde](./docs/NEXT_STEPS_GUIDE.md), çalışan kapsam ile release öncesi kalanlar ise [uygulama durumu](./docs/IMPLEMENTATION_STATUS.md) belgesinde açıklanır. Domain sözleşmeleri, eval, tehdit modeli, operasyon ve release kapıları da `docs/` altında version-controlled tutulur.
 
-## Mevcut durum: çalışan scaffold, tamamlanmamış MVP
+## Mevcut durum: kalıcı ingestion tamam, gerçek agent tanısı eksik
 
-Web/API/Docker katmanı ayağa kalkar; ancak ürün henüz gerçek agent tabanlı Growth Diagnostic çalıştırmaz. Bugünkü tanı çıktısı deterministik fixture'dır. Workflow editöründe yalnız doğrulama backend'e bağlıdır; Dry-run/Publish/Run ve Approval/Sources/Settings akışları tamamlanmamıştır. PostgreSQL şeması vardır fakat ürün state'i henüz kalıcı olarak kullanılmamaktadır.
+Web/API/Docker katmanı ayağa kalkar. Demo veya CSV/XLSX verisi read-only connector, mapping, PostgreSQL canonical context, immutable snapshot ve evidence hattından geçer. OKF değişiklikleri izole candidate worktree'de oluşur ve yalnız onayla active `main` branch'ine alınır. Ancak ürün henüz gerçek Pydantic AI tabanlı Growth Diagnostic çalıştırmaz; bugünkü öneriler deterministik fixture'dır. Workflow Publish/Run ve genel Approval Center/Settings akışları tamamlanmamıştır.
 
 Doğrulanmış ve eksik kapsamın tek kaynağı [Implementation Status](./docs/IMPLEMENTATION_STATUS.md) belgesidir.
 
@@ -14,10 +14,11 @@ Doğrulanmış ve eksik kapsamın tek kaynağı [Implementation Status](./docs/I
 
 - Sentetik “Anka Endüstriyel Otomasyon” şirketi ve deterministik Growth Diagnostic.
 - OKF 0.1 concept okuma/yazma, lint, link/backlink ve ZIP round-trip altyapısı.
-- Demo evidence referansları içeren sabit fırsat skorları ve 30 günlük plan.
+- Immutable snapshot locator'larına çözülen gerçek evidence referansları ile sabit fırsat skorları ve 30 günlük plan.
 - FastAPI API, React/TypeScript dashboard ve kısıtlı React Flow workflow editörü.
 - Typed DAG doğrulaması; cycle, geçersiz port ve izin verilmeyen node reddi.
-- PostgreSQL için uygulama/audit/evidence şema iskeleti; ürün akışları henüz bu state'i doldurmaz.
+- PostgreSQL'de source, mapping, sync, snapshot, entity, fact, evidence, artifact ve OKF candidate state'i.
+- CSV/XLSX Sources ekranı; preview, ID mapping, veri sınıflandırma ve read-only sync.
 - Docker Compose ile `app`, `postgres`, `ollama`; opsiyonel `qmd`, `jaeger` ve `egress-gateway` profilleri.
 
 Bu MVP henüz canlı CRM/ERP write-back, dış lead toplama, outbound, çağrı, finans, siber güvenlik ya da rakip araştırması yapmaz. Bunlar bilinçli olarak sonraki fazdır.

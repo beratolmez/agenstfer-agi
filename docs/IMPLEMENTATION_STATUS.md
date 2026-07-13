@@ -24,31 +24,39 @@ This is the authoritative statement of what the repository actually does. A chec
 - [x] The web app renders first-admin bootstrap or login before protected product surfaces.
 - [x] Session CSRF, role dependencies, production-secret validation, request IDs, structured errors, and current mutation audit hooks exist.
 - [x] Readiness executes `SELECT 1` against PostgreSQL and reports Ollama/qmd separately.
+- [x] Source, mapping, sync-run, immutable snapshot, artifact, entity, fact, and evidence state is persisted.
+- [x] CSV/XLSX upload, schema preview, versioned mapping, classification, read-only sync APIs, and Sources UI work end to end.
+- [x] The Anka fixture travels through the connector pipeline into three logical sources; the live audit contains 1,783 canonical entities and evidence items.
+- [x] Evidence resolves to an immutable snapshot, exact sheet/row/external ID locator, excerpt, and verified content hash.
+- [x] OKF import rejects traversal, symlinks, Git internals, non-Markdown payloads, excessive entries, and cumulative expanded size.
+- [x] OKF candidates are isolated Git worktrees with seven-day expiry; approval fast-forwards active `main`, rejection leaves it unchanged, and only approval requests qmd reindexing.
+- [x] Active OKF export/import preserves unknown types and metadata through an approval-controlled candidate round trip.
 
 ## Partial — do not represent as complete
 
 - [ ] **Model execution:** model status is not ready on the audited machine; workflow agent nodes do not call Pydantic AI.
 - [ ] **Diagnostic:** recommendations are deterministic fixtures rather than computed agent results.
-- [ ] **Persistence:** PostgreSQL tables exist, but the audited database has zero users, evidence items, canonical records, workflow definitions/runs, approvals, and audit events.
+- [ ] **Operational state:** ingestion/evidence/OKF state is populated, but no first administrator exists yet and workflow definitions/runs/approval histories remain empty.
 - [ ] **Workflow product:** editor validation calls the API; Save, Dry-run, Publish, Run, history, and versions are not functional end to end.
 - [ ] **Durability:** DBOS receives approval messages, but application run/step/approval records and restart acceptance tests do not exist.
 - [ ] **Approval:** the current workflow approval route is role-protected and audited, but approval records/history and the Approval Center are not implemented.
-- [ ] **Ingestion:** file connector code exists, but there are no source/upload/mapping/sync APIs or UI.
-- [ ] **Evidence:** demo evidence is not persisted and its locators/hashes are not derived from the stored raw snapshot.
-- [ ] **OKF approval:** the compiler writes the bundle directly; isolated candidates and approval-controlled merge are missing.
+- [ ] **Ingestion breadth:** demo and bounded CSV/XLSX sources work; real CRM/ERP connectors intentionally wait for a design partner.
+- [ ] **Evidence review:** source evidence is real and resolvable, but agent-generated claims are not yet reviewed against it by a model-backed Evidence Reviewer.
+- [ ] **Approval Center:** OKF candidate decision APIs work, but the dedicated review/diff UI and persisted workflow approvals are Phase 4/5 work.
 - [ ] **Setup:** most wizard steps are previews and are not persisted.
 - [ ] **Operations:** backup scripts exist for Linux but have no restore drill, PowerShell wrapper, encryption policy, or release evidence.
 
 ## Current verification results
 
-- Backend: 21 tests passed.
-- Frontend: 2 tests passed.
+- Backend: 25 tests passed.
+- Frontend: 3 tests passed.
 - Ruff: passed.
 - Frontend production build: passed.
 - Base and cloud Compose configuration: passed.
 - Migration drift: no new upgrade operations detected.
 - Live health: API, PostgreSQL query, OKF, and Ollama process reported available; qmd is unavailable and lexical fallback is active.
-- Browser QA: bootstrap gate rendered at `localhost:8080`, console was clean, and form interaction succeeded.
+- Live Phase 2 drill: 1,783 records synchronized into 3 snapshots; a citation resolved to CRM row 18; the candidate was approved and active knowledge advanced.
+- Browser QA: bootstrap gate and the populated Sources screen rendered at `localhost:8080`; the Sources screen showed 1,370 CRM, 412 ERP, and 1 strategy record.
 - Model readiness: false because the configured local model is not installed.
 
 Run the same checks with:
@@ -65,7 +73,7 @@ or:
 
 ## Active phase
 
-Phase 2 — persistent ingestion, evidence, and approval-controlled OKF candidates.
+Phase 3 — real, model-assisted Growth Diagnostic vertical slice.
 
 ## Deliberately outside the MVP
 

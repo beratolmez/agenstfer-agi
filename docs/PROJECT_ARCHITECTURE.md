@@ -313,21 +313,21 @@ flowchart LR
     E -. Groq or Mistral .-> C["Cloud model provider"]
 ```
 
-Only Nginx publishes a host port. The current scaffold renders its web surfaces and deterministic demo, but it does not yet persist workflow product state or execute agent nodes. Standard Compose must move from demo authentication to real bootstrap/session enforcement before Phase 1 is complete.
+Only Nginx publishes a host port. Standard Compose now enforces bootstrap/session authentication, roles, CSRF, migrations, and material-operation audit. Source, mapping, snapshot, canonical context, evidence, artifact, and OKF candidate state is persistent. The diagnostic remains deterministic and workflow product state/agent execution is still incomplete.
 
-### Target OKF candidate lifecycle
+### Implemented OKF storage lifecycle
 
 ```mermaid
 sequenceDiagram
-    participant R as Workflow run
+    participant R as Sync or diagnostic request
     participant C as Candidate revision
-    participant V as Validation and Evidence Review
+    participant V as OKF and locator validation
     participant A as Authenticated Approver
     participant M as Active main revision
     participant Q as qmd
     R->>C: Write isolated proposed concepts
     C->>V: Validate OKF, locators, and material claims
-    V-->>A: Present immutable diff and artifact hashes
+    V-->>A: Expose immutable diff and artifact hashes
     alt approved and current
         A->>M: Serialized merge
         M->>Q: Rebuild disposable index
@@ -336,7 +336,7 @@ sequenceDiagram
     end
 ```
 
-PostgreSQL owns run, candidate, approval, and audit state. Git owns portable approved knowledge history. qmd indexes only the active revision.
+PostgreSQL owns candidate metadata, expiry, artifacts, and audit state. Git worktrees own isolated candidates and `main` owns approved portable knowledge history. A filesystem merge lock serializes fast-forward approval; rejected, expired, and stale candidates do not change active knowledge. qmd is requested to reindex only after approval and lexical search remains available when qmd is absent. Phase 3 adds model-backed Evidence Reviewer policy before a candidate is presented.
 
 ### Cloud production policy
 

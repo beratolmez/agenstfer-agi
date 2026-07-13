@@ -34,13 +34,13 @@ Exit: a clean deployment migrates, bootstraps one admin, enforces roles/CSRF, an
 
 ## Phase 2 — Persistent ingestion, evidence, and OKF
 
-- Persist sources, mappings, sync runs, snapshots, artifacts, entities, facts, and evidence.
-- Add CSV/XLSX upload, discovery, preview, versioned mapping, and read-only sync APIs/UI.
-- Route the synthetic company through the same connector/mapping path.
-- Derive evidence hashes and exact locators from immutable snapshots.
-- Harden OKF import against traversal, symlinks, cumulative archive size, and decompression abuse.
-- Generate isolated Git-backed candidates and serialize authenticated merge into active `main`.
-- Rebuild qmd only after approved merge; preserve lexical fallback.
+- [x] Persist sources, mappings, sync runs, snapshots, artifacts, entities, facts, and evidence.
+- [x] Add CSV/XLSX upload, discovery, preview, versioned mapping, and read-only sync APIs/UI.
+- [x] Route the synthetic company through the same connector/mapping path.
+- [x] Derive evidence hashes and exact locators from immutable snapshots.
+- [x] Harden OKF import against traversal, symlinks, cumulative archive size, and decompression abuse.
+- [x] Generate isolated Git-backed candidates and serialize authenticated merge into active `main`.
+- [x] Rebuild qmd only after approved merge; preserve lexical fallback.
 
 Exit: synchronized data becomes a conformant, traceable candidate bundle that can be approved, exported, and round-tripped.
 

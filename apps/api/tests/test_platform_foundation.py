@@ -4,8 +4,9 @@ import pytest
 from agi_server.config import Settings
 from agi_server.db import AuditEvent, Base, User
 from agi_server.http_security import RequestSecurityMiddleware
-from agi_server.migrations import INITIAL_REVISION, LEGACY_TABLES, run_migrations
+from agi_server.migrations import INITIAL_REVISION, LEGACY_TABLES, alembic_config, run_migrations
 from agi_server.security import BootstrapRequest, bootstrap_admin
+from alembic import command
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, inspect, text
@@ -26,14 +27,16 @@ def test_explicit_migration_upgrades_empty_database(tmp_path: Path) -> None:
     assert LEGACY_TABLES.issubset(inspect(engine).get_table_names())
     with engine.connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
-        assert revision == INITIAL_REVISION
+        assert revision == "20260713_0003"
     engine.dispose()
 
 
 def test_known_legacy_scaffold_is_stamped_without_recreating_tables(tmp_path: Path) -> None:
     url = sqlite_url(tmp_path / "legacy.db")
+    command.upgrade(alembic_config(url), INITIAL_REVISION)
     engine = create_engine(url)
-    Base.metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.execute(text("DROP TABLE alembic_version"))
     engine.dispose()
 
     run_migrations(url)
@@ -41,7 +44,7 @@ def test_known_legacy_scaffold_is_stamped_without_recreating_tables(tmp_path: Pa
     engine = create_engine(url)
     with engine.connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
-        assert revision == INITIAL_REVISION
+        assert revision == "20260713_0003"
     engine.dispose()
 
 
@@ -133,9 +136,6 @@ def test_session_and_csrf_middleware_fail_closed(tmp_path: Path, monkeypatch) ->
         client.post("/api/auth/login")
         assert client.get("/api/private").status_code == 200
         assert client.post("/api/private").status_code == 403
-        assert (
-            client.post("/api/private", headers={"X-CSRF-Token": "csrf-test"}).status_code
-            == 200
-        )
+        assert client.post("/api/private", headers={"X-CSRF-Token": "csrf-test"}).status_code == 200
 
     engine.dispose()
