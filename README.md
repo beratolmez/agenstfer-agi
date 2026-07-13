@@ -2,16 +2,22 @@
 
 Agentic Growth Intelligence, tek bir şirketin kendi altyapısında çalışan; dağınık şirket bilgisini taşınabilir bir [Open Knowledge Format (OKF) 0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) bundle'ına dönüştüren ve kanıta bağlı bir **Growth Diagnostic + 30 günlük aksiyon planı** üreten local-first MVP'dir.
 
-Bu repository, mevcut [PRD](./Agentic_Growth_Intelligence_Server_PRD.md) ile [yönetici mimari bağlamını](./ARCHITECTURE_CONTEXT.md) kaynak olarak korur. Güncel MVP kararları [proje mimarisinde](./docs/PROJECT_ARCHITECTURE.md), uygulama sırası [teknik planda](./docs/MVP_IMPLEMENTATION_PLAN.md), günlük çalışma biçimi [sonraki adımlar rehberinde](./docs/NEXT_STEPS_GUIDE.md), çalışan kapsam ile release öncesi kalanlar ise [uygulama durumu](./docs/IMPLEMENTATION_STATUS.md) belgesinde açıklanır.
+Bu repository, mevcut [PRD](./Agentic_Growth_Intelligence_Server_PRD.md) ile [yönetici mimari bağlamını](./ARCHITECTURE_CONTEXT.md) kaynak olarak korur. Güncel MVP kararları [proje mimarisinde](./docs/PROJECT_ARCHITECTURE.md), uygulama sırası [teknik planda](./docs/MVP_IMPLEMENTATION_PLAN.md), günlük çalışma biçimi [sonraki adımlar rehberinde](./docs/NEXT_STEPS_GUIDE.md), çalışan kapsam ile release öncesi kalanlar ise [uygulama durumu](./docs/IMPLEMENTATION_STATUS.md) belgesinde açıklanır. Domain sözleşmeleri, eval, tehdit modeli, operasyon ve release kapıları da `docs/` altında version-controlled tutulur.
 
-## Şu anda çalışan dikey dilim
+## Mevcut durum: çalışan scaffold, tamamlanmamış MVP
+
+Web/API/Docker katmanı ayağa kalkar; ancak ürün henüz gerçek agent tabanlı Growth Diagnostic çalıştırmaz. Bugünkü tanı çıktısı deterministik fixture'dır. Workflow editöründe yalnız doğrulama backend'e bağlıdır; Dry-run/Publish/Run ve Approval/Sources/Settings akışları tamamlanmamıştır. PostgreSQL şeması vardır fakat ürün state'i henüz kalıcı olarak kullanılmamaktadır.
+
+Doğrulanmış ve eksik kapsamın tek kaynağı [Implementation Status](./docs/IMPLEMENTATION_STATUS.md) belgesidir.
+
+## Şu anda doğrulanmış scaffold
 
 - Sentetik “Anka Endüstriyel Otomasyon” şirketi ve deterministik Growth Diagnostic.
 - OKF 0.1 concept okuma/yazma, lint, link/backlink ve ZIP round-trip altyapısı.
-- Kaynağa çözülebilen fırsat skorları ve 30 günlük plan.
+- Demo evidence referansları içeren sabit fırsat skorları ve 30 günlük plan.
 - FastAPI API, React/TypeScript dashboard ve kısıtlı React Flow workflow editörü.
 - Typed DAG doğrulaması; cycle, geçersiz port ve izin verilmeyen node reddi.
-- PostgreSQL için uygulama/audit/evidence şeması; testlerde hafif yerel çalışma.
+- PostgreSQL için uygulama/audit/evidence şema iskeleti; ürün akışları henüz bu state'i doldurmaz.
 - Docker Compose ile `app`, `postgres`, `ollama`; opsiyonel `qmd`, `jaeger` ve `egress-gateway` profilleri.
 
 Bu MVP henüz canlı CRM/ERP write-back, dış lead toplama, outbound, çağrı, finans, siber güvenlik ya da rakip araştırması yapmaz. Bunlar bilinçli olarak sonraki fazdır.
@@ -40,7 +46,7 @@ Yerel geliştirmede Ollama olmadan sentetik/deterministik demo çalışır.
 
 ### Geçici cloud model (Groq veya Mistral)
 
-Cloud model kullanımı demo ve eval için uygundur; şirketin ham dokümanları provider'a gönderilebileceğinden gerçek şirket verisinde önce veri sınıflandırması ve hukuk/onay kontrolü yapılmalıdır. Varsayılan Compose dosyası internete çıkmaz.
+Cloud model varsayılan kapalıdır ve otomatik fallback değildir. Yönetici Groq veya Mistral profilini production için açıkça seçebilir; yalnız `public` ve policy tarafından izin verilmiş/redakte edilmiş `internal` veri gönderilebilir. `confidential` ve `restricted` veri MVP'de cloud provider'a gönderilemez. Varsayılan Compose dosyası internete çıkmaz.
 
 1. `.env` içinde `AGI_CLOUD_PROVIDER=groq` veya `mistral`, `AGI_CLOUD_API_KEY=...` ve `AGI_MODEL_PROFILE=cloud-balanced` yazın. İsterseniz `AGI_CLOUD_MODEL` ile model adını değiştirin.
 2. Allowlist'li proxy profilini başlatın:

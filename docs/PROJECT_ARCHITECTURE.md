@@ -295,3 +295,49 @@ Açık sorular: ilk tasarım ortağının CRM/ERP'si; kurumun veri sınıfları;
 6. Cloud/egress varsayılan kapalı ve connector API'si read-only'dir.
 7. Yönetici ekranı gelecek modülleri MVP'de varmış gibi göstermez.
 
+## 16. Audited implementation boundary — 13 July 2026
+
+This section distinguishes the deployed scaffold from the target architecture. `docs/IMPLEMENTATION_STATUS.md` is authoritative for capability status.
+
+```mermaid
+flowchart LR
+    B["Browser :8080"] --> N["Nginx web-proxy"]
+    N --> A["FastAPI + built React"]
+    subgraph Core["internal core network"]
+        A --> P[(PostgreSQL)]
+        A --> O["Ollama"]
+        A -. optional .-> Q["qmd"]
+        A --> K["Raw vault + OKF Git"]
+    end
+    A -. explicit opt-in only .-> E["Allowlisted egress gateway"]
+    E -. Groq or Mistral .-> C["Cloud model provider"]
+```
+
+Only Nginx publishes a host port. The current scaffold renders its web surfaces and deterministic demo, but it does not yet persist workflow product state or execute agent nodes. Standard Compose must move from demo authentication to real bootstrap/session enforcement before Phase 1 is complete.
+
+### Target OKF candidate lifecycle
+
+```mermaid
+sequenceDiagram
+    participant R as Workflow run
+    participant C as Candidate revision
+    participant V as Validation and Evidence Review
+    participant A as Authenticated Approver
+    participant M as Active main revision
+    participant Q as qmd
+    R->>C: Write isolated proposed concepts
+    C->>V: Validate OKF, locators, and material claims
+    V-->>A: Present immutable diff and artifact hashes
+    alt approved and current
+        A->>M: Serialized merge
+        M->>Q: Rebuild disposable index
+    else rejected, expired, or stale
+        A-->>C: Close without changing active knowledge
+    end
+```
+
+PostgreSQL owns run, candidate, approval, and audit state. Git owns portable approved knowledge history. qmd indexes only the active revision.
+
+### Cloud production policy
+
+Cloud profiles are permitted only through explicit administrator configuration and the allowlisted egress gateway. There is no local-to-cloud automatic fallback. `public` and policy-approved redacted `internal` content may be processed; `confidential` and `restricted` content is rejected before a cloud request. Every run pins provider/model identity and records content-safe audit metadata.

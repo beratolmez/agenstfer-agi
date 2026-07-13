@@ -1,198 +1,107 @@
-# Agentic Growth Intelligence — MVP Uygulama Planı
+# Audited MVP Implementation Plan
 
-Bu plan tek geliştirici, 14–18 hafta ve tek şirketlik self-hosted kurulum varsayar. Faz sırası bir bağımlılık sırasıdır; takvim tahmini kalite kapısını geçersiz kılmaz.
+Target: a production-candidate, single-company, self-hosted Growth Diagnostic product. Estimated remaining effort is 14–18 solo-developer weeks. The broader PRD is a post-MVP roadmap, not an instruction to add every module now.
 
-## Çalışma ilkeleri
+## Status rules
 
-- Her faz başında giriş koşulları, sonunda otomatik test + demo yapılır.
-- Yeni modül yalnız mevcut fazın “done” tanımı karşılandıktan sonra eklenir.
-- LLM hesap yapmaz; metrik ve skorlar deterministic koddan gelir.
-- Önemli claim evidence olmadan kullanıcıya “doğrulanmış” gösterilmez.
-- Agent/prompt/model değişikliği golden eval sonucuyla beraber review edilir.
-- Harici sisteme write, MVP connector interface'inde bile yer almaz.
+- `docs/IMPLEMENTATION_STATUS.md` is the evidence-backed current-state record.
+- A phase starts only after the previous exit gate passes.
+- UI mock behavior, schema-only code, deterministic fixtures, and uncalled model factories are partial—not completed capabilities.
+- Update status, tests, and relevant ADRs in the same change as a capability.
 
-## Teknik backlog sözleşmeleri
+## Phase 0 — Truthful baseline and project memory
 
-### Canonical entity
+- [x] Secret-scan and commit the audited scaffold.
+- [x] Add root engineering rules, status corrections, domain/evaluation/threat/operations/release documents, and ADRs 0005–0007.
+- [x] Add cross-platform project verification scripts.
+- [x] Create and validate the personal `agentic-growth-engineer` Codex skill.
+- [x] Re-run the full baseline verification.
+- [x] Commit Phase 0 documentation/tooling.
 
-MVP entity türleri: `Company`, `Account`, `Contact`, `Opportunity`, `Product`, `Campaign`, `Order`, `Invoice`. PostgreSQL tablosu generic entity/fact ilişkisini tutar; OKF concept, taşınabilir anlatısal görünümüdür. İlk sürümde graph database yoktur.
+Exit: a new engineer can identify implemented, simulated, disabled, and missing behavior without reading source code.
 
-### EvidenceItem
+## Phase 1 — Trustworthy platform foundation
 
-Zorunlu alanlar: `source_id`, `snapshot_sha256`, `locator`, `excerpt_hash`, `collected_at`, `classification`. Locator opaque string değil typed JSON'dur. Claim, bir veya daha çok EvidenceItem ID'si taşır.
+- Replace startup `create_all()` with mandatory explicit Alembic migrations.
+- Implement bootstrap/login/logout/current-user UI and API behavior.
+- Disable demo auth in standard Compose and reject default production secrets.
+- Protect non-public routes with session auth, roles, and CSRF.
+- Audit material mutations and approval/configuration events.
+- Query PostgreSQL in readiness checks and report qmd/model readiness separately.
+- Return structured API errors with request IDs.
 
-### Agent çıktıları
+Exit: a clean deployment migrates, bootstraps one admin, enforces roles/CSRF, and records security-relevant operations.
 
-- `CompanyAnalysis`: summary, segments, strengths, weaknesses, data_gaps, claims.
-- `OpportunityHypothesis[]`: en fazla 10, evidence IDs, impact inputs, risk.
-- `EvidenceReview`: supported/rejected claims, contradiction, stale flag.
-- `GrowthDiagnostic`: deterministic top five + plan + coverage.
+## Phase 2 — Persistent ingestion, evidence, and OKF
 
-### Ranking
+- Persist sources, mappings, sync runs, snapshots, artifacts, entities, facts, and evidence.
+- Add CSV/XLSX upload, discovery, preview, versioned mapping, and read-only sync APIs/UI.
+- Route the synthetic company through the same connector/mapping path.
+- Derive evidence hashes and exact locators from immutable snapshots.
+- Harden OKF import against traversal, symlinks, cumulative archive size, and decompression abuse.
+- Generate isolated Git-backed candidates and serialize authenticated merge into active `main`.
+- Rebuild qmd only after approved merge; preserve lexical fallback.
 
-```text
-score = 0.30 * goal_alignment
-      + 0.25 * estimated_impact
-      + 0.20 * evidence_coverage
-      + 0.15 * urgency
-      + 0.10 * feasibility
-      - risk_penalty
-```
+Exit: synchronized data becomes a conformant, traceable candidate bundle that can be approved, exported, and round-tripped.
 
-Tüm girdiler 0–100 normalize edilir; risk 0–20 puandır. UI bunun olasılık veya model confidence olmadığını açıklar.
+## Phase 3 — Real Growth Diagnostic vertical slice
 
-## Faz 0 — Belgeler ve kararlar (Hafta 1)
+- Define typed Company Analysis, Opportunity Hypotheses, Evidence Review, and Diagnostic outputs.
+- Expose only scoped knowledge/evidence/metric/candidate-write capabilities.
+- Execute Pydantic AI through pinned Ollama, Groq, or Mistral profiles with no automatic fallback.
+- Add a real structured-output probe and classification/cloud policy enforcement.
+- Calculate metrics and scores from persisted data.
+- Reject unsupported material or numerical claims.
+- Persist exact agent/model/workflow versions, results, safe usage metadata, errors, and artifacts.
+- Produce Markdown, print-ready HTML, and candidate OKF reports.
 
-**Giriş:** PRD, `ARCHITECTURE_CONTEXT.md` ve ürün sahibinin MVP kararları mevcut.
+Exit: the Anka diagnostic is computed and model-assisted rather than returned from a static fixture.
 
-**Backlog**
+## Phase 4 — Agent and workflow platform
 
-- Yöneticiye sunulabilir mimari, mantıksal/sequence/deployment Mermaid diyagramları.
-- MVP sınırı, teknoloji matrisi, risk ve kabul kriterleri.
-- Teknik faz planı ve basit sonraki adımlar rehberi.
-- OKF/PostgreSQL, Pydantic AI/DBOS, local-first ve no-write ADR'leri.
-- Dashboard ve workflow editörü görsel tasarım spesifikasyonu.
+- Add immutable published Agent, Capability, and Workflow versions with editable drafts.
+- Keep capabilities and nodes code-defined; prohibit arbitrary code/plugins/network tools.
+- Implement workflow CRUD/clone/validate/dry-run/publish/run APIs and UI.
+- Persist run/step/approval history and use `Idempotency-Key`.
+- Implement safe field/operator/value conditions and typed true/false branches.
+- Complete DBOS retry, restart/resume, seven-day approval, rejection, and expiry behavior.
+- Require authenticated Approver decisions with reasons and audit.
+- Implement validated cron/timezone schedules with duplicate prevention.
 
-**Done:** Yeni geliştirici teknoloji veya kapsam kararı vermeden Faz 1'e başlayabilir; açık sorular ayrı listelenmiştir.
+Exit: users can safely edit, publish, execute, inspect, pause, approve, and resume a versioned workflow.
 
-## Faz 1 — Temel platform (Hafta 2–3)
+## Phase 5 — Complete user journey
 
-**Giriş:** ADR'ler accepted/proposed olarak kaydedilmiş, referans Linux kapasitesi belli.
+- Persist every setup-wizard step and validated configuration.
+- Replace Sources, Approval Center, Settings, and Opportunities placeholders.
+- Drive dashboard/history from persisted runs.
+- Navigate citations to exact source locations.
+- Add candidate diff, decision, artifact download, and OKF export/import journeys.
+- Add actionable degraded, retry, cancellation, empty, and error states.
+- Keep Turkish-first UI with normal i18n structure and accessible keyboard behavior.
 
-**Backlog**
+Exit: onboarding through approved report works without a terminal.
 
-- `uv` Python workspace, React/Vite app, ortak lint/test komutları.
-- Compose: app, Postgres, Ollama; healthcheck ve persistent volumes.
-- SQLAlchemy schema ve Alembic baseline: users, entities, evidence, workflow, approval, audit.
-- Bootstrap token, Argon2id password, role matrix ve audit middleware.
-- Model profile config ve Ollama health/structured-output probe.
-- Seed generator: belirtilen sayılarda deterministic Anka dataset.
+## Phase 6 — Security, operations, and release
 
-**Testler:** API health, migration up/down, duplicate bootstrap, role denial, seed determinism, model unavailable fallback.
+- Keep cloud disabled by default; enforce allowlisted egress, redaction, classification, and content-safe audit.
+- Use Docker/host secrets for production model credentials.
+- Add OpenTelemetry metrics/traces without sensitive payloads.
+- Test PostgreSQL + knowledge Git backup and clean restore on Linux and from PowerShell development workflows.
+- Pin images/dependencies, generate an SBOM, scan vulnerabilities, and test clean Linux installation.
+- Pass the threat model, evaluation plan, release checklist, browser E2E, and recovery drills.
 
-**Done:** Temiz makinede sistem açılır; admin oluşturulur; demo veri sayıları doğrulanır; Ollama yoksa açık degraded status gösterilir.
+Exit: the release checklist passes on a clean and a restored installation.
 
-## Faz 2 — OKF bilgi katmanı (Hafta 4–6)
+## Public interface direction
 
-**Giriş:** Persistent knowledge volume, source/evidence ID sözleşmesi ve classification enum hazır.
+Keep `/api` for v0.1. Add resource APIs for auth, models/probes, sources/mappings/syncs, knowledge/evidence/candidates, agents/capabilities, workflows/versions/schedules, runs/steps/artifacts, and approvals. Production runs reference immutable published versions; only draft dry-run accepts an inline definition. Keep current dashboard/diagnostic routes as deprecated persisted views through v0.1.
 
-**Backlog**
+## Post-MVP sequence
 
-- Immutable raw snapshot + SHA-256 manifest.
-- `OKFBundlePort`: parser/writer, unknown metadata preservation, path safety.
-- Root index/version, newest-first log, Reference concept ve citation resolver.
-- Link/backlink index, orphan/broken-link/metadata quality lint.
-- ZIP/tar export/import; archive traversal ve size limitleri.
-- qmd CLI adapter: lexical default, hybrid optional, built-in lexical fallback.
-- Knowledge Explorer: tree, search, concept, backlinks, source locator, Git diff.
-
-**Testler**
-
-- Parse edilebilir frontmatter ve non-empty `type`.
-- Unknown type/nested metadata round-trip.
-- Absolute/relative link; broken link warning.
-- Reserved index/log biçimi ve ordering.
-- Export/import concept/link/metadata equivalence.
-- Citation → EvidenceItem → raw locator.
-- Malicious ZIP path ve oversized file reddi.
-
-**Done:** Demo source conformant OKF bundle'a dönüşür; archive başka boş bundle'a import edilir; semantik eşdeğerlik korunur.
-
-## Faz 3 — Growth Diagnostic dikey dilimi (Hafta 7–9)
-
-**Giriş:** OKF ve evidence resolver kalite kapısı yeşil; demo adapter özel bypass kullanmıyor.
-
-**Backlog**
-
-- Demo CRM/ERP connector'ları ve canonical mapping.
-- Deterministic metric calculator ve altı planted insight oracle'ı.
-- Wiki Curator, Company Analyst, Growth Opportunity Analyst, Evidence Reviewer.
-- Managed agent spec, model profile, typed result ve capability filter.
-- Candidate claims → evidence review → scoring → top five.
-- Growth Diagnostic OKF concept, Markdown ve print-ready HTML renderer.
-- Golden dataset ve tekrar-run stability ölçümü.
-
-**Agent kalite kapısı**
-
-- Planted insight recall ≥ 5/6.
-- Material claim evidence resolution = %100.
-- Unsupported numerical claim = 0.
-- Structured output success ≥ %95.
-- Top-five overlap across runs ≥ %70.
-- 9B geçmezse 27B profile; model büyütmeden önce veri/evidence hatası ayıklanır.
-
-**Done:** Tek API/workflow komutuyla kanıtlı rapor ve 30 günlük plan çıkar; her önemli claim source locator açar.
-
-## Faz 4 — Workflow ve Approval (Hafta 10–13)
-
-**Giriş:** Built-in diagnostic düz Python orchestration ile stabil ve idempotent.
-
-**Backlog**
-
-- Agent/Capability Registry ve immutable version.
-- Node/edge Pydantic DSL, typed port catalog ve graph validator.
-- Static DBOS workflow içinde generic deterministic DAG interpreter.
-- Her node durable step; büyük çıktı artifact URI ile saklanır.
-- Run idempotency key ve step history.
-- Approval node: DBOS `send/recv`, RBAC decision, 7 gün timeout.
-- Draft/publish/clone/dry-run REST API.
-- React Flow editor: catalog, canvas, inspector, validator, history.
-
-**Testler:** cycle/type mismatch reject; duplicate idempotency; process restart resume; approval restart; reject branch no-merge; qmd fallback.
-
-**Done:** Kullanıcı built-in workflow'u klonlayıp izinli node'larla değiştirir; dry-run yapar; restart demonstrasyonunda son başarılı step'ten devam eder.
-
-## Faz 5 — Ürünleştirme (Hafta 14–16)
-
-**Giriş:** Diagnostic ve workflow kalite kapıları yeşil; UI bilgi mimarisi onaylı.
-
-**Backlog**
-
-- Dashboard, opportunity detail, evidence drawer, approval center.
-- 10 adımlı setup wizard ve mapping preview.
-- Score feedback/correction; override nedeni audit'e yazılır.
-- Türkçe catalog + i18n key mimarisi.
-- OTel trace/run correlation; prompt/source body redaction.
-- PostgreSQL + knowledge volume backup ve boş kurulum restore script'i.
-- Markdown/HTML/OKF archive export.
-
-**Done:** Ürün yöneticisi terminale dönmeden onboarding → diagnostic → citation → approval → export akışını tamamlar; restore drill geçer.
-
-## Faz 6 — Güvenlik ve release (Hafta 17–18)
-
-**Giriş:** Feature freeze; release checklist ve hedef Linux sunucu hazır.
-
-**Backlog**
-
-- Prompt injection fixture ve tool escape denemeleri.
-- Markdown HTML XSS, SSRF/private IP/redirect/DNS rebinding.
-- CSV formula injection, path traversal, archive bomb ve file limit.
-- Secret/prompt/source content log scan ve unexpected egress capture.
-- Ollama/qmd/Postgres restart, disk-full ve corrupt snapshot senaryoları.
-- Compose image pinning, non-root container, read-only FS uygulanabilirliği.
-- Migration/backup/restore/release notes; mimari as-built güncellemesi.
-
-**Done:** Temiz Linux sunucuda nihai demo kabulü eksiksiz; yüksek güvenlik bulgusu yok; rollback ve restore kanıtı mevcut.
-
-## Nihai demo senaryosu
-
-1. `docker compose up --build` sonrası wizard açılır.
-2. Bootstrap token ile admin yaratılır ve sentetik şirket seçilir.
-3. Adapter preview/mapping gösterilir; OKF bundle üretilir.
-4. Growth Diagnostic çalışır; top five ve 30 günlük plan görünür.
-5. Citation tıklaması raw snapshot locator'a gider.
-6. Candidate wiki diff Approval Center'da onaylanır ve merge edilir.
-7. Bundle ZIP olarak export ve boş ortama import edilir.
-8. Workflow klonlanır, güvenli node değiştirilir, dry-run geçer.
-9. Backup alınır; boş kurulumda restore edilir.
-
-## Definition of Done — her ticket
-
-- Kabul kriteri ve threat/evidence etkisi yazılmıştır.
-- Unit/integration testi veya neden test gerekmediği kayıtlıdır.
-- Log/trace içinde hassas veri yoktur.
-- Migration geriye uyumlu veya release notunda açıkça kırıcıdır.
-- Kullanıcı görünür metni Türkçe ve i18n key üzerinden gelir.
-- Agent değişikliği varsa eval raporu PR artifact'idir.
-- Mimari karar değiştiyse ADR ve diagram güncellenmiştir.
-
+1. Real design partner and first read-only CRM/ERP connector.
+2. Website, competitor, and market-signal ingestion.
+3. Lead discovery/enrichment and evidence-backed scoring.
+4. Campaign, social, AEO, battlecard, and event intelligence.
+5. Financial/ERP, CRM hygiene, and cybersecurity insight.
+6. Only after new consent, legal, threat-model, and ADR gates: controlled messaging, calling, and external write actions.
