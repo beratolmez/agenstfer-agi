@@ -1,0 +1,96 @@
+name: agentic-growth-intelligence
+
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      AGI_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-agi}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-agi}
+      AGI_ENABLE_DBOS: "true"
+      AGI_KNOWLEDGE_ROOT: /data/knowledge
+      AGI_OLLAMA_BASE_URL: http://ollama:11434/v1
+      AGI_QMD_URL: http://qmd:8181
+    volumes:
+      - knowledge_data:/data/knowledge
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [core]
+    restart: unless-stopped
+
+  web-proxy:
+    image: nginx:1.27-alpine
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    volumes:
+      - ./infra/proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [core, ingress]
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [core]
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    networks: [core]
+    restart: unless-stopped
+
+  qmd:
+    profiles: [search]
+    build: ./infra/qmd
+    environment:
+      QMD_COLLECTION_PATH: /knowledge
+      QMD_COLLECTION_NAME: company
+    volumes:
+      - knowledge_data:/knowledge:ro
+      - qmd_data:/root/.cache/qmd
+    networks: [core]
+    restart: unless-stopped
+
+  jaeger:
+    profiles: [observability]
+    image: jaegertracing/all-in-one:1.68.0
+    ports:
+      - "16686:16686"
+    networks: [core]
+
+  egress-gateway:
+    profiles: [cloud]
+    image: ubuntu/squid:6.10-24.10_edge
+    volumes:
+      - ./infra/egress/squid.conf:/etc/squid/squid.conf:ro
+    networks: [core, egress]
+
+networks:
+  core:
+    internal: true
+  ingress: {}
+  egress: {}
+
+volumes:
+  postgres_data:
+  ollama_data:
+  knowledge_data:
+  qmd_data:

@@ -1,0 +1,8 @@
+services:
+  app:
+    environment:
+      # Uygulama doğrudan internete bağlanmaz; yalnızca allowlist'li proxy'ye gider.
+      AGI_CLOUD_MODELS_ENABLED: "true"
+      HTTPS_PROXY: http://egress-gateway:3128
+      HTTP_PROXY: http://egress-gateway:3128
+      NO_PROXY: localhost,127.0.0.1,postgres,ollama,qmd,egress-gateway

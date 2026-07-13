@@ -1,0 +1,49 @@
+[project]
+name = "agentic-growth-intelligence"
+version = "0.1.0"
+description = "OKF-compatible, local-first growth intelligence MVP"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "alembic>=1.16,<2",
+  "argon2-cffi>=25.1,<26",
+  "dbos>=2.8,<3",
+  "email-validator>=2.2,<3",
+  "fastapi>=0.116,<1",
+  "httpx>=0.28,<1",
+  "itsdangerous>=2.2,<3",
+  "openpyxl>=3.1,<4",
+  "pydantic-ai>=2.9,<3",
+  "pydantic-settings>=2.10,<3",
+  "psycopg[binary]>=3.2,<4",
+  "pyyaml>=6.0,<7",
+  "sqlalchemy>=2.0,<3",
+  "uvicorn[standard]>=0.35,<1",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.4,<9",
+  "pytest-asyncio>=1.1,<2",
+  "ruff>=0.12,<1",
+]
+
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["apps/api"]
+include = ["agi_server*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["apps/api"]
+testpaths = ["apps/api/tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

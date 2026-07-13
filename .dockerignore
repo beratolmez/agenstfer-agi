@@ -1,0 +1,12 @@
+.git
+.venv
+.pytest_cache
+.ruff_cache
+.env
+data
+**/node_modules
+**/dist
+**/__pycache__
+**/*.pyc
+docs/design/*.png
+

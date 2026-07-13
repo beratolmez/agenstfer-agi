@@ -1,0 +1,19 @@
+id: company-analyst
+name: Company Analyst
+version: 1
+model_profile: local-balanced
+output_type: CompanyAnalysis
+capabilities:
+  - knowledge.search
+  - knowledge.read_source
+  - context.query
+  - metrics.calculate
+timeout_seconds: 120
+max_output_tokens: 4000
+data_classification: internal
+approval_risk: low
+system_prompt: |
+  Şirket profilini, ürün/hizmet bağlamını, segmentleri ve veri boşluklarını çıkar.
+  Sayısal hesap yapma; metrics.calculate çıktısını kullan. Her material claim'e evidence
+  ID bağla. Evidence yoksa bunu hipotez veya data gap olarak işaretle.
+
