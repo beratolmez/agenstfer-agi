@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -7,7 +8,17 @@ from typing import Annotated, Any
 
 import httpx
 from dbos import DBOS, DBOSConfig, SetWorkflowID
-from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+)
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,17 +31,22 @@ from starlette.middleware.sessions import SessionMiddleware
 from agi_server import __version__
 from agi_server.agents import AgentRegistry
 from agi_server.agents.model_gateway import resolve_model_profile
+from agi_server.agents.probe import probe_model_profile
 from agi_server.config import Settings, get_settings
 from agi_server.connectors.files import MAX_FILE_BYTES, ReadOnlyTabularConnector
 from agi_server.db import (
+    Artifact,
     DataSource,
     OKFCandidate,
     SourceMapping,
     SourceSyncRun,
     User,
+    WorkflowRun,
+    WorkflowStepRun,
     engine,
     get_db,
 )
+from agi_server.diagnostics import run_growth_diagnostic
 from agi_server.domain.demo import build_demo_dataset, demo_counts
 from agi_server.domain.diagnostic import build_growth_diagnostic
 from agi_server.http_security import RequestSecurityMiddleware
@@ -115,7 +131,7 @@ app.add_middleware(
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Content-Type", "X-CSRF-Token"],
+    allow_headers=["Content-Type", "X-CSRF-Token", "Idempotency-Key"],
 )
 
 
@@ -248,6 +264,47 @@ async def model_status(settings: Annotated[Settings, Depends(get_settings)]) -> 
     }
 
 
+@app.post("/api/models/probe")
+async def model_probe(
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+    profile: Annotated[str | None, Query(max_length=80)] = None,
+) -> dict[str, Any]:
+    profile_id = profile or settings.model_profile
+    actor_id = None if actor is None else actor.id
+    try:
+        result = await probe_model_profile(settings, profile_id)
+    except Exception as error:
+        record_audit(
+            db,
+            actor_id=actor_id,
+            action="model.probe_failed",
+            target_type="model_profile",
+            target_id=profile_id,
+            metadata={"error_type": type(error).__name__},
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=409,
+            detail="Model structured-output probe tamamlanamadı",
+        ) from error
+    record_audit(
+        db,
+        actor_id=actor_id,
+        action="model.probe_succeeded",
+        target_type="model_profile",
+        target_id=profile_id,
+        metadata={
+            "provider": result["provider"],
+            "model": result["model"],
+            "usage": result["usage"],
+        },
+    )
+    db.commit()
+    return result
+
+
 @app.post("/api/auth/bootstrap", response_model=AuthSessionView, status_code=201)
 def auth_bootstrap(
     payload: BootstrapRequest,
@@ -373,26 +430,174 @@ def setup_demo(
 
 @app.get("/api/dashboard", response_model=GrowthDiagnostic)
 def dashboard(db: Annotated[Session, Depends(get_db)]) -> GrowthDiagnostic:
+    latest = db.scalar(
+        select(WorkflowRun)
+        .where(
+            WorkflowRun.workflow_id == "builtin-growth-diagnostic",
+            WorkflowRun.status.in_(["awaiting_approval", "completed"]),
+        )
+        .order_by(WorkflowRun.started_at.desc())
+    )
+    if latest and latest.output_json and latest.output_json.get("diagnostic"):
+        return GrowthDiagnostic.model_validate(latest.output_json["diagnostic"])
     return build_growth_diagnostic(db)
 
 
 @app.post("/api/diagnostics/run", response_model=GrowthDiagnostic)
-def run_diagnostic(
+async def run_diagnostic(
     db: Annotated[Session, Depends(get_db)],
     actor: Annotated[User | None, Depends(require_role("analyst"))],
+    settings: Annotated[Settings, Depends(get_settings)],
+    idempotency_key: Annotated[
+        str | None, Header(alias="Idempotency-Key", min_length=8, max_length=180)
+    ] = None,
 ) -> GrowthDiagnostic:
-    # The current vertical slice is deterministic; DBOS/Pydantic AI are plugged in by Phase 3/4.
-    result = build_growth_diagnostic(db)
+    actor_id = None if actor is None else actor.id
+    key = idempotency_key or f"diagnostic-{uuid.uuid4()}"
+    try:
+        result = await run_growth_diagnostic(
+            db,
+            settings,
+            actor_id=actor_id,
+            idempotency_key=key,
+        )
+    except Exception as error:
+        record_audit(
+            db,
+            actor_id=actor_id,
+            action="diagnostic.run_failed",
+            target_type="workflow_run",
+            target_id=key,
+            metadata={"error_type": type(error).__name__},
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Model destekli Growth Diagnostic tamamlanamadı; "
+                "model ve veri hazırlığını kontrol edin"
+            ),
+        ) from error
     record_audit(
         db,
-        actor_id=None if actor is None else actor.id,
-        action="diagnostic.fixture_run",
-        target_type="diagnostic",
-        target_id=result.id,
-        metadata={"mode": "deterministic_fixture"},
+        actor_id=actor_id,
+        action="diagnostic.run_completed",
+        target_type="workflow_run",
+        target_id=result.run.id,
+        metadata={
+            "candidate_id": result.candidate.id,
+            "model_profile": result.run.model_profile,
+            "token_usage": result.run.token_usage,
+        },
     )
     db.commit()
-    return result
+    return result.diagnostic
+
+
+@app.get("/api/runs")
+def workflow_runs(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
+    rows = db.query(WorkflowRun).order_by(WorkflowRun.started_at.desc()).limit(100).all()
+    return {
+        "items": [
+            {
+                "id": row.id,
+                "workflow_id": row.workflow_id,
+                "workflow_version": row.workflow_version,
+                "status": row.status,
+                "current_step": row.current_step,
+                "model_profile": row.model_profile,
+                "token_usage": row.token_usage,
+                "started_at": row.started_at,
+                "completed_at": row.completed_at,
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.get("/api/runs/{run_id}")
+def workflow_run_detail(
+    run_id: str,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, Any]:
+    run = db.get(WorkflowRun, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Workflow run bulunamadı")
+    steps = (
+        db.query(WorkflowStepRun)
+        .filter(WorkflowStepRun.run_id == run_id)
+        .order_by(WorkflowStepRun.sequence)
+        .all()
+    )
+    artifacts = (
+        db.query(Artifact).filter(Artifact.run_id == run_id).order_by(Artifact.created_at).all()
+    )
+    return {
+        "id": run.id,
+        "idempotency_key": run.idempotency_key,
+        "workflow_id": run.workflow_id,
+        "workflow_version": run.workflow_version,
+        "status": run.status,
+        "current_step": run.current_step,
+        "model_profile": run.model_profile,
+        "agent_versions": run.agent_versions,
+        "token_usage": run.token_usage,
+        "evidence_ids": run.evidence_ids,
+        "output": run.output_json,
+        "error": run.error_json,
+        "started_at": run.started_at,
+        "completed_at": run.completed_at,
+        "steps": [
+            {
+                "id": step.id,
+                "step_id": step.step_id,
+                "sequence": step.sequence,
+                "kind": step.kind,
+                "agent_id": step.agent_id,
+                "agent_version": step.agent_version,
+                "model_profile": step.model_profile,
+                "status": step.status,
+                "input_hash": step.input_hash,
+                "output": step.output_json,
+                "error": step.error_json,
+                "token_usage": step.token_usage,
+                "started_at": step.started_at,
+                "completed_at": step.completed_at,
+            }
+            for step in steps
+        ],
+        "artifacts": [
+            {
+                "id": artifact.id,
+                "kind": artifact.kind,
+                "sha256": artifact.sha256,
+                "download_url": f"/api/runs/{run_id}/artifacts/{artifact.id}",
+                "created_at": artifact.created_at,
+            }
+            for artifact in artifacts
+        ],
+    }
+
+
+@app.get("/api/runs/{run_id}/artifacts/{artifact_id}")
+def workflow_run_artifact(
+    run_id: str,
+    artifact_id: str,
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+) -> FileResponse:
+    artifact = db.get(Artifact, artifact_id)
+    if artifact is None or artifact.run_id != run_id:
+        raise HTTPException(status_code=404, detail="Artifact bulunamadı")
+    path = (settings.knowledge_root / artifact.uri).resolve()
+    artifact_root = (settings.knowledge_root / "artifacts").resolve()
+    if not path.is_relative_to(artifact_root) or not path.is_file():
+        raise HTTPException(status_code=409, detail="Artifact dosyası doğrulanamadı")
+    expected = artifact.sha256
+    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual != expected:
+        raise HTTPException(status_code=409, detail="Artifact bütünlük kontrolü başarısız")
+    return FileResponse(path, filename=path.name)
 
 
 @app.get("/api/sources")

@@ -8,6 +8,21 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(0);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [modelResult, setModelResult] = useState<string | null>(null);
+  const [modelError, setModelError] = useState<string | null>(null);
+  async function probeModel() {
+    setRunning(true);
+    setModelError(null);
+    try {
+      const probe = await api.probeModel();
+      setModelResult(`${probe.provider} / ${probe.model} · structured output doğrulandı`);
+    } catch (reason) {
+      setModelResult(null);
+      setModelError(reason instanceof Error ? reason.message : "Model testi tamamlanamadı");
+    } finally {
+      setRunning(false);
+    }
+  }
   async function next() {
     if (step === 6 && !result) {
       setRunning(true);
@@ -19,7 +34,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const content = [
     { icon: ShieldCheck, title: "İlk yöneticiyi oluşturun", text: "Bootstrap token yalnız bir kez kullanılır. Demo modunda bu adım önizlemedir." },
     { icon: ShieldCheck, title: "Rol ayrımını doğrulayın", text: "Admin yapılandırır, Analyst inceler, Approver onaylar. İlk kullanıcı demo için üç role sahip olabilir." },
-    { icon: Server, title: "Model profilini test edin", text: "local-balanced veya opt-in cloud-balanced structured-output probe. Model yoksa deterministic demo devam eder." },
+    { icon: Server, title: "Model profilini test edin", text: "local-balanced veya opt-in cloud-balanced profile gerçek bir structured-output probe'dan geçmelidir. Otomatik provider fallback uygulanmaz." },
     { icon: Sparkles, title: "90 günlük önceliği belirleyin", text: "Mevcut müşteri tabanından kârlı büyüme." },
     { icon: Database, title: "Veri kaynağını seçin", text: "Anka Endüstriyel Otomasyon sentetik CRM/ERP dataset'i read-only connector üzerinden yüklenecek." },
     { icon: Database, title: "Mapping önizlemesi", text: "Account, Contact, Opportunity, Product, Order ve Invoice canonical entity'lere eşlenir." },
@@ -38,6 +53,15 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
         <h1>{content.title}</h1>
         <p>{content.text}</p>
         {step === 0 ? <div className="setup-form"><label>Ad soyad<input defaultValue="Mehmet Kaya" /></label><label>Kurumsal e-posta<input defaultValue="admin@anka.local" /></label></div> : null}
+        {step === 2 ? (
+          <div className="setup-form">
+            <button className="primary-button" type="button" onClick={probeModel} disabled={running}>
+              <Server size={17} /> {running ? "Model test ediliyor…" : "Structured-output testini çalıştır"}
+            </button>
+            {modelResult ? <p className="setup-success"><Check size={18} />{modelResult}</p> : null}
+            {modelError ? <p className="inline-alert inline-alert--error" role="alert">{modelError}</p> : null}
+          </div>
+        ) : null}
         {step === 3 ? <div className="setup-form"><label>Şirket adı<input defaultValue="Anka Endüstriyel Otomasyon" /></label><label>90 günlük hedef<textarea defaultValue="Mevcut müşteri tabanından kârlı büyüme" /></label></div> : null}
         {result ? <div className="setup-success"><Check size={18} /><span><strong>Demo bundle hazır</strong><small>{String(result.company)} · OKF valid: {String(result.okf_valid)}</small></span></div> : null}
         <div className="setup-actions"><button type="button" disabled={step === 0} onClick={() => setStep((current) => current - 1)}><ArrowLeft size={17} /> Geri</button><button className="primary-button" type="button" onClick={next} disabled={running}>{running ? "Bundle hazırlanıyor…" : step === steps.length - 1 ? "Kurulumu tamamla" : "Devam et"}<ArrowRight size={17} /></button></div>

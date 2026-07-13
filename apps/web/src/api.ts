@@ -72,8 +72,19 @@ export const api = {
     csrfToken = null;
   },
   modelStatus: () => request<{ ready: boolean; profile: string; provider: string; model?: string; local?: boolean; message: string }>("/api/model/status"),
+  probeModel: () => request<{
+    ready: boolean;
+    profile: string;
+    provider: string;
+    model: string;
+    local: boolean;
+    structured_output: boolean;
+  }>("/api/models/probe", { method: "POST" }),
   dashboard: () => request<GrowthDiagnostic>("/api/dashboard"),
-  runDiagnostic: () => request<GrowthDiagnostic>("/api/diagnostics/run", { method: "POST" }),
+  runDiagnostic: () => request<GrowthDiagnostic>("/api/diagnostics/run", {
+    method: "POST",
+    headers: { "Idempotency-Key": `diagnostic-${crypto.randomUUID()}` },
+  }),
   workflow: () => request<WorkflowDefinition>("/api/workflows/default"),
   validateWorkflow: (workflow: WorkflowDefinition) =>
     request<{ valid: boolean; issues: Array<{ message: string }> }>("/api/workflows/validate", {

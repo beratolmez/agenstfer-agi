@@ -313,7 +313,7 @@ flowchart LR
     E -. Groq or Mistral .-> C["Cloud model provider"]
 ```
 
-Only Nginx publishes a host port. Standard Compose now enforces bootstrap/session authentication, roles, CSRF, migrations, and material-operation audit. Source, mapping, snapshot, canonical context, evidence, artifact, and OKF candidate state is persistent. The diagnostic remains deterministic and workflow product state/agent execution is still incomplete.
+Only Nginx publishes a host port. Standard Compose now enforces bootstrap/session authentication, roles, CSRF, migrations, and material-operation audit. Source, mapping, snapshot, canonical context, evidence, artifact, OKF candidate, diagnostic run, and agent step state is persistent. The diagnostic score is deterministic from persisted data; narrative analysis is produced by four typed Pydantic AI calls and every material claim must pass the Evidence Reviewer gate. Workflow authoring/publication and general approval state remain incomplete.
 
 ### Implemented OKF storage lifecycle
 
@@ -336,7 +336,7 @@ sequenceDiagram
     end
 ```
 
-PostgreSQL owns candidate metadata, expiry, artifacts, and audit state. Git worktrees own isolated candidates and `main` owns approved portable knowledge history. A filesystem merge lock serializes fast-forward approval; rejected, expired, and stale candidates do not change active knowledge. qmd is requested to reindex only after approval and lexical search remains available when qmd is absent. Phase 3 adds model-backed Evidence Reviewer policy before a candidate is presented.
+PostgreSQL owns candidate metadata, expiry, artifacts, and audit state. Git worktrees own isolated candidates and `main` owns approved portable knowledge history. A filesystem merge lock serializes fast-forward approval; rejected, expired, and stale candidates do not change active knowledge. qmd is requested to reindex only after approval and lexical search remains available when qmd is absent. The implemented model-backed Evidence Reviewer rejects unsupported material or numerical claims before a candidate is presented.
 
 ### Cloud production policy
 

@@ -46,16 +46,18 @@ Exit: synchronized data becomes a conformant, traceable candidate bundle that ca
 
 ## Phase 3 — Real Growth Diagnostic vertical slice
 
-- Define typed Company Analysis, Opportunity Hypotheses, Evidence Review, and Diagnostic outputs.
-- Expose only scoped knowledge/evidence/metric/candidate-write capabilities.
-- Execute Pydantic AI through pinned Ollama, Groq, or Mistral profiles with no automatic fallback.
-- Add a real structured-output probe and classification/cloud policy enforcement.
-- Calculate metrics and scores from persisted data.
-- Reject unsupported material or numerical claims.
-- Persist exact agent/model/workflow versions, results, safe usage metadata, errors, and artifacts.
-- Produce Markdown, print-ready HTML, and candidate OKF reports.
+- [x] Define typed Company Analysis, Opportunity Hypotheses, Evidence Review, and OKF change outputs.
+- [x] Expose only scoped knowledge/evidence/metric/candidate-proposal capabilities.
+- [x] Execute Pydantic AI through pinned Ollama, Groq, or Mistral profiles with no automatic fallback.
+- [x] Add a real structured-output probe and classification/cloud policy enforcement.
+- [x] Calculate metrics and scores from persisted data.
+- [x] Reject unsupported material or numerical claims.
+- [x] Persist exact agent/model/workflow versions, results, safe usage metadata, errors, and artifacts.
+- [x] Produce Markdown, print-ready HTML, and candidate OKF reports.
 
-Exit: the Anka diagnostic is computed and model-assisted rather than returned from a static fixture.
+Exit: the Anka diagnostic is computed and model-assisted rather than returned from a static fixture. The
+full runtime is verified with typed Pydantic AI test models; a release-enabled Ollama/Groq/Mistral profile
+must still pass the golden evaluation before release acceptance.
 
 ## Phase 4 — Agent and workflow platform
 

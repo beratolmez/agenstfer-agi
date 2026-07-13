@@ -26,14 +26,7 @@ CLOUD_PROVIDERS = {
 
 
 def resolve_model_profile(profile_id: str, settings: Settings) -> ModelProfile:
-    # Existing agent specs use local-balanced. The global setting deliberately
-    # overrides that default only, so a workflow can still explicitly select a
-    # stronger local profile when both options are available.
-    effective_profile = (
-        settings.model_profile
-        if profile_id == "local-balanced" and settings.model_profile != "local-balanced"
-        else profile_id
-    )
+    effective_profile = profile_id
     if effective_profile == "cloud-balanced":
         if not settings.cloud_models_enabled:
             raise PermissionError("Cloud model profilleri yönetici opt-in olmadan kullanılamaz")
@@ -57,14 +50,12 @@ def resolve_model_profile(profile_id: str, settings: Settings) -> ModelProfile:
     return profile
 
 
-def build_pydantic_ai_agent(spec, output_type, settings: Settings):
-    """Build lazily so deterministic demo/tests do not require a running Ollama."""
-    from pydantic_ai import Agent
+def build_pydantic_ai_model(profile_id: str, settings: Settings):
     from pydantic_ai.models.openai import OpenAIChatModel
     from pydantic_ai.providers.ollama import OllamaProvider
     from pydantic_ai.providers.openai import OpenAIProvider
 
-    profile = resolve_model_profile(spec.model_profile, settings)
+    profile = resolve_model_profile(profile_id, settings)
     if profile.local:
         provider = OllamaProvider(base_url=settings.ollama_base_url)
     else:
@@ -73,5 +64,28 @@ def build_pydantic_ai_agent(spec, output_type, settings: Settings):
             base_url=profile.base_url,
             api_key=settings.cloud_api_key.get_secret_value(),
         )
-    model = OpenAIChatModel(profile.model_name, provider=provider)
-    return Agent(model, output_type=output_type, system_prompt=spec.system_prompt)
+    return OpenAIChatModel(profile.model_name, provider=provider)
+
+
+def build_pydantic_ai_agent(
+    spec,
+    output_type,
+    settings: Settings,
+    *,
+    profile_id: str | None = None,
+    model_override=None,
+    tools=(),
+):
+    """Build lazily so non-model operations do not require a running provider."""
+    from pydantic_ai import Agent
+
+    model = model_override or build_pydantic_ai_model(profile_id or spec.model_profile, settings)
+    return Agent(
+        model,
+        output_type=output_type,
+        system_prompt=spec.system_prompt,
+        tools=tools,
+        model_settings={"max_tokens": spec.max_output_tokens},
+        retries=2,
+        name=spec.id,
+    )

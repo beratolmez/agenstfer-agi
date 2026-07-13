@@ -4,17 +4,17 @@ Agentic Growth Intelligence, tek bir şirketin kendi altyapısında çalışan; 
 
 Bu repository, mevcut [PRD](./Agentic_Growth_Intelligence_Server_PRD.md) ile [yönetici mimari bağlamını](./ARCHITECTURE_CONTEXT.md) kaynak olarak korur. Güncel MVP kararları [proje mimarisinde](./docs/PROJECT_ARCHITECTURE.md), uygulama sırası [teknik planda](./docs/MVP_IMPLEMENTATION_PLAN.md), günlük çalışma biçimi [sonraki adımlar rehberinde](./docs/NEXT_STEPS_GUIDE.md), çalışan kapsam ile release öncesi kalanlar ise [uygulama durumu](./docs/IMPLEMENTATION_STATUS.md) belgesinde açıklanır. Domain sözleşmeleri, eval, tehdit modeli, operasyon ve release kapıları da `docs/` altında version-controlled tutulur.
 
-## Mevcut durum: kalıcı ingestion tamam, gerçek agent tanısı eksik
+## Mevcut durum: gerçek agent tanısı uygulanmış, release modeli hazır değil
 
-Web/API/Docker katmanı ayağa kalkar. Demo veya CSV/XLSX verisi read-only connector, mapping, PostgreSQL canonical context, immutable snapshot ve evidence hattından geçer. OKF değişiklikleri izole candidate worktree'de oluşur ve yalnız onayla active `main` branch'ine alınır. Ancak ürün henüz gerçek Pydantic AI tabanlı Growth Diagnostic çalıştırmaz; bugünkü öneriler deterministik fixture'dır. Workflow Publish/Run ve genel Approval Center/Settings akışları tamamlanmamıştır.
+Web/API/Docker katmanı ayağa kalkar. Demo veya CSV/XLSX verisi read-only connector, mapping, PostgreSQL canonical context, immutable snapshot ve evidence hattından geçer. Growth Diagnostic; persisted veriden deterministic metric/score hesaplar, dört typed Pydantic AI agent çalıştırır, material claim'leri evidence gate'ten geçirir ve Markdown/HTML + izole OKF candidate üretir. Ancak bu makinede `qwen3.5:9b` kurulu olmadığı ve governed cloud key bulunmadığı için gerçek provider kabulü henüz geçmemiştir. Model yokken run açıkça hata verir; statik rapora sessiz fallback yapmaz. Workflow Publish/Run ve genel Approval Center/Settings akışları tamamlanmamıştır.
 
 Doğrulanmış ve eksik kapsamın tek kaynağı [Implementation Status](./docs/IMPLEMENTATION_STATUS.md) belgesidir.
 
 ## Şu anda doğrulanmış scaffold
 
-- Sentetik “Anka Endüstriyel Otomasyon” şirketi ve deterministik Growth Diagnostic.
+- Sentetik “Anka Endüstriyel Otomasyon” şirketi; persisted metrik/skorlar ve typed model destekli Growth Diagnostic runtime'ı.
 - OKF 0.1 concept okuma/yazma, lint, link/backlink ve ZIP round-trip altyapısı.
-- Immutable snapshot locator'larına çözülen gerçek evidence referansları ile sabit fırsat skorları ve 30 günlük plan.
+- Immutable snapshot locator'larına çözülen gerçek evidence referansları; evidence-reviewed material claim'ler ve 30 günlük plan.
 - FastAPI API, React/TypeScript dashboard ve kısıtlı React Flow workflow editörü.
 - Typed DAG doğrulaması; cycle, geçersiz port ve izin verilmeyen node reddi.
 - PostgreSQL'de source, mapping, sync, snapshot, entity, fact, evidence, artifact ve OKF candidate state'i.
@@ -45,7 +45,7 @@ Ollama modeli ilk çalıştırmada ayrıca indirilmelidir:
 docker compose exec ollama ollama pull qwen3.5:9b
 ```
 
-Yerel geliştirmede Ollama olmadan sentetik/deterministik demo çalışır.
+Ollama veya açıkça yapılandırılmış cloud provider olmadan kaynak/OKF ekranları çalışır; gerçek Growth Diagnostic çalıştırması güvenli biçimde reddedilir. Dashboard ilk başarılı run öncesinde yalnız bir deterministic preview gösterir.
 
 Kimlik doğrulamayı yalnız açık bir development override ile bypass etmek için:
 

@@ -43,11 +43,12 @@ def create_demo_candidate(
     candidates_root: Path | str,
     actor_id: str | None,
     run_id: str | None = None,
+    diagnostic=None,
 ) -> tuple[OKFCandidate, str]:
     candidate_id = f"candidate-{uuid.uuid4()}"
     repository = GitKnowledgeRepository(active_root)
     destination = Path(candidates_root).resolve() / candidate_id
-    diagnostic = build_growth_diagnostic(db)
+    diagnostic = diagnostic or build_growth_diagnostic(db)
     metadata = _source_metadata(db)
 
     def build(worktree: Path) -> None:

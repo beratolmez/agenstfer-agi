@@ -141,11 +141,12 @@ function LowerActivity({ diagnostic, onEvidence }: { diagnostic: GrowthDiagnosti
 
 export function Dashboard() {
   const [diagnostic, setDiagnostic] = useState<GrowthDiagnostic | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceRef | null>(null);
   useEffect(() => {
-    api.dashboard().then(setDiagnostic).catch((reason: Error) => setError(reason.message));
+    api.dashboard().then(setDiagnostic).catch((reason: Error) => setLoadError(reason.message));
   }, []);
   const updated = useMemo(
     () => diagnostic ? new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(diagnostic.generated_at)) : "",
@@ -153,11 +154,12 @@ export function Dashboard() {
   );
   async function rerun() {
     setRunning(true);
-    try { setDiagnostic(await api.runDiagnostic()); setError(null); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Tanı çalıştırılamadı"); }
+    setRunError(null);
+    try { setDiagnostic(await api.runDiagnostic()); }
+    catch (reason) { setRunError(reason instanceof Error ? reason.message : "Tanı çalıştırılamadı"); }
     finally { setRunning(false); }
   }
-  if (error) return <main className="page error-state"><h1>API bağlantısı kurulamadı</h1><p>{error}</p><button className="primary-button" onClick={() => window.location.reload()}>Yeniden dene</button></main>;
+  if (loadError) return <main className="page error-state"><h1>API bağlantısı kurulamadı</h1><p>{loadError}</p><button className="primary-button" onClick={() => window.location.reload()}>Yeniden dene</button></main>;
   if (!diagnostic) return <main className="page loading-state">Büyüme özeti hazırlanıyor…</main>;
   return (
     <main className="dashboard-page">
@@ -167,6 +169,12 @@ export function Dashboard() {
           <PlayCircle size={18} />{running ? "Tanı çalışıyor…" : "Tanıyı yeniden çalıştır"}
         </button>
       </div>
+      {runError ? (
+        <div className="inline-alert inline-alert--error" role="alert">
+          <strong>Tanı çalıştırılamadı.</strong> {runError} Model profilini Kurulum ekranında
+          test edin; sistem başka bir provider'a otomatik geçmez.
+        </div>
+      ) : null}
       <div className="dashboard-grid">
         <div className="metrics-strip">
           <Metric icon={Database} label="Veri hazırlığı" value={diagnostic.data_readiness} helper="İyi durumda" tone="teal" />
@@ -177,7 +185,7 @@ export function Dashboard() {
         <PlanRail plan={diagnostic.plan} />
       </div>
       <LowerActivity diagnostic={diagnostic} onEvidence={setSelectedEvidence} />
-      <footer className="dashboard-footer"><span>Son güncelleme: {updated}</span><span>Tanı modeli: deterministic-v1 · local-balanced</span><span>{diagnostic.disclaimer}</span></footer>
+      <footer className="dashboard-footer"><span>Son güncelleme: {updated}</span><span>Skor: deterministic-v1 · anlatı: yapılandırılmış model profili</span><span>{diagnostic.disclaimer}</span></footer>
       {selectedEvidence ? <EvidenceDrawer evidence={selectedEvidence} onClose={() => setSelectedEvidence(null)} /> : null}
     </main>
   );

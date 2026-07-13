@@ -31,24 +31,30 @@ This is the authoritative statement of what the repository actually does. A chec
 - [x] OKF import rejects traversal, symlinks, Git internals, non-Markdown payloads, excessive entries, and cumulative expanded size.
 - [x] OKF candidates are isolated Git worktrees with seven-day expiry; approval fast-forwards active `main`, rejection leaves it unchanged, and only approval requests qmd reindexing.
 - [x] Active OKF export/import preserves unknown types and metadata through an approval-controlled candidate round trip.
+- [x] Growth metrics and opportunity scores are computed from persisted canonical entities; changing persisted inputs changes the metrics.
+- [x] Four typed Pydantic AI agents run sequentially with capability-scoped tools and a pinned model profile; no automatic provider fallback exists.
+- [x] Every material/numerical claim passes an Evidence Reviewer gate against persisted evidence before a candidate is created.
+- [x] Diagnostic run/step versions, input hashes, outputs, safe errors, token usage, evidence IDs, Markdown/HTML artifacts, and OKF candidate are persisted.
+- [x] Model structured-output probing is a real provider call and is exposed in the setup UI.
+- [x] Diagnostic run list/detail/artifact APIs exist; the dashboard delegates to the latest successful persisted diagnostic.
 
 ## Partial — do not represent as complete
 
-- [ ] **Model execution:** model status is not ready on the audited machine; workflow agent nodes do not call Pydantic AI.
-- [ ] **Diagnostic:** recommendations are deterministic fixtures rather than computed agent results.
-- [ ] **Operational state:** ingestion/evidence/OKF state is populated, but no first administrator exists yet and workflow definitions/runs/approval histories remain empty.
+- [ ] **Release model acceptance:** real Pydantic AI execution exists and is covered with typed test models, but no release-enabled provider can be live-verified on the audited machine because `qwen3.5:9b` is not installed and no governed cloud key is configured.
+- [ ] **Fallback dashboard:** until the first successful model-assisted run, `GET /api/dashboard` intentionally shows the legacy deterministic preview; `POST /api/diagnostics/run` never falls back to it.
+- [ ] **Operational state:** ingestion/evidence/OKF state is populated and failed run attempts are persisted, but no first administrator exists yet and published workflow/approval histories remain incomplete.
 - [ ] **Workflow product:** editor validation calls the API; Save, Dry-run, Publish, Run, history, and versions are not functional end to end.
 - [ ] **Durability:** DBOS receives approval messages, but application run/step/approval records and restart acceptance tests do not exist.
 - [ ] **Approval:** the current workflow approval route is role-protected and audited, but approval records/history and the Approval Center are not implemented.
 - [ ] **Ingestion breadth:** demo and bounded CSV/XLSX sources work; real CRM/ERP connectors intentionally wait for a design partner.
-- [ ] **Evidence review:** source evidence is real and resolvable, but agent-generated claims are not yet reviewed against it by a model-backed Evidence Reviewer.
+- [ ] **Golden evaluation:** the Evidence Reviewer gate is implemented, but planted-opportunity, repeated-run, and release-profile quality thresholds have not been executed against a real release model.
 - [ ] **Approval Center:** OKF candidate decision APIs work, but the dedicated review/diff UI and persisted workflow approvals are Phase 4/5 work.
 - [ ] **Setup:** most wizard steps are previews and are not persisted.
 - [ ] **Operations:** backup scripts exist for Linux but have no restore drill, PowerShell wrapper, encryption policy, or release evidence.
 
 ## Current verification results
 
-- Backend: 25 tests passed.
+- Backend: 30 tests passed.
 - Frontend: 3 tests passed.
 - Ruff: passed.
 - Frontend production build: passed.
@@ -56,6 +62,8 @@ This is the authoritative statement of what the repository actually does. A chec
 - Migration drift: no new upgrade operations detected.
 - Live health: API, PostgreSQL query, OKF, and Ollama process reported available; qmd is unavailable and lexical fallback is active.
 - Live Phase 2 drill: 1,783 records synchronized into 3 snapshots; a citation resolved to CRM row 18; the candidate was approved and active knowledge advanced.
+- Live Phase 3 failure drill: a missing-model diagnostic persisted a failed run at `model-readiness`, returned HTTP 409, and did not silently fall back.
+- Typed Phase 3 integration: all four Pydantic AI agents, evidence gate, persisted five-step trace, three artifacts, idempotency, and rejection-without-candidate passed against the full runtime using typed test models.
 - Browser QA: bootstrap gate and the populated Sources screen rendered at `localhost:8080`; the Sources screen showed 1,370 CRM, 412 ERP, and 1 strategy record.
 - Model readiness: false because the configured local model is not installed.
 
@@ -73,7 +81,7 @@ or:
 
 ## Active phase
 
-Phase 3 — real, model-assisted Growth Diagnostic vertical slice.
+Phase 4 — immutable Agent/Capability/Workflow versions and a durable workflow platform. Phase 3 provider-specific golden acceptance remains a release gate because this machine has no ready model.
 
 ## Deliberately outside the MVP
 

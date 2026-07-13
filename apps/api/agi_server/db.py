@@ -169,9 +169,38 @@ class WorkflowRun(Base):
     status: Mapped[str] = mapped_column(String(30), index=True)
     current_step: Mapped[str | None] = mapped_column(String(80), nullable=True)
     artifact_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
+    input_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    output_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    error_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    model_profile: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    agent_versions: Mapped[dict[str, int] | None] = mapped_column(JSON, nullable=True)
+    token_usage: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    evidence_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    created_by: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     approvals: Mapped[list[ApprovalRequest]] = relationship(back_populates="run")
+
+
+class WorkflowStepRun(Base):
+    __tablename__ = "workflow_step_runs"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    run_id: Mapped[str] = mapped_column(ForeignKey("workflow_runs.id"), index=True)
+    step_id: Mapped[str] = mapped_column(String(80))
+    sequence: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(60), index=True)
+    agent_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    agent_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    model_profile: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), index=True)
+    input_hash: Mapped[str] = mapped_column(String(64))
+    output_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    error_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    token_usage: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (Index("ux_step_run_sequence", "run_id", "sequence", unique=True),)
 
 
 class ApprovalRequest(Base):
