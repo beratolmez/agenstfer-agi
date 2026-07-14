@@ -9,6 +9,9 @@ artifacts
 data
 **/node_modules
 **/dist
+apps/web/test-results
+apps/web/playwright-report
+apps/web/blob-report
 **/__pycache__
 **/*.pyc
 **/*.egg-info

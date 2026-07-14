@@ -17,12 +17,17 @@ npm --prefix apps/web test
 echo "== Frontend build =="
 npm --prefix apps/web run build
 echo "== Compose validation =="
-docker compose config --quiet
+base_compose="$(docker compose config)"
+if grep -Eq '^[[:space:]]+AGI_CLOUD_API_KEY:[[:space:]]' <<<"${base_compose}"; then
+  echo "Base Compose must not inject a plaintext AGI_CLOUD_API_KEY." >&2
+  exit 1
+fi
 docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
 docker compose -f docker-compose.yml -f docker-compose.cloud.yml --profile cloud config --quiet
 docker compose -f docker-compose.yml -f docker-compose.production.yml config --quiet
 docker compose -f docker-compose.yml -f docker-compose.observability.yml --profile observability config --quiet
 docker compose -f docker-compose.yml -f docker-compose.model-download.yml config --quiet
+docker compose -f docker-compose.yml -f docker-compose.e2e.yml config --quiet
 
 if [[ "${1:-}" == "--live" ]]; then
   echo "== Live probes =="

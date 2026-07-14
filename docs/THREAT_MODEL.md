@@ -24,6 +24,8 @@ Company source content, credentials, personal/contact data, canonical context, O
   must escape formula prefixes.
 - Prompt-injection separation: source content cannot modify system policy or tool scope.
 - Classification and redaction before cloud calls; block confidential/restricted data.
+- Compose allowlists application environment variables. Cloud API keys are mounted only as the
+  cloud-profile secret file and are never inherited by PostgreSQL or the base app environment.
 - Do not log secrets, prompts, source bodies, or evidence excerpts.
 - Idempotent workflows and approvals; stale/replayed decisions fail closed.
 - Approval-controlled OKF merge and conflict detection.

@@ -68,6 +68,8 @@ Exit gate: implementation passed; real-provider approval wait/resume remains par
 - [x] Replace Sources, Approval Center, Settings, and Opportunities placeholders.
 - [x] Persisted dashboard/history, exact citation navigation, candidate diff/decision/export, report
   download, degraded/error/retry/cancel states, Turkish-first i18n boundary, and responsive controls.
+- [x] Remove the synthetic dashboard fallback; no model-assisted result is shown before a persisted
+  evidence-reviewed run exists.
 
 Exit gate: UI/API functionality passed; complete happy path awaits a qualified model.
 
@@ -80,6 +82,8 @@ Exit gate: UI/API functionality passed; complete happy path awaits a qualified m
 - [x] Digest-pinned production images, pinned qmd, CycloneDX SBOM, and zero fixable HIGH/CRITICAL
   Trivy findings in the audited image.
 - [x] Isolated empty-volume production Compose migration/bootstrap/auth drill.
+- [x] Isolated model-independent Playwright coverage for truthful dashboard, persisted demo sync,
+  Sources UI, and safe workflow clone/dry-run behavior.
 - [ ] Run full browser E2E with a qualified model on a separate clean Linux x86-64 host.
 - [ ] Run qmd loss/rebuild and final 20-run model evaluation on that host.
 
@@ -87,8 +91,9 @@ Exit gate: not yet passed; see release blockers in `IMPLEMENTATION_STATUS.md`.
 
 ## Remaining release sequence
 
-1. Keep the installed `qwen3.5:9b` only as a development profile; its probe passes but its first
-   full golden diagnostic failed the Growth Opportunity Analyst retry budget on CPU.
+1. Keep the installed `qwen3.5:9b` only as a development profile. Its probe and corrected v3 Growth
+   Opportunity node pass, but the first full golden diagnostic failed and no 20-run qualification
+   exists on this CPU-bound host.
 2. Qualify `qwen3.5:27b` on suitable hardware or configure one governed Groq/Mistral secret, then
    pass the real structured-output probe and 20-run golden qualification.
 3. Execute onboarding → sync → diagnostic → citation → approval → active OKF export in the browser.

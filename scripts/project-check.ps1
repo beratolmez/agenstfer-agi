@@ -39,8 +39,11 @@ try {
     Assert-NativeSuccess "Frontend build"
 
     Write-Host "== Compose validation =="
-    docker compose config --quiet
+    $baseCompose = docker compose config
     Assert-NativeSuccess "Base Compose validation"
+    if ($baseCompose -match "(?m)^\s+AGI_CLOUD_API_KEY:\s") {
+        throw "Base Compose must not inject a plaintext AGI_CLOUD_API_KEY."
+    }
     docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
     Assert-NativeSuccess "Development Compose validation"
     docker compose -f docker-compose.yml -f docker-compose.cloud.yml --profile cloud config --quiet
@@ -51,6 +54,8 @@ try {
     Assert-NativeSuccess "Observability Compose validation"
     docker compose -f docker-compose.yml -f docker-compose.model-download.yml config --quiet
     Assert-NativeSuccess "Model-download Compose validation"
+    docker compose -f docker-compose.yml -f docker-compose.e2e.yml config --quiet
+    Assert-NativeSuccess "Browser E2E Compose validation"
 
     if ($Live) {
         Write-Host "== Live probes =="

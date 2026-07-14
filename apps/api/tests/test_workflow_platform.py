@@ -148,6 +148,9 @@ def test_registry_versions_are_seeded_cloned_and_immutable(tmp_path: Path) -> No
 
         agent = db.get(AgentDefinitionRow, ("company-analyst", 2))
         assert agent is not None
+        growth_agent = db.get(AgentDefinitionRow, ("growth-opportunity-analyst", 3))
+        assert growth_agent is not None
+        assert growth_agent.definition["max_output_tokens"] == 900
         agent_draft = clone_agent_version(db, agent, None)
         assert agent_draft.version == 3
         spec = agent_draft.definition | {"version": agent_draft.version}

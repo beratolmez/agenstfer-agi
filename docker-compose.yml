@@ -3,14 +3,19 @@ name: agentic-growth-intelligence
 services:
   app:
     build: .
-    env_file: .env
     environment:
+      AGI_ENVIRONMENT: ${AGI_ENVIRONMENT:-development}
+      AGI_BOOTSTRAP_TOKEN: ${AGI_BOOTSTRAP_TOKEN:-replace-this-one-time-token}
+      AGI_SESSION_SECRET: ${AGI_SESSION_SECRET:-replace-with-at-least-32-random-characters}
+      AGI_MASTER_KEY: ${AGI_MASTER_KEY:-replace-with-a-docker-secret-in-production}
       AGI_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-agi}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-agi}
       AGI_DEMO_NO_AUTH: "false"
       AGI_ENABLE_DBOS: "true"
       AGI_KNOWLEDGE_ROOT: /data/knowledge
       AGI_OLLAMA_BASE_URL: http://ollama:11434/v1
+      AGI_MODEL_PROFILE: ${AGI_MODEL_PROFILE:-local-balanced}
       AGI_QMD_URL: http://qmd:8181
+      AGI_CLOUD_MODELS_ENABLED: "false"
     volumes:
       - knowledge_data:/data/knowledge
     depends_on:
@@ -40,7 +45,10 @@ services:
 
   postgres:
     image: postgres:16-alpine@sha256:16bc17c64a573ef34162af9298258d1aec548232985b33ed7b1eac33ba35c229
-    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-agi}
+      POSTGRES_USER: ${POSTGRES_USER:-agi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

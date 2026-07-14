@@ -19,6 +19,8 @@ and manager architecture are unchanged vision inputs; they are not completion cl
   bypass, and production rejects demo auth and weak/default application secrets.
 - [x] Production bootstrap/session/master secrets and cloud provider keys can be mounted from
   ignored host files via Docker secrets.
+- [x] Compose allowlists app/PostgreSQL environment values instead of importing `.env` wholesale;
+  cloud API keys enter containers only through the opt-in cloud secret mount.
 - [x] Health checks query PostgreSQL and report Ollama, qmd, and OKF separately.
 
 ### Ingestion, evidence, and knowledge
@@ -37,7 +39,9 @@ and manager architecture are unchanged vision inputs; they are not completion cl
 
 ### Agents, diagnostic, and workflows
 
-- [x] Four typed Pydantic AI agent v2 definitions use explicit Ollama/Groq/Mistral profiles.
+- [x] Four typed, versioned Pydantic AI agent definitions use explicit Ollama/Groq/Mistral profiles.
+  Growth Opportunity Analyst v3 requires exactly the five deterministic signals and bounds each
+  rationale/output budget; prior published versions remain identifiable in persisted run history.
   Built-in workflows prefetch bounded inputs through the code-defined capability layer instead of
   permitting free tool loops. Local-to-cloud fallback is prohibited.
 - [x] Metrics and opportunity scores are deterministic and derived from persisted data. The six
@@ -60,6 +64,8 @@ and manager architecture are unchanged vision inputs; they are not completion cl
   diagnostic, report review, and candidate decision call real APIs.
 - [x] Sources, Opportunities, Approval Center, Settings/Registry, Dashboard, Knowledge Explorer,
   run trace, and React Flow editor use persisted backend resources.
+- [x] Dashboard has no synthetic diagnostic fallback. Before a successful evidence-reviewed run it
+  shows a truthful empty state and offers only the real diagnostic action.
 - [x] Workflow Save, Validate, Dry-run, Publish, and Run are API-connected.
 - [x] Turkish-first UI has an i18n boundary, responsive styles, actionable empty/error states, and
   keyboard-native controls for critical forms and buttons.
@@ -89,9 +95,11 @@ and manager architecture are unchanged vision inputs; they are not completion cl
 ## Release blockers and deliberately incomplete acceptance
 
 - [ ] **Qualified model:** `qwen3.5:9b` is installed and its real PromptedOutput probe passes. The
-  first bounded full diagnostic completed Company Analyst, then Growth Opportunity Analyst failed
-  closed after an invalid-output retry exhausted its 360-second v2 budget (622 seconds total).
-  Therefore 9B is not release-supported; 27B or governed Groq/Mistral must pass the 20-run suite.
+  first bounded full diagnostic completed Company Analyst, then Growth Opportunity Analyst v2
+  failed closed after an invalid-output retry exhausted its 360-second budget (622 seconds total).
+  The corrected v3 node produced all five valid signal IDs in one real request in 278.29 seconds,
+  but no full successful diagnostic or 20-run suite exists. Therefore 9B is not release-supported;
+  27B or governed Groq/Mistral remains the recommended qualification candidate.
 - [ ] **Full live happy path:** the typed test-model suite proves the complete diagnostic/evidence/
   approval path, but the browser cannot complete a real model-assisted report until a model profile
   qualifies.
@@ -107,13 +115,14 @@ release blockers above are closed. External write actions remain prohibited.
 
 ## Current verification evidence
 
-- Backend suite: 45 tests; Ruff passes.
-- Frontend suite: 6 tests; production build passes.
+- Backend suite: 46 tests; Ruff passes.
+- Frontend suite: 7 Vitest tests; production build passes.
 - Ruff and Alembic drift: pass; migration head `20260713_0007`.
-- Compose: base, development, production, cloud, observability, and temporary model-download
-  configurations validate.
-- Browser smoke: Workflow editor, Approval Center, Settings/Registry, persisted run history, and
-  current model-readiness state render at `localhost:8080`.
+- Compose: base, development, production, cloud, observability, temporary model-download, and
+  isolated browser-E2E configurations validate.
+- Browser E2E: 3 Playwright tests pass against isolated empty volumes for truthful dashboard state,
+  persisted setup/demo sync and Sources UI, plus workflow clone and labeled deterministic dry-run.
+  The real-model diagnostic/citation/approval/export journey remains intentionally unchecked.
 - Observability smoke: Jaeger v2 UI/API is reachable only in the explicit profile and receives
   `agi-control-plane` OTLP traces; the standard stack was restored afterward.
 - No-egress: an HTTPS request from the default app container is blocked.

@@ -86,11 +86,16 @@ Encrypt and move backups using the operator's storage policy; encryption keys st
 .\scripts\project-check.ps1 -Live
 .\scripts\verify-no-egress.ps1
 .\scripts\release-scan.ps1
+.\scripts\browser-e2e.ps1
 .\scripts\qualify-model.ps1 -Profile local-balanced -Attempts 20
 ```
 
 `release-scan` creates an ignored CycloneDX SBOM and Trivy report. The Trivy image itself is pinned by
-digest. Repeat the same checks on the release Linux host.
+digest. `browser-e2e` uses an isolated Compose project, empty volumes, loopback port 18080, explicit
+development authentication bypass, and always removes its containers/volumes. It covers only
+model-independent flows; it does not satisfy the real-model happy-path release gate. On Linux,
+install the pinned Playwright Chromium dependencies first, then run `./scripts/browser-e2e.sh`.
+Repeat the same checks on the release Linux host.
 
 ## Incident rules
 

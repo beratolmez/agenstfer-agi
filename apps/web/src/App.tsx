@@ -113,7 +113,7 @@ export default function App() {
       <Sidebar active={view} onNavigate={navigate} />
       <div className="app-main">
         {showTopbar && user ? <Topbar user={user} onLogout={async () => { await api.logout(); setUser(null); }} /> : null}
-        {view === "dashboard" ? <Dashboard /> : null}
+        {view === "dashboard" ? <Dashboard onNavigate={navigate} /> : null}
         {view === "opportunities" ? <Opportunities /> : null}
         {view === "knowledge" ? <Knowledge /> : null}
         {view === "workflow" ? (

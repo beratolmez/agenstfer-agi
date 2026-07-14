@@ -28,3 +28,8 @@ complete persisted evidence set remains in PostgreSQL for the final gate. The in
 passes the probe but failed the first full CPU golden run at Growth Opportunity Analyst, so it is a
 development profile until a 20-run qualification passes. No automatic promotion to 27B or cloud is
 allowed.
+
+Growth Opportunity Analyst v3 resolves the earlier “up to ten” versus exactly-five typed-contract
+conflict and bounds output to five short rationales. A real 9B node call passed in 278.29 seconds,
+but this does not qualify the model: a complete successful diagnostic and the 20-run gate remain
+mandatory.

@@ -29,6 +29,7 @@ from agi_server.diagnostics.service import (
 )
 from agi_server.domain.metrics import calculate_growth_metrics
 from agi_server.ingestion import sync_demo_company
+from agi_server.main import dashboard
 from agi_server.okf.lifecycle import ensure_active_repository
 from pydantic_ai.models.test import TestModel
 from sqlalchemy import create_engine, select
@@ -127,6 +128,14 @@ def test_growth_metrics_are_derived_from_persisted_entities(tmp_path: Path) -> N
             for item in _metric_prompt_view(after)["metrics"].values()
         )
         assert all(len(item["evidence_ids"]) <= 3 for item in _signal_prompt_view(after))
+    engine.dispose()
+
+
+def test_dashboard_has_no_synthetic_fallback_before_a_successful_run(tmp_path: Path) -> None:
+    engine, local_session = _session(tmp_path)
+    with local_session() as db:
+        sync_demo_company(db, tmp_path / "knowledge" / "raw")
+        assert dashboard(db) is None
     engine.dispose()
 
 

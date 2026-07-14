@@ -34,6 +34,13 @@ bounded full run completed Company Analyst but Growth Opportunity Analyst exhaus
 retry budget; the run failed closed after 622 seconds. This is diagnostic evidence, not a release
 qualification, and the profile remains unsupported.
 
+The audit found a v2 prompt/contract contradiction: the prompt allowed up to ten hypotheses while
+the typed contract requires exactly five unique deterministic signal IDs. Growth Opportunity Analyst
+v3 removes that contradiction, requires one short rationale per supplied signal, and uses a 900-token
+output budget. A real isolated v3 node call returned all five required IDs in one request in 278.29
+seconds. This validates the contract correction only; it does not replace a complete diagnostic or
+the 20-run profile qualification.
+
 ## Change triggers
 
 Re-run evaluation after changes to prompts, output schemas, capabilities, model mapping, retrieval, chunking, canonical mapping, metrics, scoring, source fixtures, or evidence policy. Diagnose data and evidence failures before tuning prompts.

@@ -178,7 +178,9 @@ def _agent_prompt(
         }
     elif agent_id == "growth-opportunity-analyst":
         instruction = (
-            "Return exactly one hypothesis for each deterministic signal without changing scores."
+            "Return exactly one hypothesis for each deterministic signal without changing scores. "
+            "Use only that signal's supplied evidence IDs and keep each rationale to one sentence "
+            "of at most 240 characters."
         )
         safe_state = {
             "company_analysis": state.get("agent_results", {}).get("company-analyst"),

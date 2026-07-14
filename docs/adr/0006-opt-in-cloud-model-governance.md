@@ -10,7 +10,10 @@ Local models remain the default, but an administrator may enable Groq or Mistral
 
 `public` and policy-approved `internal` content may be sent after redaction. `confidential` and `restricted` content is blocked from cloud providers in MVP v0.1. Production secrets come from Docker/host secrets; development may use an ignored `.env` file.
 
+Compose deployments do not ingest `.env` wholesale. Application and PostgreSQL variables are
+allowlisted, and the cloud API key is accepted only through the cloud overlay's mounted secret file.
+An ignored `.env` key remains permissible only for a direct, non-Compose developer process.
+
 ## Consequences
 
 Every run pins its exact provider and model. Failure of a local model cannot silently disclose content to a cloud service. Logs may contain provider, model, classification, hashes, token counts, and policy outcomes, but never API keys, prompt bodies, or source bodies.
-

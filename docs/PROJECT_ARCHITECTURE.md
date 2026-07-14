@@ -220,6 +220,9 @@ Local Qwen 3.5 profilleri typed extraction sırasında unpersisted reasoning'i k
 PromptedOutput kullanır. Workflow capability katmanı, model context'ine her metric/signal için en
 fazla üç temsilî evidence locator'ı koyar; tam evidence set'i PostgreSQL'de korunur ve final policy
 gate tarafından doğrulanır. Bu bounded context, agent'ın serbest tool döngüsüne girmesini engeller.
+Growth Opportunity Analyst v3, deterministic contract ile aynı beş signal ID'yi tam birer kez ister
+ve rationale/output bütçesini sınırlar. Agent sürümü run'a pinlenir; bu daraltma model qualification
+kapısını veya Evidence Reviewer kontrolünü değiştirmez.
 
 ## 10. OKF bilgi mimarisi
 

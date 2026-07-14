@@ -56,7 +56,6 @@ from agi_server.db import (
 )
 from agi_server.diagnostics import run_growth_diagnostic
 from agi_server.domain.demo import build_demo_dataset, demo_counts
-from agi_server.domain.diagnostic import build_growth_diagnostic
 from agi_server.http_security import RequestSecurityMiddleware
 from agi_server.ingestion import (
     list_sources,
@@ -609,8 +608,8 @@ def setup_demo(
     }
 
 
-@app.get("/api/dashboard", response_model=GrowthDiagnostic)
-def dashboard(db: Annotated[Session, Depends(get_db)]) -> GrowthDiagnostic:
+@app.get("/api/dashboard", response_model=GrowthDiagnostic | None)
+def dashboard(db: Annotated[Session, Depends(get_db)]) -> GrowthDiagnostic | None:
     latest = db.scalar(
         select(WorkflowRun)
         .where(
@@ -619,10 +618,9 @@ def dashboard(db: Annotated[Session, Depends(get_db)]) -> GrowthDiagnostic:
         )
         .order_by(WorkflowRun.started_at.desc())
     )
-    if latest and latest.output_json and latest.output_json.get("diagnostic"):
-        diagnostic = GrowthDiagnostic.model_validate(latest.output_json["diagnostic"])
-    else:
-        diagnostic = build_growth_diagnostic(db)
+    if latest is None or not latest.output_json or not latest.output_json.get("diagnostic"):
+        return None
+    diagnostic = GrowthDiagnostic.model_validate(latest.output_json["diagnostic"])
     open_approvals = db.scalar(
         select(func.count()).select_from(OKFCandidate).where(OKFCandidate.status == "pending")
     )

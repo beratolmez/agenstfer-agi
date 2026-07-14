@@ -24,9 +24,10 @@ durability, Approval Center, kalıcı kurulum sihirbazı, backup/restore, no-egr
 kontrolleri uygulanmıştır.
 
 Henüz release değildir. Bu makinede `qwen3.5:9b` kurulmuş ve gerçek structured-output probe
-geçmiştir; ancak CPU üzerinde yapılan ilk tam golden diagnostic growth agent retry süresini doldurup
-fail-closed kapanmıştır. Bu nedenle 9B profil “supported” değildir; 27B veya governed Groq/Mistral
-profiliyle 20-run qualification ve tam browser happy-path hâlâ gereklidir. Sistem deterministic
+geçmiştir. Düzeltilen Growth Opportunity v3 düğümü de beş typed sinyali üretmiştir; ancak ilk tam
+golden diagnostic başarısız olmuş ve 20-run qualification geçilmemiştir. Bu nedenle 9B profil
+“supported” değildir; 27B veya governed Groq/Mistral profiliyle qualification ve tam browser
+happy-path hâlâ gereklidir. Sistem deterministic
 preview'e veya başka provider'a sessiz fallback yapmaz. Ayrıntı için
 [Implementation Status](./docs/IMPLEMENTATION_STATUS.md) belgesine bakın.
 
@@ -110,12 +111,17 @@ Canlı health ile `-Live`; no-egress, backup/restore ve release scan için:
 
 ```powershell
 .\scripts\verify-no-egress.ps1
+.\scripts\browser-e2e.ps1
 .\scripts\backup.ps1
 .\scripts\restore.ps1 .\backups\<timestamp>
 .\scripts\release-scan.ps1
 ```
 
 Linux script karşılıkları `scripts/*.sh` altındadır.
+
+`browser-e2e` modelden bağımsız dashboard, setup/demo sync, Sources ve güvenli workflow dry-run
+akışlarını izole volume'larda doğrular. Gerçek model diagnostic → citation → approval → export akışı
+release için ayrıca çalıştırılmalıdır.
 
 ## MVP'nin yaptığı / yapmadığı
 

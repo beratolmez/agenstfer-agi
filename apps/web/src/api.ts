@@ -91,7 +91,7 @@ export const api = {
     local: boolean;
     structured_output: boolean;
   }>("/api/models/probe", { method: "POST" }),
-  dashboard: () => request<GrowthDiagnostic>("/api/dashboard"),
+  dashboard: () => request<GrowthDiagnostic | null>("/api/dashboard"),
   runDiagnostic: () => request<GrowthDiagnostic>("/api/diagnostics/run", {
     method: "POST",
     headers: { "Idempotency-Key": `diagnostic-${crypto.randomUUID()}` },

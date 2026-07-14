@@ -6,6 +6,8 @@ services:
     environment:
       # The application reaches cloud providers only through the allowlisted proxy.
       AGI_CLOUD_MODELS_ENABLED: "true"
+      AGI_CLOUD_PROVIDER: ${AGI_CLOUD_PROVIDER:-groq}
+      AGI_CLOUD_MODEL: ${AGI_CLOUD_MODEL:-}
       AGI_CLOUD_API_KEY_FILE: /run/secrets/cloud_model_api_key
       HTTPS_PROXY: http://egress-gateway:3128
       HTTP_PROXY: http://egress-gateway:3128
