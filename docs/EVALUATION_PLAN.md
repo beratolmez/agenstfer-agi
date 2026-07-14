@@ -17,6 +17,23 @@ Use the deterministic Anka dataset through the same connector and mapping path u
 
 Every release-enabled local or cloud model profile runs the same suite. Record provider, exact model ID, prompt/agent versions, retrieval revision, date, hardware where local, latency, token usage, pass/fail, and failure samples. The setup wizard may call a profile “supported” only after a qualifying result exists for the released version.
 
+Run the executable qualification harness only after configuring the selected provider:
+
+```powershell
+.\scripts\qualify-model.ps1 -Profile local-balanced -Attempts 20
+```
+
+For a governed cloud profile use `-Profile cloud-balanced`. The JSON result is written under
+`artifacts/release/` and contains only safe error classes—not prompts, source text, or secrets.
+
+Linux uses `./scripts/qualify-model.sh <profile> <attempts>`. The wrapper executes inside the
+isolated app network and copies the safe JSON report to `artifacts/release/`.
+
+Observed on 14 July 2026: installed `qwen3.5:9b` passed the real structured-output probe. Its first
+bounded full run completed Company Analyst but Growth Opportunity Analyst exhausted the 360-second
+retry budget; the run failed closed after 622 seconds. This is diagnostic evidence, not a release
+qualification, and the profile remains unsupported.
+
 ## Change triggers
 
 Re-run evaluation after changes to prompts, output schemas, capabilities, model mapping, retrieval, chunking, canonical mapping, metrics, scoring, source fixtures, or evidence policy. Diagnose data and evidence failures before tuning prompts.
@@ -24,4 +41,3 @@ Re-run evaluation after changes to prompts, output schemas, capabilities, model 
 ## Failure handling
 
 A failed profile remains configurable for development but cannot be selected as a production-supported profile. Never weaken evidence or unsupported-number gates to make a model pass.
-

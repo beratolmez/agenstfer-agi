@@ -1,8 +1,16 @@
 services:
   app:
+    secrets:
+      - source: cloud_model_api_key
+        target: cloud_model_api_key
     environment:
-      # Uygulama doğrudan internete bağlanmaz; yalnızca allowlist'li proxy'ye gider.
+      # The application reaches cloud providers only through the allowlisted proxy.
       AGI_CLOUD_MODELS_ENABLED: "true"
+      AGI_CLOUD_API_KEY_FILE: /run/secrets/cloud_model_api_key
       HTTPS_PROXY: http://egress-gateway:3128
       HTTP_PROXY: http://egress-gateway:3128
       NO_PROXY: localhost,127.0.0.1,postgres,ollama,qmd,egress-gateway
+
+secrets:
+  cloud_model_api_key:
+    file: ${AGI_CLOUD_API_KEY_HOST_FILE:-.secrets/cloud_model_api_key}

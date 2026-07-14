@@ -3,10 +3,14 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from pydantic_ai import Agent
+from pydantic_ai import Agent, PromptedOutput
 
 from agi_server.agents.contracts import StructuredOutputProbe
-from agi_server.agents.model_gateway import build_pydantic_ai_model, resolve_model_profile
+from agi_server.agents.model_gateway import (
+    build_pydantic_ai_model,
+    model_settings_for_profile,
+    resolve_model_profile,
+)
 from agi_server.config import Settings
 
 
@@ -22,10 +26,20 @@ async def probe_model_profile(
 ) -> dict[str, Any]:
     profile = resolve_model_profile(profile_id, settings)
     nonce = _new_probe_nonce()
+    output_type = (
+        StructuredOutputProbe
+        if model_override is not None
+        else PromptedOutput(StructuredOutputProbe)
+    )
     agent = Agent(
         model_override or build_pydantic_ai_model(profile_id, settings),
-        output_type=StructuredOutputProbe,
+        output_type=output_type,
         system_prompt="Return the requested typed probe only. Do not call tools.",
+        model_settings=model_settings_for_profile(
+            profile_id,
+            settings,
+            max_tokens=512,
+        ),
         retries=1,
     )
     result = await agent.run(f"Return status='ok' and nonce='{nonce}'.")

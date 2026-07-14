@@ -37,7 +37,8 @@ PostgreSQL owns operational state and evidence locators. OKF owns portable compa
 - **Workflow Draft:** editable typed DAG.
 - **Workflow Version:** immutable published DAG referencing exact agent and capability versions.
 - **Workflow Run:** idempotent execution pinned to workflow and model profiles.
-- **Step Run:** attempt, timing, status, safe input/output references, and error metadata.
+- **Step Run:** attempt, timing, status, safe input/output references, provider/model profile,
+  classification/redaction outcome, usage, and safe error metadata.
 - **Approval Request:** pending decision, requested role, artifact, expiry, actor, reason, and decision time.
 - **Artifact:** content-addressed diagnostic, report, trace, or OKF candidate produced by a run.
 
@@ -46,9 +47,9 @@ Published objects are immutable. A new edit creates a new version.
 ## Typed diagnostic outputs
 
 - `CompanyAnalysis`: profile, segments, strengths, weaknesses, data gaps, and evidence IDs.
-- `OpportunityHypotheses`: at most ten hypotheses with evidence IDs and metric inputs.
+- `OpportunityHypotheses`: exactly the five allowlisted deterministic opportunity signals, with
+  evidence IDs and metric inputs.
 - `EvidenceReview`: claim-level supported/rejected/stale/contradictory decisions.
 - `GrowthDiagnostic`: company summary, readiness, top five scored opportunities, evidence coverage, gaps, and 30-day plan.
 
 The recommendation score is deterministic prioritization, not probability or model confidence.
-

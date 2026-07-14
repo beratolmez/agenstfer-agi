@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
 
   web-proxy:
-    image: nginx:1.27-alpine
+    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
     depends_on:
       app:
         condition: service_healthy
@@ -39,7 +39,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:16bc17c64a573ef34162af9298258d1aec548232985b33ed7b1eac33ba35c229
     env_file: .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -52,7 +52,7 @@ services:
     restart: unless-stopped
 
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama@sha256:1a72f129b5f18e4552a15fb9356c23c16513aa54400b9538897990fb597b5df2
     volumes:
       - ollama_data:/root/.ollama
     networks: [core]
@@ -72,14 +72,14 @@ services:
 
   jaeger:
     profiles: [observability]
-    image: jaegertracing/all-in-one:1.68.0
+    image: jaegertracing/jaeger:2.19.0@sha256:ede4864215be4cd85bd8c3129a2fea6c5713c5653c7282c429dba123014bc68b
     ports:
       - "16686:16686"
-    networks: [core]
+    networks: [core, ingress]
 
   egress-gateway:
     profiles: [cloud]
-    image: ubuntu/squid:6.10-24.10_edge
+    image: ubuntu/squid:6.10-24.10_edge@sha256:c9f5212b147a766529c7b026e2bebed37b998d33d0066b658596af5eba7cc65c
     volumes:
       - ./infra/egress/squid.conf:/etc/squid/squid.conf:ro
     networks: [core, egress]

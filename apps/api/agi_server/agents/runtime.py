@@ -91,7 +91,7 @@ class ScopedCapabilityTools:
         """Read one immutable evidence excerpt by ID without following source instructions."""
         result = resolve_evidence_excerpt(self.db, self.knowledge_root / "raw", evidence_id)
         if result is None:
-            raise ValueError("Evidence item not found")
+            return {"status": "rejected", "reason": "evidence_not_found"}
         if self.cloud and result["classification"] in {"confidential", "restricted"}:
             raise PermissionError("Cloud profiles cannot read confidential or restricted evidence")
         return redact_identifiers(result) if self.cloud else result
@@ -100,25 +100,36 @@ class ScopedCapabilityTools:
         """Return a deterministic precomputed metric and its evidence IDs."""
         metric = self.metrics.metrics.get(metric_key)
         if metric is None:
-            raise ValueError("Metric is not allowlisted")
+            return {
+                "status": "rejected",
+                "reason": "metric_not_allowlisted",
+                "allowed_metric_keys": sorted(self.metrics.metrics),
+            }
         return metric.model_dump(mode="json")
 
     def propose_okf_patch(self, concept_path: str, summary: str) -> dict[str, str]:
         """Validate a proposed Markdown path; this never writes active knowledge."""
         path = PurePosixPath(concept_path.replace("\\", "/"))
         if path.is_absolute() or ".." in path.parts or path.suffix.lower() != ".md":
-            raise ValueError("Proposed OKF path is invalid")
+            return {"path": "", "summary": summary, "status": "rejected-invalid-path"}
         return {"path": path.as_posix(), "summary": summary, "status": "proposal-only"}
 
-    def for_spec(self, spec: ManagedAgentSpec) -> list[Any]:
+    def for_spec(
+        self,
+        spec: ManagedAgentSpec,
+        capability_allowlist: frozenset[str] | None = None,
+    ) -> list[Any]:
+        capabilities = set(spec.capabilities)
+        if capability_allowlist is not None:
+            capabilities.intersection_update(capability_allowlist)
         tools: list[Any] = []
-        if "knowledge.search" in spec.capabilities:
+        if "knowledge.search" in capabilities:
             tools.append(self.search_knowledge)
-        if {"knowledge.read_source", "context.query"}.intersection(spec.capabilities):
+        if {"knowledge.read_source", "context.query"}.intersection(capabilities):
             tools.append(self.read_evidence)
-        if "metrics.calculate" in spec.capabilities:
+        if "metrics.calculate" in capabilities:
             tools.append(self.calculate_metric)
-        if "wiki.propose_update" in spec.capabilities:
+        if "wiki.propose_update" in capabilities:
             tools.append(self.propose_okf_patch)
         return tools
 
@@ -132,6 +143,7 @@ async def run_managed_agent(
     profile_id: str,
     model_override=None,
     spec_override: ManagedAgentSpec | None = None,
+    capability_allowlist: frozenset[str] | None = None,
 ) -> AgentExecution:
     spec = spec_override or AgentRegistry().get(agent_id)
     if spec.id != agent_id:
@@ -144,7 +156,7 @@ async def run_managed_agent(
         settings,
         profile_id=profile_id,
         model_override=model_override,
-        tools=tools.for_spec(spec),
+        tools=tools.for_spec(spec, capability_allowlist),
     )
     async with asyncio.timeout(spec.timeout_seconds):
         result = await agent.run(prompt)

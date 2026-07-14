@@ -1,0 +1,7 @@
+services:
+  app:
+    environment:
+      AGI_OTLP_ENDPOINT: http://jaeger:4318
+    depends_on:
+      jaeger:
+        condition: service_started

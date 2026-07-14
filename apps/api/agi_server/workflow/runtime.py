@@ -34,7 +34,8 @@ def execute_node_logic(node: dict[str, Any], state: dict[str, Any]) -> dict[str,
             "agent_id": config.get("agent_id"),
             "model_profile": config.get("model_profile"),
             "output_type": config.get("output_type"),
-            "status": "typed-result-ready",
+            "status": "simulated-dry-run-no-model-call",
+            "executed": False,
         }
     elif kind == NodeKind.DETERMINISTIC_SCORE:
         diagnostic = build_growth_diagnostic()

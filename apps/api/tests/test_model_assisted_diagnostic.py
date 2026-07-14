@@ -11,6 +11,7 @@ from agi_server.agents.contracts import (
     OpportunityHypothesis,
 )
 from agi_server.agents.probe import probe_model_profile
+from agi_server.agents.runtime import ScopedCapabilityTools
 from agi_server.config import Settings
 from agi_server.db import (
     Artifact,
@@ -20,7 +21,12 @@ from agi_server.db import (
     WorkflowRun,
     WorkflowStepRun,
 )
-from agi_server.diagnostics.service import _material_claims, run_growth_diagnostic
+from agi_server.diagnostics.service import (
+    _material_claims,
+    _metric_prompt_view,
+    _signal_prompt_view,
+    run_growth_diagnostic,
+)
 from agi_server.domain.metrics import calculate_growth_metrics
 from agi_server.ingestion import sync_demo_company
 from agi_server.okf.lifecycle import ensure_active_repository
@@ -116,6 +122,11 @@ def test_growth_metrics_are_derived_from_persisted_entities(tmp_path: Path) -> N
         assert len(after.signals) == 5
         assert len(after.planted_insights) >= 5
         assert all(signal.evidence_ids for signal in after.signals)
+        assert all(
+            len(item["representative_evidence_ids"]) <= 3
+            for item in _metric_prompt_view(after)["metrics"].values()
+        )
+        assert all(len(item["evidence_ids"]) <= 3 for item in _signal_prompt_view(after))
     engine.dispose()
 
 
@@ -136,6 +147,29 @@ def test_structured_output_probe_checks_the_nonce(monkeypatch) -> None:
     assert result["ready"] is True
     assert result["structured_output"] is True
     assert result["usage"]["requests"] == 1
+
+
+def test_invalid_model_tool_arguments_return_bounded_rejections(tmp_path: Path) -> None:
+    engine, local_session = _session(tmp_path)
+    with local_session() as db:
+        sync_demo_company(db, tmp_path / "knowledge" / "raw")
+        tools = ScopedCapabilityTools(
+            db,
+            calculate_growth_metrics(db),
+            tmp_path / "knowledge",
+            tmp_path / "knowledge" / "bundles" / "company",
+            cloud=False,
+        )
+
+        metric = tools.calculate_metric("invented_metric")
+        evidence = tools.read_evidence("invented-evidence")
+        patch = tools.propose_okf_patch("../outside.md", "Invalid traversal")
+
+        assert metric["status"] == "rejected"
+        assert metric["allowed_metric_keys"]
+        assert evidence == {"status": "rejected", "reason": "evidence_not_found"}
+        assert patch["status"] == "rejected-invalid-path"
+    engine.dispose()
 
 
 def test_model_assisted_diagnostic_persists_run_steps_evidence_and_artifacts(
@@ -199,9 +233,7 @@ def test_model_assisted_diagnostic_persists_run_steps_evidence_and_artifacts(
             "wiki-curator",
         ]
         assert all(step.status == "completed" for step in steps)
-        artifacts = list(
-            db.scalars(select(Artifact).where(Artifact.run_id == result.run.id))
-        )
+        artifacts = list(db.scalars(select(Artifact).where(Artifact.run_id == result.run.id)))
         assert {artifact.kind for artifact in artifacts} == {
             "diagnostic-markdown",
             "diagnostic-html",
@@ -210,9 +242,7 @@ def test_model_assisted_diagnostic_persists_run_steps_evidence_and_artifacts(
         for artifact in artifacts:
             if artifact.kind.startswith("diagnostic-"):
                 assert (knowledge_root / artifact.uri).is_file()
-        candidate = db.scalar(
-            select(OKFCandidate).where(OKFCandidate.run_id == result.run.id)
-        )
+        candidate = db.scalar(select(OKFCandidate).where(OKFCandidate.run_id == result.run.id))
         assert candidate is not None and candidate.status == "pending"
 
         repeated = asyncio.run(
@@ -270,12 +300,8 @@ def test_evidence_rejection_fails_without_creating_candidate(tmp_path: Path) -> 
             raise AssertionError("Evidence rejection must fail the diagnostic run")
 
         run = db.scalar(
-            select(WorkflowRun).where(
-                WorkflowRun.idempotency_key == "test-diagnostic-rejected"
-            )
+            select(WorkflowRun).where(WorkflowRun.idempotency_key == "test-diagnostic-rejected")
         )
         assert run is not None and run.status == "failed"
-        assert db.scalar(
-            select(OKFCandidate).where(OKFCandidate.run_id == run.id)
-        ) is None
+        assert db.scalar(select(OKFCandidate).where(OKFCandidate.run_id == run.id)) is None
     engine.dispose()

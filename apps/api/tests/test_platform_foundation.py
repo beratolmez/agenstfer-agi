@@ -27,7 +27,7 @@ def test_explicit_migration_upgrades_empty_database(tmp_path: Path) -> None:
     assert LEGACY_TABLES.issubset(inspect(engine).get_table_names())
     with engine.connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
-        assert revision == "20260713_0006"
+        assert revision == "20260713_0007"
     engine.dispose()
 
 
@@ -44,7 +44,7 @@ def test_known_legacy_scaffold_is_stamped_without_recreating_tables(tmp_path: Pa
     engine = create_engine(url)
     with engine.connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
-        assert revision == "20260713_0006"
+        assert revision == "20260713_0007"
     engine.dispose()
 
 
@@ -54,6 +54,26 @@ def test_production_rejects_demo_auth_and_default_secrets() -> None:
 
     with pytest.raises(ValueError, match="bootstrap token"):
         Settings(environment="production", demo_no_auth=False)
+
+
+def test_production_cloud_key_must_come_from_secret_file(tmp_path: Path) -> None:
+    secure = {
+        "environment": "production",
+        "demo_no_auth": False,
+        "bootstrap_token": "b" * 32,
+        "session_secret": "s" * 40,
+        "master_key": "m" * 40,
+        "cloud_models_enabled": True,
+        "cloud_provider": "groq",
+    }
+    with pytest.raises(ValueError, match="secret file"):
+        Settings(**secure, cloud_api_key="not-allowed-in-production")
+
+    secret_file = tmp_path / "provider-key"
+    secret_file.write_text("provider-secret", encoding="utf-8")
+    settings = Settings(**secure, cloud_api_key_file=secret_file)
+    assert settings.cloud_api_key is not None
+    assert settings.cloud_api_key.get_secret_value() == "provider-secret"
 
 
 def test_bootstrap_creates_one_admin_with_roles_and_audit(tmp_path: Path) -> None:

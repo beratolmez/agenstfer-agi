@@ -10,14 +10,11 @@ from sqlalchemy.orm import Session
 from agi_server.config import Settings
 from agi_server.db import (
     ApprovalRequest,
-    OKFCandidate,
     SessionLocal,
     WorkflowDefinitionRow,
-    WorkflowRun,
     WorkflowSchedule,
-    utcnow,
 )
-from agi_server.workflow.persistent_runtime import start_persisted_workflow
+from agi_server.workflow.persistent_runtime import expire_approval_state, start_persisted_workflow
 
 
 def _field_matches(value: int, expression: str, minimum: int, maximum: int) -> bool:
@@ -101,21 +98,16 @@ def expire_approvals(db: Session, now: datetime | None = None) -> int:
     instant = now or datetime.now(UTC)
     rows = list(
         db.scalars(
-            select(ApprovalRequest).where(
-                ApprovalRequest.status == "pending",
+            select(ApprovalRequest)
+            .where(
+                ApprovalRequest.status.in_(["pending", "decision_submitted"]),
                 ApprovalRequest.expires_at <= instant,
             )
+            .with_for_update(skip_locked=True)
         )
     )
     for approval in rows:
-        approval.status = "expired"
-        run = db.get(WorkflowRun, approval.run_id)
-        if run is not None and run.status == "awaiting_approval":
-            run.status = "expired"
-            run.completed_at = utcnow()
-        candidate = db.get(OKFCandidate, approval.candidate_id) if approval.candidate_id else None
-        if candidate is not None and candidate.status == "pending":
-            candidate.status = "expired"
+        expire_approval_state(db, approval, instant)
     db.commit()
     return len(rows)
 

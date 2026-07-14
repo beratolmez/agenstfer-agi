@@ -1,24 +1,42 @@
-# Daily Development Guide
+# Next Steps Guide
 
-1. Read `IMPLEMENTATION_STATUS.md`, then the architecture and active implementation phase.
-2. Work only on the active phase or a prerequisite defect.
-3. Start from data, evidence, and deterministic metrics before changing prompts.
-4. Treat all imported content as untrusted data.
-5. Keep external connectors read-only and separate read/write permissions in future designs.
-6. Never interpret model wording or a score as probability/confidence.
-7. Preserve unknown OKF types and fields; isolate OKF version changes in the adapter.
-8. Add evidence locators before calling a generated claim complete.
-9. Run the golden evaluation after model, prompt, tool, retrieval, mapping, or scoring changes.
-10. Record durable architecture/security choices in an ADR and update status with evidence.
+The implementation is at release qualification. Do not add a new product module before closing the
+remaining release gates.
 
-Before ending a change, run `scripts/project-check.ps1` on Windows or `scripts/project-check.sh` on Linux. Add the phase-specific database, workflow-restart, model-evaluation, browser, or security checks required by root `AGENTS.md`.
+## Read in this order
+
+1. `IMPLEMENTATION_STATUS.md` — what is actually verified or blocked.
+2. `PROJECT_ARCHITECTURE.md` — boundaries and ownership.
+3. `EVALUATION_PLAN.md` and `RELEASE_CHECKLIST.md` — acceptance evidence.
+4. The relevant ADR and `THREAT_MODEL.md` before changing security, models, OKF, or workflows.
+
+## What to do now
+
+1. Choose exactly one first release candidate: test local `qwen3.5:27b` on suitable hardware or a
+   governed Groq/Mistral profile. Keep the installed 9B profile for development because its first
+   bounded full run already failed the release gate.
+2. Run the setup structured-output probe. Do not enable automatic provider fallback.
+3. Run `scripts/qualify-model.ps1` (or `.sh`) with 20 attempts. A failed profile is not “supported.”
+4. Complete the browser journey from a clean installation through approved report and OKF export.
+5. Restart once during a run and once during approval; confirm the same DBOS/run ID resumes.
+6. Run qmd loss/rebuild, no-egress, release scan, backup, restore, and exact-citation checks.
+7. Repeat the release rehearsal on a clean Linux x86-64 host behind HTTPS.
+
+## Rules while fixing failures
+
+- Check mappings, immutable evidence, and deterministic metrics before editing prompts.
+- Run evaluation after changing prompts, schemas, tools, retrieval, mappings, scoring, or model IDs.
+- Never call an LLM score probability/confidence and never weaken the evidence gate to pass eval.
+- Preserve unknown OKF types/metadata and keep OKF/PostgreSQL ownership separate.
+- Keep connectors read-only; do not add a write method “for later.”
+- Add a new ADR for a boundary-changing decision and update status in the same change.
+- Do not copy provider keys, prompts, source text, or evidence excerpts into logs or tickets.
 
 ## When a real company arrives
 
-- Classify its data and confirm retention/privacy/consent requirements with the appropriate legal/security owners.
-- Discover its actual CRM/ERP before selecting the first connector.
-- Benchmark local hardware and qualified model profiles with representative but approved data.
-- Update the threat model, backup policy, source mappings, and golden evaluation.
-- Start with a read-only pilot and compare recommendations with human decisions.
-- Do not enable controlled write actions until separate policy, approval, consent, and rollback work is accepted.
-
+- Classify its data and confirm retention, privacy, consent, and legal requirements.
+- Discover the actual CRM/ERP before choosing the first connector.
+- Benchmark the approved local hardware and model profile with representative permitted data.
+- Update mappings, threat model, backup policy, golden fixtures, and evidence expectations.
+- Start with a read-only pilot and human comparison. Controlled writes require a separate ADR,
+  capability, approval, consent, rollback, and security review.

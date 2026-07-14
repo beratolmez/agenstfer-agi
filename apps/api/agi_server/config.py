@@ -12,8 +12,11 @@ class Settings(BaseSettings):
     environment: str = "development"
     database_url: str = "sqlite:///./data/agi.db"
     bootstrap_token: str = "local-bootstrap-token"
+    bootstrap_token_file: Path | None = None
     session_secret: str = "development-only-session-secret-change-me"
+    session_secret_file: Path | None = None
     master_key: str = "development-only-master-key"
+    master_key_file: Path | None = None
     demo_no_auth: bool = True
     enable_dbos: bool = False
     knowledge_root: Path = Field(default=Path("knowledge"))
@@ -23,11 +26,35 @@ class Settings(BaseSettings):
     cloud_models_enabled: bool = False
     cloud_provider: Literal["groq", "mistral"] | None = None
     cloud_api_key: SecretStr | None = None
+    cloud_api_key_file: Path | None = None
     cloud_model: str | None = None
+    otlp_endpoint: str | None = None
     static_dir: Path = Path("apps/web/dist")
 
     @model_validator(mode="after")
     def validate_security_profile(self) -> Self:
+        for value_field, file_field, label in (
+            ("bootstrap_token", "bootstrap_token_file", "Bootstrap token"),
+            ("session_secret", "session_secret_file", "Session secret"),
+            ("master_key", "master_key_file", "Master key"),
+        ):
+            secret_path = getattr(self, file_field)
+            if secret_path is not None:
+                try:
+                    secret = secret_path.read_text(encoding="utf-8").strip()
+                except OSError as error:
+                    raise ValueError(f"{label} secret file cannot be read") from error
+                if not secret:
+                    raise ValueError(f"{label} secret file is empty")
+                setattr(self, value_field, secret)
+        if self.cloud_api_key_file is not None:
+            try:
+                secret = self.cloud_api_key_file.read_text(encoding="utf-8").strip()
+            except OSError as error:
+                raise ValueError("Cloud API key secret file cannot be read") from error
+            if not secret:
+                raise ValueError("Cloud API key secret file is empty")
+            self.cloud_api_key = SecretStr(secret)
         if self.cloud_models_enabled and (
             self.cloud_provider is None or self.cloud_api_key is None
         ):
@@ -49,6 +76,8 @@ class Settings(BaseSettings):
                 raise ValueError("Production session secret must be a non-default secret")
             if self.master_key in insecure_values or len(self.master_key) < 32:
                 raise ValueError("Production master key must be a non-default secret")
+            if self.cloud_models_enabled and self.cloud_api_key_file is None:
+                raise ValueError("Production cloud API keys must be mounted from a secret file")
         return self
 
     @property

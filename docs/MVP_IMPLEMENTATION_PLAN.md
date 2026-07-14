@@ -1,109 +1,107 @@
 # Audited MVP Implementation Plan
 
-Target: a production-candidate, single-company, self-hosted Growth Diagnostic product. Estimated remaining effort is 14–18 solo-developer weeks. The broader PRD is a post-MVP roadmap, not an instruction to add every module now.
+Target: a production-candidate, single-company, self-hosted Growth Diagnostic product. The broader
+PRD remains a post-MVP roadmap.
 
 ## Status rules
 
-- `docs/IMPLEMENTATION_STATUS.md` is the evidence-backed current-state record.
-- A phase starts only after the previous exit gate passes.
-- UI mock behavior, schema-only code, deterministic fixtures, and uncalled model factories are partial—not completed capabilities.
-- Update status, tests, and relevant ADRs in the same change as a capability.
+- `IMPLEMENTATION_STATUS.md` is the evidence-backed current-state record.
+- UI-only behavior, schemas, model factories, and mocked provider output are not release completion.
+- Update status, tests, threat model, and relevant ADRs with each material capability.
+- External write actions are prohibited throughout MVP v0.1.
 
 ## Phase 0 — Truthful baseline and project memory
 
-- [x] Secret-scan and commit the audited scaffold.
-- [x] Add root engineering rules, status corrections, domain/evaluation/threat/operations/release documents, and ADRs 0005–0007.
-- [x] Add cross-platform project verification scripts.
-- [x] Create and validate the personal `agentic-growth-engineer` Codex skill.
-- [x] Re-run the full baseline verification.
-- [x] Commit Phase 0 documentation/tooling.
+- [x] Commit and secret-scan the scaffold.
+- [x] Add root engineering rules, domain/evaluation/threat/operations/release documents, ADRs
+  0005–0007, project checks, and the validated Codex project skill.
 
-Exit: a new engineer can identify implemented, simulated, disabled, and missing behavior without reading source code.
+Exit gate: passed.
 
 ## Phase 1 — Trustworthy platform foundation
 
-- [x] Replace startup `create_all()` with mandatory explicit Alembic migrations.
-- [x] Implement bootstrap/login/logout/current-user UI and API behavior.
-- [x] Disable demo auth in standard Compose and reject default production secrets.
-- [x] Protect non-public routes with session auth, roles, and CSRF.
-- [x] Audit current material mutations and approval/authentication events.
-- [x] Query PostgreSQL in readiness checks and report qmd/model readiness separately.
-- [x] Return structured API errors with request IDs.
+- [x] Mandatory explicit Alembic migrations.
+- [x] Bootstrap/login/logout/current user, users/roles, session auth, CSRF, role enforcement, audit,
+  request IDs, structured errors, and truthful health.
+- [x] Standard authentication enabled; development bypass isolated; production weak secrets rejected.
 
-Exit: a clean deployment migrates, bootstraps one admin, enforces roles/CSRF, and records security-relevant operations.
+Exit gate: passed in automated tests and an isolated production bootstrap drill.
 
 ## Phase 2 — Persistent ingestion, evidence, and OKF
 
-- [x] Persist sources, mappings, sync runs, snapshots, artifacts, entities, facts, and evidence.
-- [x] Add CSV/XLSX upload, discovery, preview, versioned mapping, and read-only sync APIs/UI.
-- [x] Route the synthetic company through the same connector/mapping path.
-- [x] Derive evidence hashes and exact locators from immutable snapshots.
-- [x] Harden OKF import against traversal, symlinks, cumulative archive size, and decompression abuse.
-- [x] Generate isolated Git-backed candidates and serialize authenticated merge into active `main`.
-- [x] Rebuild qmd only after approved merge; preserve lexical fallback.
+- [x] Persist sources, mappings, syncs, immutable snapshots, artifacts, canonical context, and exact
+  evidence locators.
+- [x] Route demo and CSV/XLSX data through the same read-only pipeline.
+- [x] Safe OKF import/export and approval-controlled Git candidate lifecycle.
+- [x] qmd-after-approval policy and lexical fallback.
 
-Exit: synchronized data becomes a conformant, traceable candidate bundle that can be approved, exported, and round-tripped.
+Exit gate: passed with a 1,783-record live round-trip and exact citation resolution.
 
 ## Phase 3 — Real Growth Diagnostic vertical slice
 
-- [x] Define typed Company Analysis, Opportunity Hypotheses, Evidence Review, and OKF change outputs.
-- [x] Expose only scoped knowledge/evidence/metric/candidate-proposal capabilities.
-- [x] Execute Pydantic AI through pinned Ollama, Groq, or Mistral profiles with no automatic fallback.
-- [x] Add a real structured-output probe and classification/cloud policy enforcement.
-- [x] Calculate metrics and scores from persisted data.
-- [x] Reject unsupported material or numerical claims.
-- [x] Persist exact agent/model/workflow versions, results, safe usage metadata, errors, and artifacts.
-- [x] Produce Markdown, print-ready HTML, and candidate OKF reports.
+- [x] Typed Company Analysis, Opportunity Hypotheses, Evidence Review, and OKF outputs.
+- [x] Capability-scoped tools, explicit provider profiles, deterministic metrics/scores, evidence
+  gate, persisted trace, and Markdown/HTML/OKF artifacts.
+- [x] Real model probe and no automatic fallback.
+- [ ] Qualify at least one real provider profile with the executable golden suite.
 
-Exit: the Anka diagnostic is computed and model-assisted rather than returned from a static fixture. The
-full runtime is verified with typed Pydantic AI test models; a release-enabled Ollama/Groq/Mistral profile
-must still pass the golden evaluation before release acceptance.
+Implementation gate: passed with Pydantic AI typed test models. Release gate: blocked because no
+provider profile has passed qualification; the installed 9B profile passes the probe but failed its
+first bounded full run.
 
-## Phase 4 — Agent and workflow platform
+## Phase 4 — Functional agent and workflow platform
 
-- Add immutable published Agent, Capability, and Workflow versions with editable drafts.
-- Keep capabilities and nodes code-defined; prohibit arbitrary code/plugins/network tools.
-- Implement workflow CRUD/clone/validate/dry-run/publish/run APIs and UI.
-- Persist run/step/approval history and use `Idempotency-Key`.
-- Implement safe field/operator/value conditions and typed true/false branches.
-- Complete DBOS retry, restart/resume, seven-day approval, rejection, and expiry behavior.
-- Require authenticated Approver decisions with reasons and audit.
-- Implement validated cron/timezone schedules with duplicate prevention.
+- [x] Immutable Agent/Capability/Workflow versions and editable drafts.
+- [x] Code-defined capabilities; no custom code/plugin/unrestricted network nodes.
+- [x] CRUD/clone/validate/dry-run/publish/run, safe conditions/branches, schedules, idempotency, and
+  persisted run/step/approval/artifact histories. Inline draft dry-run is a labeled deterministic
+  simulation; only a published run invokes configured agents.
+- [x] DBOS retry/recovery wrapper, durable approval receive, seven-day expiry, authenticated reasoned
+  decisions, and restart-safe PostgreSQL checkpoints.
+- [x] React Flow actions, version list, run trace, and registry views use real APIs.
 
-Exit: users can safely edit, publish, execute, inspect, pause, approve, and resume a versioned workflow.
+Exit gate: implementation passed; real-provider approval wait/resume remains part of final E2E.
 
 ## Phase 5 — Complete user journey
 
-- Persist every setup-wizard step and validated configuration.
-- Replace Sources, Approval Center, Settings, and Opportunities placeholders.
-- Drive dashboard/history from persisted runs.
-- Navigate citations to exact source locations.
-- Add candidate diff, decision, artifact download, and OKF export/import journeys.
-- Add actionable degraded, retry, cancellation, empty, and error states.
-- Keep Turkish-first UI with normal i18n structure and accessible keyboard behavior.
+- [x] Persist all setup steps and validated configuration.
+- [x] Replace Sources, Approval Center, Settings, and Opportunities placeholders.
+- [x] Persisted dashboard/history, exact citation navigation, candidate diff/decision/export, report
+  download, degraded/error/retry/cancel states, Turkish-first i18n boundary, and responsive controls.
 
-Exit: onboarding through approved report works without a terminal.
+Exit gate: UI/API functionality passed; complete happy path awaits a qualified model.
 
-## Phase 6 — Security, operations, and release
+## Phase 6 — Security, operations, and release engineering
 
-- Keep cloud disabled by default; enforce allowlisted egress, redaction, classification, and content-safe audit.
-- Use Docker/host secrets for production model credentials.
-- Add OpenTelemetry metrics/traces without sensitive payloads.
-- Test PostgreSQL + knowledge Git backup and clean restore on Linux and from PowerShell development workflows.
-- Pin images/dependencies, generate an SBOM, scan vulnerabilities, and test clean Linux installation.
-- Pass the threat model, evaluation plan, release checklist, browser E2E, and recovery drills.
+- [x] Default-deny cloud policy, allowlisted egress, classification/redaction, content-safe model
+  audit, host/Docker secrets, and no-egress check.
+- [x] Content-safe OpenTelemetry/Jaeger overlay.
+- [x] PostgreSQL application + DBOS system + knowledge Git backup/restore on PowerShell and Linux.
+- [x] Digest-pinned production images, pinned qmd, CycloneDX SBOM, and zero fixable HIGH/CRITICAL
+  Trivy findings in the audited image.
+- [x] Isolated empty-volume production Compose migration/bootstrap/auth drill.
+- [ ] Run full browser E2E with a qualified model on a separate clean Linux x86-64 host.
+- [ ] Run qmd loss/rebuild and final 20-run model evaluation on that host.
 
-Exit: the release checklist passes on a clean and a restored installation.
+Exit gate: not yet passed; see release blockers in `IMPLEMENTATION_STATUS.md`.
 
-## Public interface direction
+## Remaining release sequence
 
-Keep `/api` for v0.1. Add resource APIs for auth, models/probes, sources/mappings/syncs, knowledge/evidence/candidates, agents/capabilities, workflows/versions/schedules, runs/steps/artifacts, and approvals. Production runs reference immutable published versions; only draft dry-run accepts an inline definition. Keep current dashboard/diagnostic routes as deprecated persisted views through v0.1.
+1. Keep the installed `qwen3.5:9b` only as a development profile; its probe passes but its first
+   full golden diagnostic failed the Growth Opportunity Analyst retry budget on CPU.
+2. Qualify `qwen3.5:27b` on suitable hardware or configure one governed Groq/Mistral secret, then
+   pass the real structured-output probe and 20-run golden qualification.
+3. Execute onboarding → sync → diagnostic → citation → approval → active OKF export in the browser.
+4. Restart during execution and approval; verify DBOS resumes the same run ID.
+5. Repeat install, E2E, qmd rebuild, SBOM/scan, backup, and clean restore on Linux x86-64.
+6. Update the release checklist and tag v0.1.0 only when every required gate is checked.
 
 ## Post-MVP sequence
 
-1. Real design partner and first read-only CRM/ERP connector.
-2. Website, competitor, and market-signal ingestion.
+1. Design partner and first read-only CRM/ERP connector.
+2. Approved website/competitor/market ingestion.
 3. Lead discovery/enrichment and evidence-backed scoring.
-4. Campaign, social, AEO, battlecard, and event intelligence.
+4. Campaign/social/AEO/battlecard/event intelligence.
 5. Financial/ERP, CRM hygiene, and cybersecurity insight.
-6. Only after new consent, legal, threat-model, and ADR gates: controlled messaging, calling, and external write actions.
+6. Only after new consent, legal, threat-model, rollback, and ADR gates: controlled external writes,
+   messaging, and calling.

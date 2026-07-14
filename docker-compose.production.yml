@@ -1,0 +1,22 @@
+services:
+  app:
+    secrets:
+      - source: bootstrap_token
+        target: bootstrap_token
+      - source: session_secret
+        target: session_secret
+      - source: master_key
+        target: master_key
+    environment:
+      AGI_ENVIRONMENT: production
+      AGI_BOOTSTRAP_TOKEN_FILE: /run/secrets/bootstrap_token
+      AGI_SESSION_SECRET_FILE: /run/secrets/session_secret
+      AGI_MASTER_KEY_FILE: /run/secrets/master_key
+
+secrets:
+  bootstrap_token:
+    file: ${AGI_BOOTSTRAP_TOKEN_HOST_FILE:-.secrets/bootstrap_token}
+  session_secret:
+    file: ${AGI_SESSION_SECRET_HOST_FILE:-.secrets/session_secret}
+  master_key:
+    file: ${AGI_MASTER_KEY_HOST_FILE:-.secrets/master_key}

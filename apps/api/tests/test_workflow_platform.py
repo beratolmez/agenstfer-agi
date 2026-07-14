@@ -20,6 +20,7 @@ from agi_server.db import (
     CapabilityDefinitionRow,
     OKFCandidate,
     WorkflowDefinitionRow,
+    WorkflowRun,
     WorkflowStepRun,
 )
 from agi_server.diagnostics.service import _material_claims
@@ -30,6 +31,7 @@ from agi_server.okf.lifecycle import ensure_active_repository
 from agi_server.workflow import build_default_workflow, validate_workflow
 from agi_server.workflow.models import NodeKind, WorkflowEdge, WorkflowNode
 from agi_server.workflow.persistent_runtime import (
+    _durable_result,
     decide_persisted_approval,
     evaluate_condition,
     start_persisted_workflow,
@@ -45,7 +47,7 @@ from agi_server.workflow.registry_service import (
     save_workflow_draft,
     workflow_from_row,
 )
-from agi_server.workflow.scheduler import cron_matches, run_due_schedules
+from agi_server.workflow.scheduler import cron_matches, expire_approvals, run_due_schedules
 from pydantic_ai.models.test import TestModel
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import sessionmaker
@@ -144,9 +146,10 @@ def test_registry_versions_are_seeded_cloned_and_immutable(tmp_path: Path) -> No
         with pytest.raises(ValueError, match="immutable"):
             save_workflow_draft(db, definition, None)
 
-        agent = db.get(AgentDefinitionRow, ("company-analyst", 1))
+        agent = db.get(AgentDefinitionRow, ("company-analyst", 2))
         assert agent is not None
         agent_draft = clone_agent_version(db, agent, None)
+        assert agent_draft.version == 3
         spec = agent_draft.definition | {"version": agent_draft.version}
         parsed = save_agent_draft(
             db,
@@ -285,6 +288,25 @@ def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> 
     with local_session() as restarted_db:
         approval = restarted_db.get(ApprovalRequest, approval_id)
         assert approval is not None
+        approval.status = "decision_submitted"
+        approval.decision_idempotency_key = "approval-decision-001"
+        approval.decision_reason = "Evidence and candidate diff were reviewed."
+        restarted_db.commit()
+        recovery_run = restarted_db.get(WorkflowRun, run.id)
+        assert recovery_run is not None
+        assert _durable_result(restarted_db, recovery_run)["approval_id"] == approval.id
+        with pytest.raises(ValueError, match="stale"):
+            asyncio.run(
+                decide_persisted_approval(
+                    restarted_db,
+                    settings,
+                    approval,
+                    decision="approved",
+                    reason="A second decision must not replace the reserved one.",
+                    actor_id=None,
+                    idempotency_key="approval-decision-002",
+                )
+            )
         resumed, qmd = asyncio.run(
             decide_persisted_approval(
                 restarted_db,
@@ -353,4 +375,43 @@ def test_rejected_workflow_candidate_never_changes_active_revision(tmp_path: Pat
         assert GitKnowledgeRepository(settings.company_bundle).ensure_baseline() == before
         candidate = db.scalar(select(OKFCandidate).where(OKFCandidate.run_id == run.id))
         assert candidate is not None and candidate.status == "rejected"
+    engine.dispose()
+
+
+def test_submitted_approval_expiry_closes_run_step_and_candidate(tmp_path: Path) -> None:
+    engine, local_session = _database(tmp_path)
+    settings = Settings(knowledge_root=tmp_path / "knowledge", qmd_url=None)
+    with local_session() as db:
+        sync_demo_company(db, settings.raw_root)
+        ensure_active_repository(settings.company_bundle)
+        ensure_platform_registry(db)
+        workflow = db.get(WorkflowDefinitionRow, ("growth-diagnostic", 1))
+        run = asyncio.run(
+            start_persisted_workflow(
+                db,
+                settings,
+                workflow,
+                "workflow-expiry-001",
+                None,
+                model_overrides=_models(db),
+            )
+        )
+        approval = db.scalar(select(ApprovalRequest).where(ApprovalRequest.run_id == run.id))
+        assert approval is not None
+        approval.status = "decision_submitted"
+        approval.expires_at = datetime(2026, 7, 13, tzinfo=UTC)
+        db.commit()
+
+        assert expire_approvals(db, datetime(2026, 7, 14, tzinfo=UTC)) == 1
+        assert approval.status == "expired"
+        assert run.status == "expired"
+        candidate = db.scalar(select(OKFCandidate).where(OKFCandidate.run_id == run.id))
+        assert candidate is not None and candidate.status == "expired"
+        step = db.scalar(
+            select(WorkflowStepRun).where(
+                WorkflowStepRun.run_id == run.id,
+                WorkflowStepRun.step_id == "approval",
+            )
+        )
+        assert step is not None and step.status == "expired"
     engine.dispose()

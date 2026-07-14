@@ -1,5 +1,5 @@
 import pytest
-from agi_server.agents.model_gateway import resolve_model_profile
+from agi_server.agents.model_gateway import model_settings_for_profile, resolve_model_profile
 from agi_server.config import Settings
 from pydantic import SecretStr
 
@@ -51,3 +51,27 @@ def test_published_agent_default_is_not_silently_replaced_by_installation_defaul
     )
 
     assert resolve_model_profile("local-balanced", settings).id == "local-balanced"
+
+
+def test_local_structured_output_disables_unpersisted_reasoning() -> None:
+    model_settings = model_settings_for_profile(
+        "local-balanced", Settings(), max_tokens=4000
+    )
+
+    assert model_settings == {
+        "max_tokens": 4000,
+        "openai_reasoning_effort": "none",
+        "temperature": 0,
+    }
+
+
+def test_cloud_profile_does_not_inherit_ollama_reasoning_controls() -> None:
+    settings = Settings(
+        cloud_models_enabled=True,
+        cloud_provider="mistral",
+        cloud_api_key=SecretStr("test-key"),
+    )
+
+    assert model_settings_for_profile(
+        "cloud-balanced", settings, max_tokens=4000
+    ) == {"max_tokens": 4000}

@@ -19,3 +19,12 @@ Kurulum internet olmadan çalışabilir. Donanım ve model yaşam döngüsü mü
 
 Cloud-first daha kolay operasyon sağlar fakat güvenlik hedefiyle çelişir. Tek modele hard-code etmek upgrade ve donanım esnekliğini bozar.
 
+## Amendment — 14 July 2026
+
+Qwen 3.5 local typed extraction disables unpersisted reasoning with
+`openai_reasoning_effort: none` and `temperature: 0`. Agent v2 uses Pydantic AI PromptedOutput,
+bounded representative evidence in model context, and workflow-prefetched capability results; the
+complete persisted evidence set remains in PostgreSQL for the final gate. The installed 9B model
+passes the probe but failed the first full CPU golden run at Growth Opportunity Analyst, so it is a
+development profile until a 20-run qualification passes. No automatic promotion to 27B or cloud is
+allowed.

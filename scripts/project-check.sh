@@ -20,6 +20,9 @@ echo "== Compose validation =="
 docker compose config --quiet
 docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
 docker compose -f docker-compose.yml -f docker-compose.cloud.yml --profile cloud config --quiet
+docker compose -f docker-compose.yml -f docker-compose.production.yml config --quiet
+docker compose -f docker-compose.yml -f docker-compose.observability.yml --profile observability config --quiet
+docker compose -f docker-compose.yml -f docker-compose.model-download.yml config --quiet
 
 if [[ "${1:-}" == "--live" ]]; then
   echo "== Live probes =="

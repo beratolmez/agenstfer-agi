@@ -1,0 +1,6 @@
+services:
+  ollama:
+    networks: [core, model-download]
+
+networks:
+  model-download: {}

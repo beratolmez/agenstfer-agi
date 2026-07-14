@@ -1,117 +1,139 @@
 # Agentic Growth Intelligence
 
-Agentic Growth Intelligence, tek bir şirketin kendi altyapısında çalışan; dağınık şirket bilgisini taşınabilir bir [Open Knowledge Format (OKF) 0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) bundle'ına dönüştüren ve kanıta bağlı bir **Growth Diagnostic + 30 günlük aksiyon planı** üreten local-first MVP'dir.
+Agentic Growth Intelligence; tek bir şirketin kendi altyapısında çalışan, dağınık şirket bilgisini
+taşınabilir [Open Knowledge Format 0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
+bilgi tabanına dönüştüren ve kaynak satırına kadar izlenebilen bir **Growth Diagnostic + 30 günlük
+aksiyon planı** üreten local-first üründür.
 
-Bu repository, mevcut [PRD](./Agentic_Growth_Intelligence_Server_PRD.md) ile [yönetici mimari bağlamını](./ARCHITECTURE_CONTEXT.md) kaynak olarak korur. Güncel MVP kararları [proje mimarisinde](./docs/PROJECT_ARCHITECTURE.md), uygulama sırası [teknik planda](./docs/MVP_IMPLEMENTATION_PLAN.md), günlük çalışma biçimi [sonraki adımlar rehberinde](./docs/NEXT_STEPS_GUIDE.md), çalışan kapsam ile release öncesi kalanlar ise [uygulama durumu](./docs/IMPLEMENTATION_STATUS.md) belgesinde açıklanır. Domain sözleşmeleri, eval, tehdit modeli, operasyon ve release kapıları da `docs/` altında version-controlled tutulur.
+Kaynak [PRD](./Agentic_Growth_Intelligence_Server_PRD.md) ve
+[yönetici mimarisi](./ARCHITECTURE_CONTEXT.md) değiştirilmeden korunur. Güncel kararlar ve gerçek
+durum:
 
-## Mevcut durum: gerçek agent tanısı uygulanmış, release modeli hazır değil
+- [Project Architecture](./docs/PROJECT_ARCHITECTURE.md)
+- [Implementation Plan](./docs/MVP_IMPLEMENTATION_PLAN.md)
+- [Implementation Status](./docs/IMPLEMENTATION_STATUS.md)
+- [Next Steps](./docs/NEXT_STEPS_GUIDE.md)
+- [Operations Runbook](./docs/OPERATIONS_RUNBOOK.md)
+- [Release Checklist](./docs/RELEASE_CHECKLIST.md)
 
-Web/API/Docker katmanı ayağa kalkar. Demo veya CSV/XLSX verisi read-only connector, mapping, PostgreSQL canonical context, immutable snapshot ve evidence hattından geçer. Growth Diagnostic; persisted veriden deterministic metric/score hesaplar, dört typed Pydantic AI agent çalıştırır, material claim'leri evidence gate'ten geçirir ve Markdown/HTML + izole OKF candidate üretir. Ancak bu makinede `qwen3.5:9b` kurulu olmadığı ve governed cloud key bulunmadığı için gerçek provider kabulü henüz geçmemiştir. Model yokken run açıkça hata verir; statik rapora sessiz fallback yapmaz. Workflow Publish/Run ve genel Approval Center/Settings akışları tamamlanmamıştır.
+## Mevcut durum
 
-Doğrulanmış ve eksik kapsamın tek kaynağı [Implementation Status](./docs/IMPLEMENTATION_STATUS.md) belgesidir.
+Kod tabanı production-candidate seviyesindedir: ingestion/evidence/OKF, dört typed Pydantic AI
+agent, deterministic scoring, Evidence Reviewer, immutable workflow/agent sürümleri, gerçek DBOS
+durability, Approval Center, kalıcı kurulum sihirbazı, backup/restore, no-egress, SBOM ve güvenlik
+kontrolleri uygulanmıştır.
 
-## Şu anda doğrulanmış scaffold
+Henüz release değildir. Bu makinede `qwen3.5:9b` kurulmuş ve gerçek structured-output probe
+geçmiştir; ancak CPU üzerinde yapılan ilk tam golden diagnostic growth agent retry süresini doldurup
+fail-closed kapanmıştır. Bu nedenle 9B profil “supported” değildir; 27B veya governed Groq/Mistral
+profiliyle 20-run qualification ve tam browser happy-path hâlâ gereklidir. Sistem deterministic
+preview'e veya başka provider'a sessiz fallback yapmaz. Ayrıntı için
+[Implementation Status](./docs/IMPLEMENTATION_STATUS.md) belgesine bakın.
 
-- Sentetik “Anka Endüstriyel Otomasyon” şirketi; persisted metrik/skorlar ve typed model destekli Growth Diagnostic runtime'ı.
-- OKF 0.1 concept okuma/yazma, lint, link/backlink ve ZIP round-trip altyapısı.
-- Immutable snapshot locator'larına çözülen gerçek evidence referansları; evidence-reviewed material claim'ler ve 30 günlük plan.
-- FastAPI API, React/TypeScript dashboard ve kısıtlı React Flow workflow editörü.
-- Typed DAG doğrulaması; cycle, geçersiz port ve izin verilmeyen node reddi.
-- PostgreSQL'de source, mapping, sync, snapshot, entity, fact, evidence, artifact ve OKF candidate state'i.
-- CSV/XLSX Sources ekranı; preview, ID mapping, veri sınıflandırma ve read-only sync.
-- Docker Compose ile `app`, `postgres`, `ollama`; opsiyonel `qmd`, `jaeger` ve `egress-gateway` profilleri.
+## Yerel başlangıç
 
-Bu MVP henüz canlı CRM/ERP write-back, dış lead toplama, outbound, çağrı, finans, siber güvenlik ya da rakip araştırması yapmaz. Bunlar bilinçli olarak sonraki fazdır.
+Gereksinimler: Docker Desktop/Engine + Compose v2. Hedef: Linux x86-64; önerilen referans ortam
+8 CPU, 32 GB RAM ve 50 GB boş disk.
 
-## Hızlı başlangıç
-
-### Docker Compose
-
-Gereksinimler: Docker Desktop/Engine, Compose v2, x86-64 Linux hedefinde en az 8 CPU, 32 GB RAM ve 50 GB boş disk önerilir.
-
-```bash
-cp .env.example .env
-docker compose up --build
+```powershell
+Copy-Item .env.example .env
+docker compose up -d --build
 ```
 
-İlk çalıştırmadan önce `.env` içindeki bootstrap token, session secret, master key ve PostgreSQL parolasını değiştirin. Daha önce yalnız PostgreSQL alanlarıyla oluşturulmuş bir development `.env` kullanıyorsanız geçici fallback bootstrap token `local-bootstrap-token` olur; ilk kullanıcıyı oluşturmadan önce bunu özel bir değerle değiştirip app'i yeniden başlatmanız önerilir.
+`.env` içindeki PostgreSQL parolasını ve development değerlerini değiştirin. Web:
+`http://localhost:8080`; API docs: `http://localhost:8080/api/docs`.
 
-Web arayüzü: `http://localhost:8080`  
-API dokümanı: `http://localhost:8080/api/docs`
+Sadece açık development bypass için:
 
-Ollama modeli ilk çalıştırmada ayrıca indirilmelidir:
-
-```bash
-docker compose exec ollama ollama pull qwen3.5:9b
-```
-
-Ollama veya açıkça yapılandırılmış cloud provider olmadan kaynak/OKF ekranları çalışır; gerçek Growth Diagnostic çalıştırması güvenli biçimde reddedilir. Dashboard ilk başarılı run öncesinde yalnız bir deterministic preview gösterir.
-
-Kimlik doğrulamayı yalnız açık bir development override ile bypass etmek için:
-
-```bash
+```powershell
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
-Bu override production ortamında kullanılmamalıdır.
+Bu overlay production'da kullanılmaz.
 
-### Geçici cloud model (Groq veya Mistral)
+## Production overlay
 
-Cloud model varsayılan kapalıdır ve otomatik fallback değildir. Yönetici Groq veya Mistral profilini production için açıkça seçebilir; yalnız `public` ve policy tarafından izin verilmiş/redakte edilmiş `internal` veri gönderilebilir. `confidential` ve `restricted` veri MVP'de cloud provider'a gönderilemez. Varsayılan Compose dosyası internete çıkmaz.
+Production session cookie `Secure` olduğu için port 8080'i şirketin HTTPS reverse proxy'sinin
+arkasına koyun. Secret dosyalarını üretin ve production overlay'i açın:
 
-1. `.env` içinde `AGI_CLOUD_PROVIDER=groq` veya `mistral`, `AGI_CLOUD_API_KEY=...` ve `AGI_MODEL_PROFILE=cloud-balanced` yazın. İsterseniz `AGI_CLOUD_MODEL` ile model adını değiştirin.
-2. Allowlist'li proxy profilini başlatın:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.cloud.yml --profile cloud up -d --build
+```powershell
+.\scripts\initialize-secrets.ps1
+docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
 ```
 
-Groq için varsayılan `openai/gpt-oss-20b`, Mistral için `mistral-small-latest` seçilir. API anahtarı yalnızca environment üzerinden okunur; status endpoint'i ve loglar anahtarı döndürmez.
+Linux karşılığı `./scripts/initialize-secrets.sh` komutudur. `.secrets/` Git tarafından yok sayılır.
+İlk admin oluşturulana kadar `bootstrap_token` değerini güvenli bir secret manager'da saklayın.
 
-### Yerel geliştirme
+## Model seçimi
 
-Backend (Python 3.12–3.14):
+Yerel varsayılan:
 
-```bash
+```powershell
+.\scripts\pull-model.ps1 -Model qwen3.5:9b
+```
+
+Script yalnızca Ollama container'ına geçici outbound erişim verir ve indirme bitince servisi tekrar
+internal ağa alır. Linux karşılığı `./scripts/pull-model.sh qwen3.5:9b`'dir. Kurumsal DNS hâlâ
+`registry.ollama.ai` alanını engelliyorsa ağ yöneticinizden izin isteyin veya governed cloud profilini
+kullanın; kalıcı Docker ağ sınırını gevşetmeyin.
+
+Ollama registry DNS/ağ sorunu yaşanırsa geçici Groq veya Mistral kullanılabilir; otomatik fallback
+değildir. API key'i `.env` içine yazmayın:
+
+1. Key'i `.secrets/cloud_model_api_key` dosyasına koyun.
+2. `.env` içinde `AGI_CLOUD_PROVIDER=groq` veya `mistral`,
+   `AGI_MODEL_PROFILE=cloud-balanced` ve isteğe bağlı `AGI_CLOUD_MODEL` ayarlayın.
+3. Allowlist'li egress ile başlatın:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.production.yml -f docker-compose.cloud.yml --profile cloud up -d --build
+```
+
+Varsayılan Groq modeli `openai/gpt-oss-20b`, Mistral modeli `mistral-small-latest` profilidir.
+`confidential`/`restricted` evidence cloud'a gönderilmez; izinli `internal` içerikte contact
+identifier redaksiyonu uygulanır. Provider'ı “supported” göstermeden önce model probe ve golden eval
+geçmelidir:
+
+```powershell
+.\scripts\qualify-model.ps1 -Profile cloud-balanced -Attempts 20
+```
+
+## Geliştirme ve doğrulama
+
+```powershell
 uv sync --all-groups
-uv run uvicorn agi_server.main:app --app-dir apps/api --reload --port 8000
+npm --prefix apps/web ci
+.\scripts\project-check.ps1
 ```
 
-Frontend (Node 22+):
+Canlı health ile `-Live`; no-egress, backup/restore ve release scan için:
 
-```bash
-cd apps/web
-npm install
-npm run dev
+```powershell
+.\scripts\verify-no-egress.ps1
+.\scripts\backup.ps1
+.\scripts\restore.ps1 .\backups\<timestamp>
+.\scripts\release-scan.ps1
 ```
 
-Test ve kalite kontrolleri:
+Linux script karşılıkları `scripts/*.sh` altındadır.
 
-```bash
-uv run pytest
-uv run ruff check apps/api
-cd apps/web && npm test && npm run build
-```
+## MVP'nin yaptığı / yapmadığı
+
+Yapar: read-only demo/CSV/XLSX ingest, canonical context ve immutable evidence, OKF 0.1 + Git
+candidate lifecycle, evidence-gated Growth Diagnostic pipeline, constrained workflow/DBOS/approval,
+rapor ve portable OKF export. Release raporu üretmek için ayrıca qualified model profili gerekir.
+
+Yapmaz: gerçek CRM/ERP write-back, dış lead scraping, outreach, inbound/outbound call, finansal işlem,
+siber güvenlik operasyonu, rakip otomasyonu veya multi-tenant SaaS. Bu işler yeni ADR, threat model,
+consent/legal, capability ve rollback kapıları olmadan eklenmez.
 
 ## Repository haritası
 
 ```text
-apps/api/             FastAPI, domain, OKF ve workflow runtime
-apps/web/             React + TypeScript web console
-knowledge/            Raw vault ve OKF 0.1 company bundle
-docs/                 Mimari, plan, rehber, ADR ve görsel spec
-infra/qmd/            Opsiyonel local qmd sidecar
+apps/api/       FastAPI, domain, agents, OKF, workflow ve DBOS runtime
+apps/web/       React + TypeScript web console
+knowledge/      Immutable raw vault ve active/candidate OKF bilgi alanı
+docs/           Mimari, ADR, plan, eval, threat, operasyon ve release belgeleri
+infra/          Nginx, qmd ve allowlisted egress
+scripts/        Cross-platform check, backup/restore, eval ve release araçları
 ```
-
-## Güvenlik varsayımları
-
-- Tek kurulum = tek şirket; SaaS/multi-tenant değildir.
-- Cloud model ve genel internet egress varsayılan kapalıdır.
-- Connector sözleşmeleri MVP'de read-only'dir.
-- LLM çıktısı tek başına kanıt sayılmaz; önemli iddia source locator ile çözülmelidir.
-- Üretimde `.env` içindeki örnek secret'lar kullanılmamalı; Docker secret veya eşdeğeri verilmelidir.
-
-## Tasarım kaynakları
-
-- [Dashboard konsepti](./docs/design/dashboard-concept.png)
-- [Workflow editörü konsepti](./docs/design/workflow-editor-concept.png)

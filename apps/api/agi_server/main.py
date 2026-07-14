@@ -65,6 +65,7 @@ from agi_server.ingestion import (
     sync_demo_company,
 )
 from agi_server.migrations import run_migrations
+from agi_server.observability import ObservabilityMiddleware, configure_observability
 from agi_server.okf import FileSystemOKFBundle
 from agi_server.okf.git_repo import GitKnowledgeRepository
 from agi_server.okf.lifecycle import (
@@ -101,6 +102,7 @@ from agi_server.workflow import build_default_workflow, validate_workflow
 from agi_server.workflow.models import WorkflowDefinition, WorkflowValidation
 from agi_server.workflow.persistent_runtime import (
     decide_persisted_approval,
+    expire_approval_state,
     start_persisted_workflow,
 )
 from agi_server.workflow.registry_service import (
@@ -146,6 +148,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 settings = get_settings()
+configure_observability(settings.otlp_endpoint)
+app.add_middleware(ObservabilityMiddleware)
 if settings.enable_dbos:
     dbos_url = settings.database_url.replace("postgresql+psycopg://", "postgresql://")
     DBOS(
@@ -738,6 +742,10 @@ def workflow_run_detail(
                 "agent_id": step.agent_id,
                 "agent_version": step.agent_version,
                 "model_profile": step.model_profile,
+                "model_provider": step.model_provider,
+                "model_name": step.model_name,
+                "data_classification": step.data_classification,
+                "redaction_applied": step.redaction_applied,
                 "status": step.status,
                 "input_hash": step.input_hash,
                 "output": step.output_json,
@@ -1852,9 +1860,75 @@ async def approval_decision(
     reason: Annotated[str, Query(min_length=8, max_length=500)],
     idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=180)],
 ) -> dict[str, Any]:
-    approval = db.get(ApprovalRequest, approval_id)
+    approval = db.scalar(
+        select(ApprovalRequest).where(ApprovalRequest.id == approval_id).with_for_update()
+    )
     if approval is None:
         raise HTTPException(status_code=404, detail="Approval bulunamadı")
+    if settings.enable_dbos:
+        duplicate_key = db.scalar(
+            select(ApprovalRequest.id).where(
+                ApprovalRequest.decision_idempotency_key == idempotency_key,
+                ApprovalRequest.id != approval.id,
+            )
+        )
+        if duplicate_key is not None:
+            raise HTTPException(status_code=409, detail="Decision idempotency key was already used")
+        if approval.decision_idempotency_key == idempotency_key:
+            run = db.get(WorkflowRun, approval.run_id)
+            return {
+                "approval_id": approval_id,
+                "decision": decision,
+                "run_status": approval.status if run is None else run.status,
+                "qmd": "duplicate",
+            }
+        if approval.status != "pending":
+            raise HTTPException(status_code=409, detail="Approval decision is stale")
+        expires_at = approval.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+        if expires_at <= datetime.now(UTC):
+            expire_approval_state(db, approval, datetime.now(UTC))
+            db.commit()
+            raise HTTPException(status_code=409, detail="Approval has expired")
+        payload = {
+            "approval_id": approval.id,
+            "decision": decision,
+            "reason": reason,
+            "actor_id": None if actor is None else actor.id,
+            "idempotency_key": idempotency_key,
+        }
+        try:
+            await DBOS.send_async(
+                approval.run_id,
+                payload,
+                topic=f"approval:{approval.id}",
+                idempotency_key=idempotency_key,
+            )
+        except Exception as error:
+            db.rollback()
+            raise HTTPException(
+                status_code=503, detail="Approval runtime is temporarily unavailable"
+            ) from error
+        approval.status = "decision_submitted"
+        approval.decision_by = None if actor is None else actor.id
+        approval.decision_reason = reason
+        approval.decision_idempotency_key = idempotency_key
+        record_audit(
+            db,
+            actor_id=None if actor is None else actor.id,
+            action="approval.decision_submitted",
+            target_type="approval_request",
+            target_id=approval_id,
+            metadata={"run_id": approval.run_id, "decision": decision, "reason": reason},
+        )
+        db.commit()
+        return {
+            "approval_id": approval_id,
+            "decision": decision,
+            "run_status": "decision_submitted",
+            "qmd": "pending",
+        }
     try:
         run, qmd = await decide_persisted_approval(
             db,

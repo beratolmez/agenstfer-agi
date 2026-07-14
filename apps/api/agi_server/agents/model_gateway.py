@@ -67,6 +67,23 @@ def build_pydantic_ai_model(profile_id: str, settings: Settings):
     return OpenAIChatModel(profile.model_name, provider=provider)
 
 
+def model_settings_for_profile(
+    profile_id: str, settings: Settings, *, max_tokens: int
+) -> dict[str, object]:
+    profile = resolve_model_profile(profile_id, settings)
+    model_settings: dict[str, object] = {"max_tokens": max_tokens}
+    if profile.local:
+        # Ollama enables thinking by default for Qwen 3.5. Typed extraction needs the
+        # final JSON within a bounded output budget, not an unpersisted reasoning trace.
+        model_settings.update(
+            {
+                "openai_reasoning_effort": "none",
+                "temperature": 0,
+            }
+        )
+    return model_settings
+
+
 def build_pydantic_ai_agent(
     spec,
     output_type,
@@ -77,15 +94,22 @@ def build_pydantic_ai_agent(
     tools=(),
 ):
     """Build lazily so non-model operations do not require a running provider."""
-    from pydantic_ai import Agent
+    from pydantic_ai import Agent, PromptedOutput
 
     model = model_override or build_pydantic_ai_model(profile_id or spec.model_profile, settings)
+    selected_output_type = (
+        output_type if model_override is not None else PromptedOutput(output_type)
+    )
     return Agent(
         model,
-        output_type=output_type,
+        output_type=selected_output_type,
         system_prompt=spec.system_prompt,
         tools=tools,
-        model_settings={"max_tokens": spec.max_output_tokens},
+        model_settings=model_settings_for_profile(
+            profile_id or spec.model_profile,
+            settings,
+            max_tokens=spec.max_output_tokens,
+        ),
         retries=2,
         name=spec.id,
     )

@@ -1,8 +1,8 @@
 # Agentic Growth Intelligence — MVP Proje Mimarisi
 
-**Durum:** Uygulama başlangıç mimarisi  
+**Durum:** Production-candidate uygulama mimarisi; model qualification bekliyor
 **Hedef:** Tek şirket, self-hosted, local-first  
-**Referans tarih:** 13 Temmuz 2026  
+**Referans tarih:** 14 Temmuz 2026
 **Format kararı:** Open Knowledge Format 0.1 (draft, adapter arkasında)
 
 ## 1. Amaç ve iş değeri
@@ -145,17 +145,19 @@ sequenceDiagram
 
 ```mermaid
 flowchart TB
-    USER["Tarayıcı"] -->|8080| APP
+    USER["Tarayıcı / HTTPS terminator"] -->|8080| NGINX
     subgraph Host["Şirket Linux sunucusu"]
+        NGINX["Nginx ingress proxy"]
         subgraph Core["internal core network"]
             APP["app\nFastAPI + built React + DBOS worker"]
-            PG["postgres\napp + durable state"]
+            PG["postgres\napp DB + DBOS system DB"]
             OLLAMA["ollama\nlocal model"]
             QMD["qmd\nlocal Markdown index"]
             APP --> PG
             APP --> OLLAMA
             APP --> QMD
         end
+        NGINX --> APP
         JAEGER["jaeger\noptional observability"]
         EGRESS["egress-gateway\nexplicit profile"]
         APP -. "OTLP, içerik yok" .-> JAEGER
@@ -188,7 +190,7 @@ Core profilde internet egress iş gereksinimi değildir. Container runtime seviy
 | Qwen 3.5 9B/27B | Başlangıç model profilleri | Yerel structured-output adayı | Eval geçmezse profile yükseltilir |
 | React + TypeScript + Vite | Web Console | Hızlı, typed ürün UI | Feature boundary, API schema types |
 | React Flow | Kısıtlı workflow canvas | DAG editörü | Sabit node catalog; code/plugin/loop yok |
-| OpenTelemetry/Jaeger | Yerel gözlemlenebilirlik | Run/step latency ve hata | Prompt/source body loglanmaz |
+| OpenTelemetry/Jaeger v2.19 | Yerel gözlemlenebilirlik | HTTP latency ve status | Prompt/source body loglanmaz; opt-in profile |
 | Docker Compose | Kurulum | Tek sunucu için anlaşılır operasyon | Pinned image, volume, healthcheck |
 
 ## 9. Bileşen sözleşmeleri
@@ -213,6 +215,11 @@ Bundle create/read/write, unknown-field-preserving parse, index/log, link/backli
 ### ModelGateway
 
 Agent sadece `model_profile_id` bilir. Gateway provider/model endpoint, sınıflandırma, egress, timeout ve structured-output politikasını çözer.
+
+Local Qwen 3.5 profilleri typed extraction sırasında unpersisted reasoning'i kapatır ve Pydantic AI
+PromptedOutput kullanır. Workflow capability katmanı, model context'ine her metric/signal için en
+fazla üç temsilî evidence locator'ı koyar; tam evidence set'i PostgreSQL'de korunur ve final policy
+gate tarafından doğrulanır. Bu bounded context, agent'ın serbest tool döngüsüne girmesini engeller.
 
 ## 10. OKF bilgi mimarisi
 
@@ -242,6 +249,11 @@ Reference concept ile PostgreSQL `EvidenceItem`, aynı `source_id` üzerinden ba
 
 MVP agent'ları: Wiki Curator, Company Analyst, Growth Opportunity Analyst, Evidence Reviewer. Agent'lar birbirini serbest çağırmaz. Workflow sıralamayı belirler.
 
+Built-in Growth Diagnostic'te capability çağrıları workflow tarafından deterministik olarak
+prefetch edilir. Model yalnız bounded sonuçları ve typed output sözleşmesini görür. Registry'deki
+capability atamaları hangi verinin sunulabileceğini tanımlar; agent çalışma sırasında bu allowlist'i
+genişletemez. Agent v2 timeout/output bütçeleri CPU-safe fakat fail-closed'dur.
+
 `ManagedAgentSpec`; Pydantic AI Agent Spec'e model profile, prompt version, typed output, capability ID, timeout/token sınırı, veri sınıflandırması ve approval riski ekler.
 
 İzinli capability seti:
@@ -258,8 +270,10 @@ Workflow DSL node'ları planla aynı sabit catalog'dan gelir. Publish öncesi: n
 - Parolalar Argon2id; cookie HttpOnly, Secure, SameSite; state-changing isteklerde CSRF.
 - Connector ve model secrets, env içine düz metin koymak yerine production Docker secret/master key ile şifrelenir.
 - Doküman içeriği untrusted input'tur; instruction/data ayrımı ve tool allowlist uygulanır.
-- URL ingestion allowlist, DNS rebinding/private IP, redirect ve boyut sınırlarını denetler.
-- Markdown/HTML sanitize; CSV export formula escape; archive import path traversal kontrolü yapar.
+- MVP build'inde URL ingestion capability yoktur; gelecek URL connector allowlist, DNS rebinding,
+  private IP, redirect ve boyut sınırlarını geçmeden eklenemez.
+- HTML export escape edilir; formula benzeri tabular hücre uyarılır ve untrusted kalır. Gelecek CSV
+  export formula escape etmelidir. Archive import traversal/symlink/expanded-size kontrolü yapar.
 - Prompt, secret ve kaynak body audit/trace loguna yazılmaz.
 - Approval yedi gün bekleyebilir; idempotent decision ve restart sonrası resume zorunludur.
 - Harici write capability MVP build'inde bulunmaz; yalnız UI policy değil, interface seviyesinde yoktur.
@@ -295,7 +309,7 @@ Açık sorular: ilk tasarım ortağının CRM/ERP'si; kurumun veri sınıfları;
 6. Cloud/egress varsayılan kapalı ve connector API'si read-only'dir.
 7. Yönetici ekranı gelecek modülleri MVP'de varmış gibi göstermez.
 
-## 16. Audited implementation boundary — 13 July 2026
+## 16. Audited implementation boundary — 14 July 2026
 
 This section distinguishes the deployed scaffold from the target architecture. `docs/IMPLEMENTATION_STATUS.md` is authoritative for capability status.
 
@@ -313,7 +327,38 @@ flowchart LR
     E -. Groq or Mistral .-> C["Cloud model provider"]
 ```
 
-Only Nginx publishes a host port. Standard Compose now enforces bootstrap/session authentication, roles, CSRF, migrations, and material-operation audit. Source, mapping, snapshot, canonical context, evidence, artifact, OKF candidate, diagnostic run, and agent step state is persistent. The diagnostic score is deterministic from persisted data; narrative analysis is produced by four typed Pydantic AI calls and every material claim must pass the Evidence Reviewer gate. Workflow authoring/publication and general approval state remain incomplete.
+Only Nginx publishes a host port. Standard Compose enforces bootstrap/session authentication, roles,
+CSRF, migrations, and material-operation audit. Source, mapping, snapshot, canonical context, evidence,
+artifact, OKF candidate, agent/workflow versions, schedules, runs, steps, approvals, and setup progress
+are persistent. Diagnostic scores are deterministic from persisted data; narrative analysis is produced
+by four typed Pydantic AI calls and every material claim must pass the Evidence Reviewer gate.
+Workflow authoring/publication, DBOS durable execution, approval pause/resume, and the corresponding
+web surfaces are implemented. Release acceptance still requires a qualified real model, external Linux
+host rehearsal, and repetition of the qmd rebuild drill on that release host.
+
+### Implemented workflow persistence path
+
+```mermaid
+sequenceDiagram
+    actor Analyst
+    participant API as FastAPI
+    participant APP as Application PostgreSQL
+    participant DBOS as DBOS system PostgreSQL
+    participant STEP as Retryable persisted step
+    participant MODEL as Explicit model profile
+    participant APR as Authenticated Approver
+    Analyst->>API: Run immutable workflow + Idempotency-Key
+    API->>APP: Create WorkflowRun pinned to versions
+    API->>DBOS: Start workflow with run ID
+    DBOS->>STEP: Resume from application checkpoints
+    STEP->>MODEL: Typed Pydantic AI call
+    STEP->>APP: Persist safe step output/evidence/artifact
+    DBOS->>DBOS: Durable recv up to seven days
+    APR->>API: Decision + reason + Idempotency-Key
+    API->>DBOS: Send decision to run ID/topic
+    DBOS->>STEP: Merge or reject candidate and resume
+    STEP->>APP: Complete immutable run history
+```
 
 ### Implemented OKF storage lifecycle
 

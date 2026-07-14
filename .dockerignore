@@ -3,6 +3,9 @@
 .pytest_cache
 .ruff_cache
 .env
+.secrets
+backups
+artifacts
 data
 **/node_modules
 **/dist
@@ -10,3 +13,4 @@ data
 **/*.pyc
 **/*.egg-info
 docs/design/*.png
+knowledge/bundles/company/.git

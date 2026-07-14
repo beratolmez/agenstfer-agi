@@ -13,6 +13,8 @@ apps/web/coverage/
 *.log
 data/
 backups/
+artifacts/release/
+.secrets/
 knowledge/.qmd/
 knowledge/bundles/company/.git/
 .DS_Store

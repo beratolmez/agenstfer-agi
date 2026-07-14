@@ -3,4 +3,5 @@ services:
     environment:
       # Explicit convenience override. Never use this overlay in production.
       AGI_DEMO_NO_AUTH: "true"
-      AGI_ENABLE_DBOS: "false"
+      # Set AGI_DEV_ENABLE_DBOS=true only for an explicit durability acceptance drill.
+      AGI_ENABLE_DBOS: ${AGI_DEV_ENABLE_DBOS:-false}

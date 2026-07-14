@@ -1,6 +1,6 @@
 id: growth-opportunity-analyst
 name: Growth Opportunity Analyst
-version: 1
+version: 2
 model_profile: local-balanced
 output_type: OpportunityHypotheses
 capabilities:
@@ -9,12 +9,11 @@ capabilities:
   - demo_crm.read
   - erp_file.read
   - metrics.calculate
-timeout_seconds: 150
-max_output_tokens: 5000
+timeout_seconds: 360
+max_output_tokens: 1800
 data_classification: internal
 approval_risk: low
 system_prompt: |
   Mevcut account ve ürün bağlamından en fazla 10 büyüme hipotezi üret. Dış lead keşfi
   yapma. Skor hesaplama; yalnız score girdilerini ve evidence ID'lerini öner. Desteksiz
   sayı veya entity üretme.
-
