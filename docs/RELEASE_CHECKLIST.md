@@ -1,6 +1,6 @@
 # MVP Release Checklist
 
-Last audited: 14 July 2026
+Last audited: 15 July 2026
 
 ## Build and migration
 
@@ -29,6 +29,8 @@ Last audited: 14 July 2026
 
 - [x] Auth/CSRF, prompt injection, HTML XSS, formula-like source, archive/path/symlink/size,
   classification/redaction, safe conditions, idempotency, and approval rejection tests exist.
+- [x] Aggregate metric receipts bind complete raw-evidence membership and reject member/hash/digest
+  tampering before numerical claims reach Evidence Reviewer.
 - [x] Default deployment has no unexpected app egress.
 - [x] Cloud keys and production application secrets use ignored host/Docker secret files.
 - [x] OTLP telemetry excludes prompts, source bodies, evidence excerpts, and secrets; a Jaeger v2

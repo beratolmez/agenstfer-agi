@@ -33,3 +33,18 @@ Growth Opportunity Analyst v3 resolves the earlier “up to ten” versus exactl
 conflict and bounds output to five short rationales. A real 9B node call passed in 278.29 seconds,
 but this does not qualify the model: a complete successful diagnostic and the 20-run gate remain
 mandatory.
+
+## Amendment — 15 July 2026
+
+Ollama runs with an 8,192-token context and one parallel request for this constrained host. Company
+Analyst v3 bounds claim cardinality, and Evidence Reviewer v3 uses deterministic claim/evidence
+batches. Aggregate numerical claims cite deterministic calculation receipts whose hashes bind the
+full raw-evidence membership; representative rows are not accepted as aggregate proof.
+
+PromptedOutput remains the local transport. One full 9B golden attempt reached Evidence Reviewer but
+failed closed with `UnexpectedModelBehavior` after 939.27 seconds. The next telemetry-enabled attempt
+failed at Company Analyst after 307.53 seconds when a retry exhausted its timeout. Ollama's native
+JSON Schema path returned invalid JSON, while function-calling/ToolOutput was not repeatable and
+returned malformed function-call XML with HTTP 500. These failures are diagnostic evidence, not
+reasons to relax schemas, claims, or citations. `qwen3.5:9b` stays development-only; no automatic
+switch to 27B or cloud is permitted.

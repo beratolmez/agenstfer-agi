@@ -21,6 +21,7 @@ from agi_server.config import Settings
 from agi_server.db import (
     AgentDefinitionRow,
     ApprovalRequest,
+    EvidenceItem,
     OKFCandidate,
     SessionLocal,
     WorkflowDefinitionRow,
@@ -31,13 +32,18 @@ from agi_server.db import (
 from agi_server.diagnostics.service import (
     _claim_prompt_view,
     _enforce_evidence_gate,
+    _evidence_prompt_view,
     _material_claims,
     _metric_prompt_view,
+    _run_evidence_reviewer,
     _signal_prompt_view,
     _write_report_artifacts,
 )
 from agi_server.domain.computed_diagnostic import build_computed_diagnostic
-from agi_server.domain.metrics import MetricSnapshot, calculate_growth_metrics
+from agi_server.domain.metrics import (
+    MetricSnapshot,
+    calculate_verified_growth_metrics,
+)
 from agi_server.ingestion import sync_demo_company
 from agi_server.okf.lifecycle import (
     approve_candidate,
@@ -169,7 +175,12 @@ def _agent_prompt(
     evidence_catalog: dict[str, Any] | None = None,
 ) -> str:
     if agent_id == "company-analyst":
-        instruction = "Analyze the persisted company context and cite evidence in each claim."
+        instruction = (
+            "Analyze the persisted company context. Return a maximum two-sentence, 400-character "
+            "summary; 2-4 segments; 2-3 strengths; 2-3 weaknesses; and 1-4 data gaps. Keep each "
+            "material claim to one sentence and 200 characters, with exactly one supplied evidence "
+            "ID. Do not create a claim without evidence."
+        )
         safe_state = {
             "source_sync": state.get("source_sync"),
             "context_status": state.get("context_status"),
@@ -197,7 +208,11 @@ def _agent_prompt(
             "evidence_ids": sorted({item for claim in claims for item in claim.evidence_ids}),
             "evidence_catalog": evidence_catalog or {},
         }
-        instruction = "Return one supported/unsupported decision for every supplied claim ID."
+        instruction = (
+            "Return exactly one supported/unsupported decision for every supplied claim ID. "
+            "Keep each reason to one sentence and at most 120 characters; use only evidence IDs "
+            "already supplied on that claim and return at most five short contradictions."
+        )
     else:
         instruction = "Propose report paths under reports/ without writing active knowledge."
         safe_state = {
@@ -244,7 +259,7 @@ async def _execute_node(
     elif node.kind == NodeKind.KNOWLEDGE_SEARCH:
         result["knowledge_query"] = node.config["query"]
     elif node.kind == NodeKind.DETERMINISTIC_SCORE:
-        metrics = calculate_growth_metrics(db)
+        metrics = calculate_verified_growth_metrics(db)
         result["metrics"] = metrics.model_dump(mode="json")
         result["scores"] = {item.id: item.factors.total() for item in metrics.signals}
     elif node.kind == NodeKind.CONDITION:
@@ -267,7 +282,11 @@ async def _execute_node(
         step.data_classification = "internal"
         step.redaction_applied = profile.provider in {"groq", "mistral"}
         db.commit()
-        metrics = calculate_growth_metrics(db)
+        metrics = (
+            MetricSnapshot.model_validate(result["metrics"])
+            if "metrics" in result
+            else calculate_verified_growth_metrics(db)
+        )
         tools = ScopedCapabilityTools(
             db,
             metrics,
@@ -276,31 +295,49 @@ async def _execute_node(
             cloud=not profile.local,
         )
         evidence_catalog = None
+        evidence_claims = None
         if agent_id == "evidence-reviewer":
             company = CompanyAnalysis.model_validate(result["agent_results"]["company-analyst"])
             hypotheses = OpportunityHypotheses.model_validate(
                 result["agent_results"]["growth-opportunity-analyst"]
             )
-            evidence_catalog = {
-                evidence_id: tools.read_evidence(evidence_id)
-                for evidence_id in {
-                    item
-                    for claim in _claim_prompt_view(
-                        _material_claims(metrics, company, hypotheses)
-                    )
-                    for item in claim.evidence_ids
-                }
-            }
-        execution = await run_managed_agent(
-            agent_id,
-            _agent_prompt(agent_id, result, metrics, evidence_catalog),
-            settings,
-            tools,
-            profile_id=profile_id,
-            model_override=(model_overrides or {}).get(agent_id),
-            spec_override=spec,
-            capability_allowlist=frozenset(),
-        )
+            evidence_claims = _claim_prompt_view(
+                _material_claims(metrics, company, hypotheses)
+            )
+            evidence_catalog = {}
+            for evidence_id in {
+                item
+                for claim in evidence_claims
+                for item in claim.evidence_ids
+            }:
+                row = db.get(EvidenceItem, evidence_id)
+                if row is None:
+                    continue
+                evidence_catalog[evidence_id] = _evidence_prompt_view(
+                    row, tools.read_evidence(evidence_id)
+                )
+        model_override = (model_overrides or {}).get(agent_id)
+        if agent_id == "evidence-reviewer" and evidence_claims is not None:
+            execution = await _run_evidence_reviewer(
+                evidence_claims,
+                evidence_catalog or {},
+                settings,
+                tools,
+                profile_id,
+                model_override=model_override,
+                spec_override=spec,
+            )
+        else:
+            execution = await run_managed_agent(
+                agent_id,
+                _agent_prompt(agent_id, result, metrics, evidence_catalog),
+                settings,
+                tools,
+                profile_id=profile_id,
+                model_override=model_override,
+                spec_override=spec,
+                capability_allowlist=frozenset(),
+            )
         result.setdefault("agent_results", {})[agent_id] = execution.output.model_dump(mode="json")
         step.model_profile = execution.profile_id
         step.model_provider = execution.provider

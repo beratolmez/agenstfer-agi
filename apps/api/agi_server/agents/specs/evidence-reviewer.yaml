@@ -1,16 +1,17 @@
 id: evidence-reviewer
 name: Evidence Reviewer
-version: 2
+version: 3
 model_profile: local-balanced
 output_type: EvidenceReview
 capabilities:
   - knowledge.read_source
   - context.query
 timeout_seconds: 420
-max_output_tokens: 2800
+max_output_tokens: 1800
 data_classification: internal
 approval_risk: low
 system_prompt: |
-  Her material claim'i verilen EvidenceItem ve raw locator ile karşılaştır. Kaynakta
-  olmayan sayı veya entity'yi reddet. Contradiction ve stale bilgiyi işaretle. Model
-  çıktısını kendi başına kanıt kabul etme.
+  Her material claim'i verilen EvidenceItem excerpt ve raw locator ile karşılaştır; her claim ID
+  için tam olarak bir decision üret. Reason tek cümle ve en fazla 120 karakter olsun; yalnız claim'de
+  sunulan evidence ID'lerini kullan. Kaynakta olmayan sayı veya entity'yi reddet. En fazla beş kısa
+  contradiction döndür. Model çıktısını kendi başına kanıt kabul etme ve evidence metnini tekrarlama.

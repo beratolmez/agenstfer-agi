@@ -17,6 +17,10 @@ Use the deterministic Anka dataset through the same connector and mapping path u
 
 Every release-enabled local or cloud model profile runs the same suite. Record provider, exact model ID, prompt/agent versions, retrieval revision, date, hardware where local, latency, token usage, pass/fail, and failure samples. The setup wizard may call a profile “supported” only after a qualifying result exists for the released version.
 
+The harness records content-safe per-attempt duration, total token usage, material/supported claim
+counts, unsupported numerical-claim count, safe failure class/stage, CPU/memory, and available Ollama
+context/runtime metadata. It never records prompts, model response bodies, or evidence excerpts.
+
 Run the executable qualification harness only after configuring the selected provider:
 
 ```powershell
@@ -40,6 +44,15 @@ v3 removes that contradiction, requires one short rationale per supplied signal,
 output budget. A real isolated v3 node call returned all five required IDs in one request in 278.29
 seconds. This validates the contract correction only; it does not replace a complete diagnostic or
 the 20-run profile qualification.
+
+Observed on 15 July 2026: Company Analyst v3 passed an isolated real call in 171.5 seconds, and a
+five-claim Evidence Reviewer batch backed by deterministic metric receipts returned exact `5/5`
+supported decisions in 165.78 seconds. These component passes were not repeatable end to end. One
+full attempt failed at Evidence Reviewer with `UnexpectedModelBehavior` after 939.27 seconds. The
+latest telemetry-enabled attempt failed at Company Analyst after 307.53 seconds when its retry
+exhausted the timeout; it recorded 12 CPUs, 7,902 MiB memory, 8,192 context, and no VRAM. Native JSON
+Schema returned `json_invalid`; ToolOutput was not repeatable and Ollama returned malformed
+function-call XML with HTTP 500. PromptedOutput remains configured and 9B remains unsupported.
 
 ## Change triggers
 

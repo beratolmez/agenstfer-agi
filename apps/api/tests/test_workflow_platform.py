@@ -24,7 +24,9 @@ from agi_server.db import (
     WorkflowStepRun,
 )
 from agi_server.diagnostics.service import _material_claims
-from agi_server.domain.metrics import calculate_growth_metrics
+from agi_server.domain.metrics import (
+    calculate_verified_growth_metrics,
+)
 from agi_server.ingestion import sync_demo_company
 from agi_server.okf.git_repo import GitKnowledgeRepository
 from agi_server.okf.lifecycle import ensure_active_repository
@@ -60,7 +62,7 @@ def _database(tmp_path: Path):
 
 
 def _models(db):
-    metrics = calculate_growth_metrics(db)
+    metrics = calculate_verified_growth_metrics(db)
     first_evidence = metrics.signals[0].evidence_ids[0]
     company = CompanyAnalysis(
         summary="Persisted Anka data supports multiple evidence-backed growth routes.",
@@ -146,13 +148,17 @@ def test_registry_versions_are_seeded_cloned_and_immutable(tmp_path: Path) -> No
         with pytest.raises(ValueError, match="immutable"):
             save_workflow_draft(db, definition, None)
 
-        agent = db.get(AgentDefinitionRow, ("company-analyst", 2))
+        agent = db.get(AgentDefinitionRow, ("company-analyst", 3))
         assert agent is not None
+        assert agent.definition["max_output_tokens"] == 900
         growth_agent = db.get(AgentDefinitionRow, ("growth-opportunity-analyst", 3))
         assert growth_agent is not None
         assert growth_agent.definition["max_output_tokens"] == 900
+        evidence_agent = db.get(AgentDefinitionRow, ("evidence-reviewer", 3))
+        assert evidence_agent is not None
+        assert evidence_agent.definition["max_output_tokens"] == 1800
         agent_draft = clone_agent_version(db, agent, None)
-        assert agent_draft.version == 3
+        assert agent_draft.version == 4
         spec = agent_draft.definition | {"version": agent_draft.version}
         parsed = save_agent_draft(
             db,

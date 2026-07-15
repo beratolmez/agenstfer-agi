@@ -20,6 +20,10 @@ Company source content, credentials, personal/contact data, canonical context, O
   internal-only network even after pull failure.
 - Connector and agent capability allowlists; no arbitrary code or unrestricted URL tools.
 - Immutable snapshots, path confinement, archive cumulative-size limits, and symlink rejection.
+- Aggregate metric receipts are content-addressed and bind every member evidence ID/snapshot/excerpt/classification
+  hash. Resolution must reject a changed receipt, missing member, nested derived member, or digest
+  mismatch before the value reaches Evidence Reviewer. A numerical claim without a receipt must not
+  fall back to representative raw rows; unknown evidence classifications block receipt creation.
 - HTML export escaping. Formula-like imported cells are flagged as untrusted; any future CSV export
   must escape formula prefixes.
 - Prompt-injection separation: source content cannot modify system policy or tool scope.
@@ -37,6 +41,7 @@ XSS, formula-like spreadsheet cells, path traversal, archive bomb/symlink, secre
 unexpected egress, duplicate run/approval, stale candidate, and restore tampering. SSRF/private IP/DNS
 rebinding/redirect tests become mandatory before adding a URL connector; no URL capability exists in
 the MVP build.
+Metric-receipt tampering and missing-member rejection are mandatory for numerical-claim changes.
 
 ## Deferred risks
 

@@ -275,7 +275,43 @@ def resolve_evidence_excerpt(
     evidence_id: str,
 ) -> dict[str, Any] | None:
     evidence = db.get(EvidenceItem, evidence_id)
-    if evidence is None or not evidence.raw_snapshot_id:
+    if evidence is None:
+        return None
+    if evidence.locator.get("kind") == "deterministic_metric":
+        receipt = evidence.locator.get("receipt")
+        source_ids = evidence.locator.get("source_evidence_ids")
+        if not isinstance(receipt, dict) or not isinstance(source_ids, list):
+            raise RuntimeError("Deterministic metric evidence locator is malformed")
+        members = []
+        for source_id in source_ids:
+            source = db.get(EvidenceItem, source_id)
+            if source is None or source.locator.get("kind") == "deterministic_metric":
+                raise RuntimeError("Deterministic metric source evidence is missing or invalid")
+            members.append(
+                {
+                    "id": source.id,
+                    "snapshot_sha256": source.snapshot_sha256,
+                    "excerpt_hash": source.excerpt_hash,
+                    "classification": source.classification,
+                }
+            )
+        source_digest = hashlib.sha256(_canonical_json(members)).hexdigest()
+        if receipt.get("source_evidence_digest") != source_digest:
+            raise RuntimeError("Deterministic metric source evidence digest does not match")
+        receipt_hash = hashlib.sha256(_canonical_json(receipt)).hexdigest()
+        if receipt_hash != evidence.excerpt_hash or receipt_hash != evidence.snapshot_sha256:
+            raise RuntimeError("Deterministic metric receipt hash does not match")
+        return {
+            "id": evidence.id,
+            "source_id": evidence.source_id,
+            "snapshot_id": None,
+            "snapshot_sha256": evidence.snapshot_sha256,
+            "classification": evidence.classification,
+            "locator": evidence.locator,
+            "excerpt": receipt,
+            "collected_at": evidence.collected_at,
+        }
+    if not evidence.raw_snapshot_id:
         return None
     snapshot = db.get(RawSnapshotRow, evidence.raw_snapshot_id)
     if snapshot is None:

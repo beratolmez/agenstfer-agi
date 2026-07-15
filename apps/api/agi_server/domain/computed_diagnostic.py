@@ -26,7 +26,18 @@ def build_computed_diagnostic(
     for index, signal in enumerate(metrics.signals):
         hypothesis = hypothesis_by_signal[signal.id]
         evidence: list[EvidenceRef] = []
-        requested_ids = hypothesis.evidence_ids or signal.evidence_ids
+        requested_ids = list(
+            dict.fromkeys(
+                [
+                    *(
+                        [signal.verification_evidence_id]
+                        if signal.verification_evidence_id
+                        else []
+                    ),
+                    *(hypothesis.evidence_ids or signal.evidence_ids),
+                ]
+            )
+        )
         for evidence_id in requested_ids[:3]:
             row = db.get(EvidenceItem, evidence_id)
             if row is None:

@@ -45,9 +45,11 @@ Exit gate: passed with a 1,783-record live round-trip and exact citation resolut
 - [x] Real model probe and no automatic fallback.
 - [ ] Qualify at least one real provider profile with the executable golden suite.
 
-Implementation gate: passed with Pydantic AI typed test models. Release gate: blocked because no
-provider profile has passed qualification; the installed 9B profile passes the probe but failed its
-first bounded full run.
+Implementation gate: passed with Pydantic AI typed test models, deterministic aggregate receipts,
+and claim-complete reviewer batching. Release gate: blocked because no provider profile has passed
+qualification; the installed 9B profile passes isolated nodes but failed its latest full golden run
+at Company Analyst after an invalid-output retry exhausted its budget (307.53 seconds total). A preceding full attempt
+had reached Evidence Reviewer before failing after 939.27 seconds.
 
 ## Phase 4 — Functional agent and workflow platform
 
@@ -91,9 +93,10 @@ Exit gate: not yet passed; see release blockers in `IMPLEMENTATION_STATUS.md`.
 
 ## Remaining release sequence
 
-1. Keep the installed `qwen3.5:9b` only as a development profile. Its probe and corrected v3 Growth
-   Opportunity node pass, but the first full golden diagnostic failed and no 20-run qualification
-   exists on this CPU-bound host.
+1. Keep the installed `qwen3.5:9b` only as a development profile. Its probe and isolated v3 agent/
+   receipt-review calls pass, but the full golden diagnostic still fails and no 20-run qualification
+   exists on this CPU-bound host. Native JSON Schema and ToolOutput experiments were also unreliable;
+   do not promote them or weaken evidence contracts to make 9B pass.
 2. Qualify `qwen3.5:27b` on suitable hardware or configure one governed Groq/Mistral secret, then
    pass the real structured-output probe and 20-run golden qualification.
 3. Execute onboarding → sync → diagnostic → citation → approval → active OKF export in the browser.

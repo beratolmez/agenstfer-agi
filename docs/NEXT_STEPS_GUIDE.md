@@ -13,8 +13,11 @@ remaining release gates.
 ## What to do now
 
 1. Choose exactly one first release candidate: test local `qwen3.5:27b` on suitable hardware or a
-   governed Groq/Mistral profile. Keep the installed 9B profile for development: its v3 Growth
-   Opportunity node now passes, but the full run and 20-run qualification have not passed on CPU.
+   governed Groq/Mistral profile. Keep the installed 9B profile for development: isolated v3 agent
+   and deterministic-receipt reviewer calls pass, but full runs failed at Evidence Reviewer and,
+   most recently, a Company Analyst retry timeout. The 20-run qualification has not passed on CPU.
+   Do not retry native/tool transports
+   as a release shortcut without a new, repeatable provider-level fix and golden evidence.
 2. Run the setup structured-output probe. Do not enable automatic provider fallback.
 3. Run `scripts/qualify-model.ps1` (or `.sh`) with 20 attempts. A failed profile is not “supported.”
 4. Complete the browser journey from a clean installation through approved report and OKF export.

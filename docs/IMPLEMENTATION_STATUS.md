@@ -1,6 +1,6 @@
 # Implementation Status
 
-Last verified: 14 July 2026
+Last verified: 15 July 2026
 
 This document is the authoritative statement of what the repository actually does. The source PRD
 and manager architecture are unchanged vision inputs; they are not completion claims.
@@ -31,6 +31,10 @@ and manager architecture are unchanged vision inputs; they are not completion cl
   connector pipeline used by uploaded files.
 - [x] Citations resolve to the exact immutable snapshot plus sheet/row/column or content locator and
   verified hash.
+- [x] Aggregate numerical claims use persisted deterministic metric receipts rather than treating a
+  few representative rows as proof. Each receipt binds calculation version, values, factor/score,
+  source count, and the complete raw-evidence membership digest; resolution revalidates the chain.
+  A missing receipt (including legacy in-flight state) fails closed instead of falling back to rows.
 - [x] OKF 0.1 parse/write, tolerant unknown metadata/type round-trip, validation, links/backlinks,
   index/log, safe ZIP import/export, and lexical search fallback exist.
 - [x] Each diagnostic creates an isolated Git candidate. Only serialized approval may fast-forward
@@ -40,8 +44,10 @@ and manager architecture are unchanged vision inputs; they are not completion cl
 ### Agents, diagnostic, and workflows
 
 - [x] Four typed, versioned Pydantic AI agent definitions use explicit Ollama/Groq/Mistral profiles.
-  Growth Opportunity Analyst v3 requires exactly the five deterministic signals and bounds each
-  rationale/output budget; prior published versions remain identifiable in persisted run history.
+  Company Analyst v3 bounds summary/claim cardinality and output; Growth Opportunity Analyst v3
+  requires exactly the five deterministic signals; Evidence Reviewer v3 processes deterministic
+  claim/evidence batches and rejects incomplete or duplicate decision sets. Prior published versions
+  remain identifiable in persisted run history.
   Built-in workflows prefetch bounded inputs through the code-defined capability layer instead of
   permitting free tool loops. Local-to-cloud fallback is prohibited.
 - [x] Metrics and opportunity scores are deterministic and derived from persisted data. The six
@@ -94,12 +100,16 @@ and manager architecture are unchanged vision inputs; they are not completion cl
 
 ## Release blockers and deliberately incomplete acceptance
 
-- [ ] **Qualified model:** `qwen3.5:9b` is installed and its real PromptedOutput probe passes. The
-  first bounded full diagnostic completed Company Analyst, then Growth Opportunity Analyst v2
-  failed closed after an invalid-output retry exhausted its 360-second budget (622 seconds total).
-  The corrected v3 node produced all five valid signal IDs in one real request in 278.29 seconds,
-  but no full successful diagnostic or 20-run suite exists. Therefore 9B is not release-supported;
-  27B or governed Groq/Mistral remains the recommended qualification candidate.
+- [ ] **Qualified model:** `qwen3.5:9b` is installed and its real structured-output probe passes.
+  Company Analyst v3 passed an isolated real call in 171.5 seconds; Growth Opportunity Analyst v3
+  produced all five signal IDs in 278.29 seconds; and a five-receipt Evidence Reviewer batch returned
+  `5/5 supported` in 165.78 seconds. These component results did not compose into a reliable full
+  run. One full attempt failed at Evidence Reviewer after 939.27 seconds with
+  `UnexpectedModelBehavior`; the latest telemetry-enabled attempt failed at Company Analyst after
+  307.53 seconds when an invalid-output retry exhausted its budget. Native JSON Schema produced
+  `json_invalid`; ToolOutput was also rejected after Ollama returned malformed function-call XML with
+  HTTP 500. PromptedOutput remains configured and 9B remains development-only. No full successful
+  diagnostic or 20-run suite exists; suitable 27B hardware or governed Groq/Mistral is next.
 - [ ] **Full live happy path:** the typed test-model suite proves the complete diagnostic/evidence/
   approval path, but the browser cannot complete a real model-assisted report until a model profile
   qualifies.
@@ -115,7 +125,8 @@ release blockers above are closed. External write actions remain prohibited.
 
 ## Current verification evidence
 
-- Backend suite: 46 tests; Ruff passes.
+- Backend suite: 50 tests; Ruff passes. The receipt integrity suite includes digest tampering,
+  missing-member rejection, legacy receipt absence, and unknown-classification rejection.
 - Frontend suite: 7 Vitest tests; production build passes.
 - Ruff and Alembic drift: pass; migration head `20260713_0007`.
 - Compose: base, development, production, cloud, observability, temporary model-download, and
@@ -123,6 +134,11 @@ release blockers above are closed. External write actions remain prohibited.
 - Browser E2E: 3 Playwright tests pass against isolated empty volumes for truthful dashboard state,
   persisted setup/demo sync and Sources UI, plus workflow clone and labeled deterministic dry-run.
   The real-model diagnostic/citation/approval/export journey remains intentionally unchecked.
+- Latest safe qualification report: one failed attempt, 307.53 seconds, `TimeoutError` at
+  `company-analyst`; Linux/x86-64 container, 12 CPUs, 7,902 MiB memory, Ollama context 8,192, no VRAM.
+- Final-image receipt smoke: each model prompt exposes at most three evidence IDs while the five
+  calculation receipts bind 184, 183, 183, 400, and 258 complete verification members respectively;
+  the inspection transaction was rolled back.
 - Observability smoke: Jaeger v2 UI/API is reachable only in the explicit profile and receives
   `agi-control-plane` OTLP traces; the standard stack was restored afterward.
 - No-egress: an HTTPS request from the default app container is blocked.

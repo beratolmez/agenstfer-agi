@@ -17,8 +17,14 @@ This document defines ownership and stable vocabulary for MVP v0.1. Pydantic sch
 - **SyncRun:** cursor, status, counts, errors, mapping version, and start/end times.
 - **RawSnapshot:** immutable content address, source ID, media type, size, collection time, and storage URI.
 - **EvidenceItem:** source/snapshot ID, exact locator, excerpt hash, classification, and collection time.
+- **Deterministic Metric Receipt:** a derived EvidenceItem for an aggregate numerical claim. It
+  contains the calculation version, exact metric/factor/score output, member count, and a digest over
+  every member EvidenceItem ID, snapshot hash, excerpt hash, and classification. Its locator retains the complete
+  member ID list so resolution can revalidate the chain to immutable raw snapshots.
 
 A tabular locator contains sheet/table, row, and column. A text locator contains section and line range when available plus content hash. Evidence never points only to a mutable external URL.
+An aggregate receipt never replaces its raw members and is not model-authored evidence; a few
+representative rows are insufficient proof of an aggregate value.
 
 ## Context and knowledge
 

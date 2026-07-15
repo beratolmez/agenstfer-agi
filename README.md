@@ -23,11 +23,13 @@ agent, deterministic scoring, Evidence Reviewer, immutable workflow/agent sürü
 durability, Approval Center, kalıcı kurulum sihirbazı, backup/restore, no-egress, SBOM ve güvenlik
 kontrolleri uygulanmıştır.
 
-Henüz release değildir. Bu makinede `qwen3.5:9b` kurulmuş ve gerçek structured-output probe
-geçmiştir. Düzeltilen Growth Opportunity v3 düğümü de beş typed sinyali üretmiştir; ancak ilk tam
-golden diagnostic başarısız olmuş ve 20-run qualification geçilmemiştir. Bu nedenle 9B profil
-“supported” değildir; 27B veya governed Groq/Mistral profiliyle qualification ve tam browser
-happy-path hâlâ gereklidir. Sistem deterministic
+Henüz release değildir. Bu makinede `qwen3.5:9b` kurulmuş ve gerçek structured-output probe ile
+izole v3 agent/metric-receipt incelemeleri geçmiştir; ancak tam koşular tekrarlanabilir değildir. Bir
+deneme 939,27 saniye sonra Evidence Reviewer'da, son telemetry'li deneme ise 307,53 saniye sonra
+Company Analyst retry timeout'unda fail-closed bitmiştir. Native JSON Schema ve ToolOutput denemeleri
+de güvenilir değildir. 20-run qualification geçilmediği için 9B profil “supported” değildir;
+uygun donanımda 27B veya governed Groq/Mistral profiliyle qualification ve tam browser happy-path
+hâlâ gereklidir. Sistem deterministic
 preview'e veya başka provider'a sessiz fallback yapmaz. Ayrıntı için
 [Implementation Status](./docs/IMPLEMENTATION_STATUS.md) belgesine bakın.
 

@@ -2,7 +2,7 @@
 
 **Durum:** Production-candidate uygulama mimarisi; model qualification bekliyor
 **Hedef:** Tek şirket, self-hosted, local-first  
-**Referans tarih:** 14 Temmuz 2026
+**Referans tarih:** 15 Temmuz 2026
 **Format kararı:** Open Knowledge Format 0.1 (draft, adapter arkasında)
 
 ## 1. Amaç ve iş değeri
@@ -129,7 +129,7 @@ sequenceDiagram
     WF->>AI: Company Analyst
     AI-->>WF: typed company analysis
     WF->>AI: Growth Opportunity Analyst
-    AI-->>WF: en fazla 10 hipotez
+    AI-->>WF: tam beş evidence-backed hipotez
     WF->>CP: deterministic metrics + score
     WF->>AI: Evidence Reviewer
     AI-->>WF: supported/rejected claim list
@@ -217,12 +217,19 @@ Bundle create/read/write, unknown-field-preserving parse, index/log, link/backli
 Agent sadece `model_profile_id` bilir. Gateway provider/model endpoint, sınıflandırma, egress, timeout ve structured-output politikasını çözer.
 
 Local Qwen 3.5 profilleri typed extraction sırasında unpersisted reasoning'i kapatır ve Pydantic AI
-PromptedOutput kullanır. Workflow capability katmanı, model context'ine her metric/signal için en
-fazla üç temsilî evidence locator'ı koyar; tam evidence set'i PostgreSQL'de korunur ve final policy
-gate tarafından doğrulanır. Bu bounded context, agent'ın serbest tool döngüsüne girmesini engeller.
-Growth Opportunity Analyst v3, deterministic contract ile aynı beş signal ID'yi tam birer kez ister
-ve rationale/output bütçesini sınırlar. Agent sürümü run'a pinlenir; bu daraltma model qualification
-kapısını veya Evidence Reviewer kontrolünü değiştirmez.
+PromptedOutput kullanır. Company Analyst v3 ve Growth Opportunity Analyst v3 bounded prompt/output
+sözleşmeleri kullanır; opportunity contract aynı beş signal ID'yi tam birer kez ister. Evidence
+Reviewer v3, claim'leri claim ve benzersiz evidence sayısına göre deterministik batch'lere böler;
+her batch eksiksiz ve benzersiz claim kararları döndürmeden birleştirilemez. Ollama 8K context ve tek
+paralel request ile çalışır. Agent sürümü run'a pinlenir; hiçbir daraltma model qualification veya
+unsupported-claim kapısını gevşetmez.
+
+Qualitative claim context'i en fazla üç immutable raw EvidenceItem excerpt'i ile sınırlandırılır.
+Aggregate numerical claim ise birkaç temsilî satırla kanıtlanmış sayılmaz: hesaplama sürümü, metric
+değerleri, factor/score, üye evidence sayısı ve tüm üye snapshot/excerpt hash/classification
+değerlerinin digest'ini taşıyan
+persisted bir `deterministic_metric` receipt'e bağlanır. Resolver receipt hash'ini ve üye zincirini
+yeniden doğrular; model yalnız bounded receipt'i görür, tam üyelik PostgreSQL locator'ında korunur.
 
 ## 10. OKF bilgi mimarisi
 
@@ -246,7 +253,11 @@ knowledge/
 
 Producer, her normal concept için en az `type`; kalite kapısı için `title`, `description`, `timestamp` ve `agi.sensitivity` üretir. Consumer bilinmeyen `type` ve frontmatter alanını kaybetmez. Broken link importu engellemez, warning oluşturur.
 
-Reference concept ile PostgreSQL `EvidenceItem`, aynı `source_id` üzerinden bağlanır. Locator; tabular kaynakta sheet/row/column, metinde section/line/hash içerir. qmd sonucu doğrudan model tool'u değildir; scope ve path kontrolü yapan backend wrapper üzerinden geçer.
+Reference concept ile PostgreSQL `EvidenceItem`, aynı `source_id` üzerinden bağlanır. Locator;
+tabular kaynakta sheet/row/column, metinde section/line/hash içerir. Aggregate metric receipt locator'ı
+ise calculation version, receipt hash ve tam raw EvidenceItem üyelik zincirini içerir; tek başına
+model çıktısı kanıt değildir. qmd sonucu doğrudan model tool'u değildir; scope ve path kontrolü yapan
+backend wrapper üzerinden geçer.
 
 ## 11. Agent, capability ve workflow modeli
 
@@ -255,7 +266,8 @@ MVP agent'ları: Wiki Curator, Company Analyst, Growth Opportunity Analyst, Evid
 Built-in Growth Diagnostic'te capability çağrıları workflow tarafından deterministik olarak
 prefetch edilir. Model yalnız bounded sonuçları ve typed output sözleşmesini görür. Registry'deki
 capability atamaları hangi verinin sunulabileceğini tanımlar; agent çalışma sırasında bu allowlist'i
-genişletemez. Agent v2 timeout/output bütçeleri CPU-safe fakat fail-closed'dur.
+genişletemez. Current published v3 analyzer/reviewer timeout ve output bütçeleri bounded ve
+fail-closed'dur; bir profil release için ayrıca 20-run golden qualification geçmelidir.
 
 `ManagedAgentSpec`; Pydantic AI Agent Spec'e model profile, prompt version, typed output, capability ID, timeout/token sınırı, veri sınıflandırması ve approval riski ekler.
 

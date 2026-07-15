@@ -3,12 +3,14 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import platform
 import tempfile
 import time
 from datetime import UTC, datetime
 from pathlib import Path
 
+import httpx
 from agi_server.agents.model_gateway import resolve_model_profile
 from agi_server.agents.registry import AgentRegistry
 from agi_server.config import Settings
@@ -27,6 +29,33 @@ def overlap(left: list[str], right: list[str]) -> float:
     return len(set(left).intersection(right)) / max(1, min(len(left), len(right)))
 
 
+def local_memory_mib() -> int | None:
+    try:
+        for line in Path("/proc/meminfo").read_text(encoding="utf-8").splitlines():
+            if line.startswith("MemTotal:"):
+                return int(line.split()[1]) // 1024
+    except (OSError, ValueError, IndexError):
+        return None
+    return None
+
+
+async def ollama_runtime(settings: Settings, model_name: str) -> dict[str, object] | None:
+    try:
+        async with httpx.AsyncClient(timeout=3) as client:
+            response = await client.get(settings.ollama_base_url.removesuffix("/v1") + "/api/ps")
+            response.raise_for_status()
+        for model in response.json().get("models", []):
+            if model.get("name") == model_name:
+                return {
+                    "context_length": model.get("context_length"),
+                    "size": model.get("size"),
+                    "size_vram": model.get("size_vram"),
+                }
+    except (httpx.HTTPError, ValueError, TypeError):
+        return None
+    return None
+
+
 async def evaluate(profile_id: str, attempts: int) -> dict[str, object]:
     base_settings = Settings(model_profile=profile_id)
     profile = resolve_model_profile(profile_id, base_settings)
@@ -35,8 +64,11 @@ async def evaluate(profile_id: str, attempts: int) -> dict[str, object]:
     failure_stages: list[dict[str, object]] = []
     planted_counts: list[int] = []
     evidence_coverage: list[int] = []
+    unsupported_numerical_counts: list[int] = []
+    attempt_results: list[dict[str, object]] = []
     started = time.perf_counter()
     for index in range(attempts):
+        attempt_started = time.perf_counter()
         with tempfile.TemporaryDirectory(prefix="agi-golden-") as temporary:
             root = Path(temporary)
             database_url = f"sqlite:///{(root / 'eval.db').as_posix()}"
@@ -65,7 +97,38 @@ async def evaluate(profile_id: str, attempts: int) -> dict[str, object]:
                     )
                     outputs.append([item.id for item in result.diagnostic.opportunities[:5]])
                     planted_counts.append(len(result.diagnostic.detected_planted_insights))
-                    evidence_coverage.append(100 if result.run.evidence_ids else 0)
+                    output = result.run.output_json or {}
+                    company = output.get("company_analysis", {})
+                    hypotheses = output.get("hypotheses", {}).get("hypotheses", [])
+                    decisions = output.get("evidence_review", {}).get("decisions", [])
+                    expected_claims = (
+                        len(company.get("strengths", []))
+                        + len(company.get("weaknesses", []))
+                        + len(hypotheses)
+                        + 5
+                    )
+                    supported_decisions = [item for item in decisions if item.get("supported")]
+                    coverage = round(100 * len(supported_decisions) / max(1, expected_claims))
+                    evidence_coverage.append(coverage)
+                    numerical_ids = {
+                        f"metric-{item.id}" for item in result.diagnostic.opportunities
+                    }
+                    supported_ids = {
+                        item.get("claim_id") for item in supported_decisions if item.get("claim_id")
+                    }
+                    unsupported_count = len(numerical_ids - supported_ids)
+                    unsupported_numerical_counts.append(unsupported_count)
+                    attempt_results.append(
+                        {
+                            "attempt": index + 1,
+                            "status": "passed",
+                            "duration_seconds": round(time.perf_counter() - attempt_started, 2),
+                            "token_usage": result.run.token_usage,
+                            "material_claim_count": expected_claims,
+                            "supported_claim_count": len(supported_decisions),
+                            "unsupported_numerical_claims": unsupported_count,
+                        }
+                    )
             except Exception as error:  # The report records only safe exception classes.
                 errors.append(type(error).__name__)
                 with local_session() as failure_db:
@@ -98,6 +161,15 @@ async def evaluate(profile_id: str, attempts: int) -> dict[str, object]:
                             ),
                         }
                     )
+                    attempt_results.append(
+                        {
+                            "attempt": index + 1,
+                            "status": "failed",
+                            "duration_seconds": round(time.perf_counter() - attempt_started, 2),
+                            "error_class": type(error).__name__,
+                            "failure_step": None if failed_step is None else failed_step.step_id,
+                        }
+                    )
             finally:
                 engine.dispose()
     success_rate = len(outputs) / attempts
@@ -105,8 +177,10 @@ async def evaluate(profile_id: str, attempts: int) -> dict[str, object]:
     checks = {
         "planted_cases": bool(planted_counts) and min(planted_counts) >= 5,
         "material_claim_evidence": bool(evidence_coverage) and min(evidence_coverage) == 100,
-        # A successful run has already passed the claim-by-claim Evidence Reviewer gate.
-        "unsupported_numerical_claims": bool(outputs),
+        "unsupported_numerical_claims": (
+            bool(unsupported_numerical_counts)
+            and max(unsupported_numerical_counts) == 0
+        ),
         "structured_output_success": success_rate >= 0.95,
         "top_five_overlap": repeated_overlap >= 0.70,
     }
@@ -123,12 +197,18 @@ async def evaluate(profile_id: str, attempts: int) -> dict[str, object]:
         "minimum_top_five_overlap": repeated_overlap,
         "safe_error_classes": errors,
         "safe_failure_stages": failure_stages,
+        "attempt_results": attempt_results,
         "agent_versions": {item.id: item.version for item in AgentRegistry().list()},
         "platform": {
             "system": platform.system(),
             "machine": platform.machine(),
             "python": platform.python_version(),
+            "cpu_count": os.cpu_count(),
+            "memory_total_mib": local_memory_mib(),
         },
+        "ollama_runtime": (
+            await ollama_runtime(base_settings, profile.model_name) if profile.local else None
+        ),
         "duration_seconds": round(time.perf_counter() - started, 2),
         "checks": checks,
         "passed": all(checks.values()),

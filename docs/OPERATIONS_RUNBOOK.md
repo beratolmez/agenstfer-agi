@@ -38,6 +38,17 @@ recreates Ollama on the internal-only network in a `finally`/trap handler. Linux
 `./scripts/pull-model.sh qwen3.5:9b`. If corporate DNS still blocks the registry, use an approved
 network path or a governed cloud profile; do not weaken the permanent Docker network boundary.
 
+The constrained reference host uses `OLLAMA_CONTEXT_LENGTH=8192` and `OLLAMA_NUM_PARALLEL=1` from
+`.env.example`. Confirm the effective context and residency with:
+
+```powershell
+docker compose exec ollama ollama ps
+```
+
+Increasing context consumes memory; validate host capacity before changing it. These settings do not
+make a profile supported. The installed 9B profile failed the latest complete golden attempt and must
+remain development-only until the full 20-run suite passes.
+
 If the Ollama registry is unavailable, do not silently switch provider. For governed cloud use:
 
 1. Put only the key in `.secrets/cloud_model_api_key`.
@@ -89,6 +100,10 @@ Encrypt and move backups using the operator's storage policy; encryption keys st
 .\scripts\browser-e2e.ps1
 .\scripts\qualify-model.ps1 -Profile local-balanced -Attempts 20
 ```
+
+The ignored qualification JSON records safe per-attempt duration, token totals, claim coverage,
+unsupported numerical-claim count, failure class/stage, CPU/memory, and available Ollama runtime
+metadata. It must never include prompts, response bodies, evidence excerpts, or secrets.
 
 `release-scan` creates an ignored CycloneDX SBOM and Trivy report. The Trivy image itself is pinned by
 digest. `browser-e2e` uses an isolated Compose project, empty volumes, loopback port 18080, explicit

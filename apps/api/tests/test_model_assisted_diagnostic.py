@@ -1,6 +1,8 @@
 import asyncio
+import json
 from pathlib import Path
 
+import pytest
 from agi_server.agents.contracts import (
     CompanyAnalysis,
     EvidenceDecision,
@@ -11,24 +13,32 @@ from agi_server.agents.contracts import (
     OpportunityHypothesis,
 )
 from agi_server.agents.probe import probe_model_profile
-from agi_server.agents.runtime import ScopedCapabilityTools
+from agi_server.agents.registry import AgentRegistry
+from agi_server.agents.runtime import AgentExecution, ScopedCapabilityTools
 from agi_server.config import Settings
 from agi_server.db import (
     Artifact,
     Base,
     CanonicalEntity,
+    EvidenceItem,
     OKFCandidate,
     WorkflowRun,
     WorkflowStepRun,
 )
 from agi_server.diagnostics.service import (
+    _evidence_prompt_view,
+    _evidence_review_batches,
     _material_claims,
     _metric_prompt_view,
+    _run_evidence_reviewer,
     _signal_prompt_view,
     run_growth_diagnostic,
 )
-from agi_server.domain.metrics import calculate_growth_metrics
-from agi_server.ingestion import sync_demo_company
+from agi_server.domain.metrics import (
+    calculate_growth_metrics,
+    calculate_verified_growth_metrics,
+)
+from agi_server.ingestion import resolve_evidence_excerpt, sync_demo_company
 from agi_server.main import dashboard
 from agi_server.okf.lifecycle import ensure_active_repository
 from pydantic_ai.models.test import TestModel
@@ -43,7 +53,7 @@ def _session(tmp_path: Path):
 
 
 def _typed_outputs(db):
-    metrics = calculate_growth_metrics(db)
+    metrics = calculate_verified_growth_metrics(db)
     first_evidence = metrics.signals[0].evidence_ids[0]
     company = CompanyAnalysis(
         summary="Anka has a measurable installed base and five evidence-backed growth routes.",
@@ -128,6 +138,10 @@ def test_growth_metrics_are_derived_from_persisted_entities(tmp_path: Path) -> N
             for item in _metric_prompt_view(after)["metrics"].values()
         )
         assert all(len(item["evidence_ids"]) <= 3 for item in _signal_prompt_view(after))
+        assert all(
+            "verification_source_evidence_ids" not in item
+            for item in _signal_prompt_view(after)
+        )
     engine.dispose()
 
 
@@ -137,6 +151,229 @@ def test_dashboard_has_no_synthetic_fallback_before_a_successful_run(tmp_path: P
         sync_demo_company(db, tmp_path / "knowledge" / "raw")
         assert dashboard(db) is None
     engine.dispose()
+
+
+def test_evidence_prompt_view_keeps_verification_fields_without_duplicate_metadata(
+    tmp_path: Path,
+) -> None:
+    engine, local_session = _session(tmp_path)
+    knowledge_root = tmp_path / "knowledge"
+    with local_session() as db:
+        sync_demo_company(db, knowledge_root / "raw")
+        metrics = calculate_growth_metrics(db)
+        evidence_id = metrics.signals[0].evidence_ids[0]
+        row = db.get(EvidenceItem, evidence_id)
+        assert row is not None
+        tools = ScopedCapabilityTools(
+            db,
+            metrics,
+            knowledge_root,
+            knowledge_root / "bundles" / "company",
+            cloud=False,
+        )
+        resolved = tools.read_evidence(evidence_id)
+        view = _evidence_prompt_view(row, resolved)
+
+        assert set(view) == {
+            "locator",
+            "excerpt_hash",
+            "excerpt",
+        }
+        assert view["excerpt"] == resolved["excerpt"]
+        assert "snapshot_id" not in view
+        assert "collected_at" not in view
+    engine.dispose()
+
+
+def test_deterministic_metric_receipts_bind_aggregate_claims_to_source_evidence(
+    tmp_path: Path,
+) -> None:
+    engine, local_session = _session(tmp_path)
+    raw_root = tmp_path / "knowledge" / "raw"
+    with local_session() as db:
+        sync_demo_company(db, raw_root)
+        metrics = calculate_verified_growth_metrics(db)
+        db.commit()
+
+        assert all(signal.verification_evidence_id for signal in metrics.signals)
+        assert len({signal.verification_evidence_id for signal in metrics.signals}) == 5
+        for signal in metrics.signals:
+            evidence_id = signal.verification_evidence_id
+            assert evidence_id is not None
+            row = db.get(EvidenceItem, evidence_id)
+            assert row is not None
+            assert row.locator["kind"] == "deterministic_metric"
+            assert row.locator["source_evidence_ids"] == sorted(
+                set(signal.verification_source_evidence_ids)
+            )
+            resolved = resolve_evidence_excerpt(db, raw_root, evidence_id)
+            assert resolved is not None
+            assert resolved["excerpt"]["metrics"] == signal.metrics
+            assert resolved["excerpt"]["score"] == signal.factors.total()
+            assert resolved["excerpt"]["source_evidence_count"] == len(
+                signal.verification_source_evidence_ids
+            )
+            prompt_view = _evidence_prompt_view(row, resolved)
+            assert "source_evidence_ids" not in prompt_view["locator"]
+
+        assert any(
+            len(signal.verification_source_evidence_ids) > len(signal.evidence_ids)
+            for signal in metrics.signals
+        )
+
+        company = CompanyAnalysis(
+            summary="A sufficiently bounded company analysis for deterministic receipt testing.",
+            segments=["Industrial automation"],
+            strengths=[
+                MaterialClaim(
+                    id="strength-test",
+                    text="A raw row supports this qualitative strength.",
+                    evidence_ids=[metrics.signals[0].evidence_ids[0]],
+                )
+            ],
+            weaknesses=[
+                MaterialClaim(
+                    id="weakness-test",
+                    text="A raw row supports this qualitative weakness.",
+                    evidence_ids=[metrics.signals[0].evidence_ids[0]],
+                )
+            ],
+            data_gaps=[],
+        )
+        hypotheses = OpportunityHypotheses(
+            hypotheses=[
+                OpportunityHypothesis(
+                    signal_id=signal.id,
+                    title=signal.title,
+                    rationale="The persisted source records support this bounded route.",
+                    evidence_ids=[signal.evidence_ids[0]],
+                )
+                for signal in metrics.signals
+            ]
+        )
+        metric_claims = _material_claims(metrics, company, hypotheses)[-5:]
+        assert [claim.evidence_ids for claim in metric_claims] == [
+            [signal.verification_evidence_id] for signal in metrics.signals
+        ]
+        with pytest.raises(
+            ValueError, match="has no deterministic verification receipt"
+        ):
+            _material_claims(calculate_growth_metrics(db), company, hypotheses)
+
+        first_receipt_id = metrics.signals[0].verification_evidence_id
+        assert first_receipt_id is not None
+        first_receipt = db.get(EvidenceItem, first_receipt_id)
+        assert first_receipt is not None
+        member = db.get(EvidenceItem, first_receipt.locator["source_evidence_ids"][0])
+        assert member is not None
+        original_classification = member.classification
+        member.classification = "unknown-secret"
+        db.flush()
+        with pytest.raises(
+            ValueError, match="Metric source evidence has invalid classifications"
+        ):
+            calculate_verified_growth_metrics(db)
+        member.classification = original_classification
+        original_excerpt_hash = member.excerpt_hash
+        member.excerpt_hash = "0" * 64
+        db.flush()
+        with pytest.raises(
+            RuntimeError, match="Deterministic metric source evidence digest does not match"
+        ):
+            resolve_evidence_excerpt(db, raw_root, first_receipt_id)
+        member.excerpt_hash = original_excerpt_hash
+        db.flush()
+        db.delete(member)
+        db.flush()
+        with pytest.raises(
+            RuntimeError, match="Deterministic metric source evidence is missing or invalid"
+        ):
+            resolve_evidence_excerpt(db, raw_root, first_receipt_id)
+    engine.dispose()
+
+
+def test_evidence_reviewer_batches_real_provider_calls_and_merges_all_claims(
+    monkeypatch,
+) -> None:
+    calls: list[list[str]] = []
+
+    async def fake_run_managed_agent(agent_id, prompt, settings, tools, **kwargs):
+        claim_payload = json.loads(
+            prompt.split("\nClaims:\n", 1)[1].split("\nEvidence catalog:\n", 1)[0]
+        )
+        claim_ids = [item["id"] for item in claim_payload]
+        calls.append(claim_ids)
+        output = EvidenceReview(
+            approved=True,
+            decisions=[
+                EvidenceDecision(
+                    claim_id=item["id"],
+                    supported=True,
+                    evidence_ids=[item["evidence_ids"][0]],
+                    reason="The supplied excerpt supports this claim.",
+                )
+                for item in claim_payload
+            ],
+            contradictions=[],
+        )
+        return AgentExecution(
+            spec=AgentRegistry().get(agent_id),
+            profile_id="local-balanced",
+            provider="ollama",
+            model_name="qwen3.5:9b",
+            output=output,
+            usage={"input_tokens": 10, "output_tokens": 10, "requests": 1},
+        )
+
+    monkeypatch.setattr(
+        "agi_server.diagnostics.service.run_managed_agent", fake_run_managed_agent
+    )
+    claims = [
+        MaterialClaim(
+            id=f"claim-{index:03d}",
+            text="A material claim backed by persisted evidence.",
+            evidence_ids=[f"evidence-{index:03d}"],
+        )
+        for index in range(11)
+    ]
+    catalog = {
+        f"evidence-{index:03d}": {
+            "locator": {"row": index + 1},
+            "excerpt_hash": f"hash-{index:03d}",
+            "excerpt": {"value": index},
+        }
+        for index in range(11)
+    }
+
+    execution = asyncio.run(
+        _run_evidence_reviewer(
+            claims,
+            catalog,
+            Settings(),
+            None,
+            "local-balanced",
+        )
+    )
+
+    assert [len(batch) for batch in calls] == [5, 5, 1]
+    assert len(execution.output.decisions) == 11
+    assert {item.claim_id for item in execution.output.decisions} == {
+        item.id for item in claims
+    }
+    assert execution.usage["requests"] == 3
+
+
+def test_evidence_reviewer_batches_high_evidence_claims_by_context_budget() -> None:
+    claims = [
+        MaterialClaim(
+            id=f"metric-claim-{index:03d}",
+            text="A deterministic numerical claim with representative evidence.",
+            evidence_ids=[f"evidence-{index:03d}-{offset}" for offset in range(3)],
+        )
+        for index in range(5)
+    ]
+
+    assert [len(batch) for batch in _evidence_review_batches(claims)] == [2, 2, 1]
 
 
 def test_structured_output_probe_checks_the_nonce(monkeypatch) -> None:
