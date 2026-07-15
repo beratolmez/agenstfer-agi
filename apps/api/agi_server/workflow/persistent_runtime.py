@@ -617,17 +617,26 @@ async def start_persisted_workflow(
         raise ValueError("Production runs require an immutable published workflow version")
     workflow = workflow_from_row(row)
     versions: dict[str, int] = {}
+    resolved_profiles: set[str] = set()
     for node in workflow.nodes:
         if node.kind == NodeKind.AGENT_RUN:
             agent = _latest_published_agent(db, str(node.config["agent_id"]))
             versions[agent.id] = agent.version
+            spec = agent_from_row(agent)
+            requested_profile = str(node.config.get("model_profile") or spec.model_profile)
+            resolved_profiles.add(resolve_model_profile(requested_profile, settings).id)
+    pinned_profile = (
+        next(iter(resolved_profiles))
+        if len(resolved_profiles) == 1
+        else f"mixed[{','.join(sorted(resolved_profiles))}]"
+    )
     run = WorkflowRun(
         idempotency_key=idempotency_key,
         workflow_id=row.id,
         workflow_version=row.version,
         status="running",
         input_json=input_json or {},
-        model_profile=settings.model_profile,
+        model_profile=pinned_profile,
         agent_versions=versions,
         created_by=actor_id,
     )

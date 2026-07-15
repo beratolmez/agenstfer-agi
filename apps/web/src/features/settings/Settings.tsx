@@ -1,7 +1,7 @@
 import { Bot, Braces, RefreshCw, Server, Settings2, UserPlus, Workflow } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../../api";
-import type { WorkflowRunView } from "../../types";
+import type { WorkflowRunDetail, WorkflowRunView } from "../../types";
 
 export function Settings({ onSetup }: { onSetup: () => void }) {
   const [model, setModel] = useState<{ ready: boolean; profile: string; provider: string; model?: string; message: string } | null>(null);
@@ -10,7 +10,7 @@ export function Settings({ onSetup }: { onSetup: () => void }) {
   const [runs, setRuns] = useState<WorkflowRunView[]>([]);
   const [users, setUsers] = useState<Array<{ id: string; email: string; name: string; roles: string[]; active: boolean }>>([]);
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "", roles: ["analyst"] });
-  const [trace, setTrace] = useState<Record<string, unknown> | null>(null);
+  const [trace, setTrace] = useState<WorkflowRunDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(async () => {
     try {

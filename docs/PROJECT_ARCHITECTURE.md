@@ -215,6 +215,9 @@ Bundle create/read/write, unknown-field-preserving parse, index/log, link/backli
 ### ModelGateway
 
 Agent sadece `model_profile_id` bilir. Gateway provider/model endpoint, sınıflandırma, egress, timeout ve structured-output politikasını çözer.
+Kurulum UI'sı yalnız code-defined profil kataloğunu listeler; secret veya serbest provider URL/model
+girişi kabul etmez. Seçilen profil gerçek probe'a gönderilir ve diagnostic başlamadan önce immutable
+bir published workflow sürümündeki bütün agent node'larına pinlenir.
 
 Local Qwen 3.5 profilleri typed extraction sırasında unpersisted reasoning'i kapatır ve Pydantic AI
 PromptedOutput kullanır. Company Analyst v3 ve Growth Opportunity Analyst v3 bounded prompt/output
@@ -350,6 +353,13 @@ by four typed Pydantic AI calls and every material claim must pass the Evidence 
 Workflow authoring/publication, DBOS durable execution, approval pause/resume, and the corresponding
 web surfaces are implemented. Release acceptance still requires a qualified real model, external Linux
 host rehearsal, and repetition of the qmd rebuild drill on that release host.
+
+`POST /api/diagnostics/run` is only a compatibility start view. It resolves an existing immutable
+published workflow version and delegates to the same DBOS runtime as the workflow API; it never invokes
+the legacy synchronous diagnostic service. Setup and Dashboard prepare/reuse a profile-pinned published
+`growth-diagnostic` version, start it through this view, and poll the persisted run until its
+evidence-reviewed diagnostic is awaiting approval or completed. Durable cancellation must succeed in
+DBOS before application state is marked cancelled.
 
 ### Implemented workflow persistence path
 

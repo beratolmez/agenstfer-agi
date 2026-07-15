@@ -1,5 +1,9 @@
 import pytest
-from agi_server.agents.model_gateway import model_settings_for_profile, resolve_model_profile
+from agi_server.agents.model_gateway import (
+    configured_model_profiles,
+    model_settings_for_profile,
+    resolve_model_profile,
+)
 from agi_server.config import Settings
 from pydantic import SecretStr
 
@@ -75,3 +79,31 @@ def test_cloud_profile_does_not_inherit_ollama_reasoning_controls() -> None:
     assert model_settings_for_profile(
         "cloud-balanced", settings, max_tokens=4000
     ) == {"max_tokens": 4000}
+
+
+def test_profile_catalog_is_allowlisted_and_never_exposes_cloud_secret() -> None:
+    settings = Settings(
+        model_profile="cloud-balanced",
+        cloud_models_enabled=True,
+        cloud_provider="groq",
+        cloud_api_key=SecretStr("must-not-leak"),
+    )
+
+    profiles = configured_model_profiles(settings)
+
+    assert [item["id"] for item in profiles] == [
+        "local-balanced",
+        "local-strong",
+        "cloud-balanced",
+    ]
+    cloud = profiles[-1]
+    assert cloud == {
+        "id": "cloud-balanced",
+        "provider": "groq",
+        "model": "openai/gpt-oss-20b",
+        "local": False,
+        "enabled": True,
+        "configured": True,
+        "selected": True,
+    }
+    assert "must-not-leak" not in repr(profiles)

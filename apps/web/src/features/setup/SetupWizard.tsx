@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, Check, Database, Server, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../../api";
-import type { GrowthDiagnostic, SetupProgress } from "../../types";
+import type { GrowthDiagnostic, ModelProfileView, SetupProgress } from "../../types";
 
 const steps = ["Yönetici", "Roller", "Model", "Şirket hedefi", "Veri kaynağı", "Mapping", "OKF bundle", "Growth Diagnostic", "Taslak rapor", "Onay"];
 const defaultConfiguration = {
@@ -21,15 +21,17 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [sourceResult, setSourceResult] = useState<{ total_records: number; sources: Array<{ source_id: string; records: number }> } | null>(null);
   const [diagnostic, setDiagnostic] = useState<GrowthDiagnostic | null>(null);
   const [modelResult, setModelResult] = useState<string | null>(null);
+  const [modelProfiles, setModelProfiles] = useState<ModelProfileView[]>([]);
   const [okfResult, setOkfResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [approvalReason, setApprovalReason] = useState("Kanıtlar, rapor ve OKF diff kurulum sırasında incelendi.");
 
   useEffect(() => {
-    api.setupProgress().then((progress) => {
+    Promise.all([api.setupProgress(), api.modelProfiles()]).then(([progress, profiles]) => {
       setStep(progress.current_step);
       setCompleted(progress.completed_steps);
       setConfiguration({ ...defaultConfiguration, ...progress.configuration });
+      setModelProfiles(profiles.items);
       setLoaded(true);
     }).catch((reason: Error) => { setError(reason.message); setLoaded(true); });
   }, []);
@@ -46,8 +48,15 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   }
 
   async function probeModel() {
-    const probe = await api.probeModel();
+    const probe = await api.probeModel(String(configuration.model_profile));
     setModelResult(`${probe.provider} / ${probe.model} · structured output doğrulandı`);
+  }
+
+  async function runPersistedDiagnostic() {
+    const profile = String(configuration.model_profile);
+    const workflow = await api.prepareDiagnosticWorkflow(profile);
+    const started = await api.runDiagnostic(workflow);
+    setDiagnostic(await api.waitForDiagnostic(started.run_id));
   }
 
   async function approveLatestCandidate() {
@@ -73,7 +82,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
         if (!result.valid) throw new Error("Active OKF bundle doğrulaması başarısız");
         setOkfResult(`OKF 0.1 conformant · ${result.warnings.length} uyarı`);
       }
-      if (step === 7 && !diagnostic) setDiagnostic(await api.runDiagnostic());
+      if (step === 7 && !diagnostic) await runPersistedDiagnostic();
       if (step === 9) await approveLatestCandidate();
       const nextCompleted = [...new Set([...completed, step])].sort((a, b) => a - b);
       if (step === steps.length - 1) {
@@ -119,6 +128,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
         <p>Adım {step + 1} / {steps.length}</p>
         <h1>{content.title}</h1>
         <p>{content.text}</p>
+        {step === 2 ? <div className="setup-form"><label>Model profili<select value={String(configuration.model_profile)} onChange={(event) => { setConfiguration((current) => ({ ...current, model_profile: event.target.value })); setModelResult(null); }}>{modelProfiles.map((profile) => <option disabled={!profile.enabled} key={profile.id} value={profile.id}>{profile.id} · {profile.provider ?? "yapılandırılmadı"} / {profile.model ?? "model yok"}{profile.available ? " · erişilebilir" : " · erişilebilir değil"}</option>)}</select></label></div> : null}
         {step === 2 && modelResult ? <p className="setup-success"><Check size={18} />{modelResult}</p> : null}
         {step === 3 ? <div className="setup-form"><label>Şirket adı<input value={String(configuration.company_name)} onChange={(event) => setConfiguration((current) => ({ ...current, company_name: event.target.value }))} /></label><label>90 günlük hedef<textarea value={String(configuration.objective)} onChange={(event) => setConfiguration((current) => ({ ...current, objective: event.target.value }))} /></label></div> : null}
         {sourceResult ? <div className="setup-success"><Check size={18} /><span><strong>Kaynaklar kalıcılaştırıldı</strong><small>{sourceResult.total_records} kayıt · {sourceResult.sources.length} kaynak</small></span></div> : null}

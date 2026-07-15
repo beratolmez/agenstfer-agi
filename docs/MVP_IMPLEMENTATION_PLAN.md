@@ -43,6 +43,8 @@ Exit gate: passed with a 1,783-record live round-trip and exact citation resolut
 - [x] Capability-scoped tools, explicit provider profiles, deterministic metrics/scores, evidence
   gate, persisted trace, and Markdown/HTML/OKF artifacts.
 - [x] Real model probe and no automatic fallback.
+- [x] Code-defined profile discovery and selected-profile pinning to an immutable workflow version;
+  the compatibility diagnostic endpoint delegates to the persisted DBOS runtime.
 - [ ] Qualify at least one real provider profile with the executable golden suite.
 
 Implementation gate: passed with Pydantic AI typed test models, deterministic aggregate receipts,
@@ -60,6 +62,8 @@ had reached Evidence Reviewer before failing after 939.27 seconds.
   simulation; only a published run invokes configured agents.
 - [x] DBOS retry/recovery wrapper, durable approval receive, seven-day expiry, authenticated reasoned
   decisions, and restart-safe PostgreSQL checkpoints.
+- [x] Cancellation first cancels the DBOS workflow and changes application state only on success;
+  retry always references the original immutable published workflow version.
 - [x] React Flow actions, version list, run trace, and registry views use real APIs.
 
 Exit gate: implementation passed; real-provider approval wait/resume remains part of final E2E.

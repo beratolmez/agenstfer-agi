@@ -31,7 +31,7 @@ from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
 from agi_server import __version__
-from agi_server.agents.model_gateway import resolve_model_profile
+from agi_server.agents.model_gateway import configured_model_profiles, resolve_model_profile
 from agi_server.agents.probe import probe_model_profile
 from agi_server.agents.registry import ManagedAgentSpec
 from agi_server.config import Settings, get_settings
@@ -54,7 +54,6 @@ from agi_server.db import (
     engine,
     get_db,
 )
-from agi_server.diagnostics import run_growth_diagnostic
 from agi_server.domain.demo import build_demo_dataset, demo_counts
 from agi_server.http_security import RequestSecurityMiddleware
 from agi_server.ingestion import (
@@ -307,6 +306,36 @@ async def model_status(settings: Annotated[Settings, Depends(get_settings)]) -> 
     }
 
 
+@app.get("/api/models/profiles")
+async def model_profiles(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> dict[str, Any]:
+    """List code-defined profiles and configuration state without returning secrets."""
+    profiles = configured_model_profiles(settings)
+    installed: set[str] = set()
+    try:
+        async with httpx.AsyncClient(timeout=1) as client:
+            tags_url = settings.ollama_base_url.removesuffix("/v1") + "/api/tags"
+            response = await client.get(tags_url)
+            response.raise_for_status()
+        installed = {str(item.get("name")) for item in response.json().get("models", [])}
+    except (httpx.HTTPError, TypeError, ValueError):
+        pass
+    return {
+        "items": [
+            {
+                **profile,
+                "available": (
+                    profile["model"] in installed
+                    if profile["local"]
+                    else bool(profile["configured"])
+                ),
+            }
+            for profile in profiles
+        ]
+    }
+
+
 @app.post("/api/models/probe")
 async def model_probe(
     settings: Annotated[Settings, Depends(get_settings)],
@@ -524,6 +553,7 @@ def setup_progress(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
 @app.put("/api/setup/progress")
 def setup_progress_update(
     payload: SetupProgressUpdate,
+    settings: Annotated[Settings, Depends(get_settings)],
     db: Annotated[Session, Depends(get_db)],
     actor: Annotated[User | None, Depends(require_role("admin"))],
 ) -> dict[str, Any]:
@@ -534,6 +564,29 @@ def setup_progress_update(
             status_code=422,
             detail={"unsupported_configuration_keys": unknown},
         )
+    profile_id = payload.configuration.get("model_profile")
+    if profile_id is not None:
+        if not isinstance(profile_id, str):
+            raise HTTPException(status_code=422, detail="Model profile must be a string")
+        try:
+            resolve_model_profile(profile_id, settings)
+        except (PermissionError, ValueError) as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+    source_mode = payload.configuration.get("source_mode")
+    if source_mode is not None and source_mode not in {"synthetic-demo", "file-upload"}:
+        raise HTTPException(status_code=422, detail="Unsupported source mode")
+    locale = payload.configuration.get("locale")
+    if locale is not None and locale not in {"tr-TR", "en-US"}:
+        raise HTTPException(status_code=422, detail="Unsupported locale")
+    for field, minimum, maximum in (
+        ("company_name", 2, 160),
+        ("objective", 8, 1000),
+    ):
+        value = payload.configuration.get(field)
+        if value is not None and (
+            not isinstance(value, str) or not minimum <= len(value.strip()) <= maximum
+        ):
+            raise HTTPException(status_code=422, detail=f"Invalid installation field: {field}")
     completed = sorted(set(payload.completed_steps))
     if payload.status == "completed" and completed != list(range(10)):
         raise HTTPException(status_code=409, detail="Tüm kurulum adımları tamamlanmalıdır")
@@ -627,7 +680,7 @@ def dashboard(db: Annotated[Session, Depends(get_db)]) -> GrowthDiagnostic | Non
     return diagnostic.model_copy(update={"open_approvals": int(open_approvals or 0)})
 
 
-@app.post("/api/diagnostics/run", response_model=GrowthDiagnostic)
+@app.post("/api/diagnostics/run", status_code=202)
 async def run_diagnostic(
     db: Annotated[Session, Depends(get_db)],
     actor: Annotated[User | None, Depends(require_role("analyst"))],
@@ -635,16 +688,50 @@ async def run_diagnostic(
     idempotency_key: Annotated[
         str | None, Header(alias="Idempotency-Key", min_length=8, max_length=180)
     ] = None,
-) -> GrowthDiagnostic:
+    workflow_id: Annotated[str, Query(min_length=3, max_length=80)] = (
+        "builtin-growth-diagnostic"
+    ),
+    version: Annotated[int | None, Query(ge=1)] = None,
+) -> dict[str, Any]:
+    """Compatibility start view; production execution always uses a published workflow."""
     actor_id = None if actor is None else actor.id
     key = idempotency_key or f"diagnostic-{uuid.uuid4()}"
+    ensure_platform_registry(db)
+    if version is None:
+        workflow = db.scalar(
+            select(WorkflowDefinitionRow)
+            .where(
+                WorkflowDefinitionRow.id == workflow_id,
+                WorkflowDefinitionRow.status == "published",
+            )
+            .order_by(WorkflowDefinitionRow.version.desc())
+        )
+    else:
+        workflow = db.get(WorkflowDefinitionRow, (workflow_id, version))
+        if workflow is not None and workflow.status != "published":
+            workflow = None
+    if workflow is None:
+        raise HTTPException(status_code=404, detail="Published diagnostic workflow bulunamadı")
     try:
-        result = await run_growth_diagnostic(
+        run = await start_persisted_workflow(
             db,
             settings,
-            actor_id=actor_id,
-            idempotency_key=key,
+            workflow,
+            key,
+            actor_id,
+            input_json={"compatibility_view": "diagnostics.run"},
         )
+    except ValueError as error:
+        record_audit(
+            db,
+            actor_id=actor_id,
+            action="diagnostic.run_failed",
+            target_type="workflow_run",
+            target_id=key,
+            metadata={"error_type": type(error).__name__},
+        )
+        db.commit()
+        raise HTTPException(status_code=409, detail=str(error)) from error
     except Exception as error:
         record_audit(
             db,
@@ -655,27 +742,28 @@ async def run_diagnostic(
             metadata={"error_type": type(error).__name__},
         )
         db.commit()
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                "Model destekli Growth Diagnostic tamamlanamadı; "
-                "model ve veri hazırlığını kontrol edin"
-            ),
-        ) from error
+        raise HTTPException(status_code=409, detail="Diagnostic workflow başlatılamadı") from error
     record_audit(
         db,
         actor_id=actor_id,
-        action="diagnostic.run_completed",
+        action="diagnostic.run_started",
         target_type="workflow_run",
-        target_id=result.run.id,
+        target_id=run.id,
         metadata={
-            "candidate_id": result.candidate.id,
-            "model_profile": result.run.model_profile,
-            "token_usage": result.run.token_usage,
+            "workflow_id": workflow.id,
+            "workflow_version": workflow.version,
+            "model_profile": run.model_profile,
         },
     )
     db.commit()
-    return result.diagnostic
+    return {
+        "run_id": run.id,
+        "status": run.status,
+        "current_step": run.current_step,
+        "workflow_id": workflow.id,
+        "workflow_version": workflow.version,
+        "model_profile": run.model_profile,
+    }
 
 
 @app.get("/api/runs")
@@ -789,8 +877,9 @@ def workflow_run_artifact(
 
 
 @app.post("/api/runs/{run_id}/cancel")
-def workflow_run_cancel(
+async def workflow_run_cancel(
     run_id: str,
+    settings: Annotated[Settings, Depends(get_settings)],
     db: Annotated[Session, Depends(get_db)],
     actor: Annotated[User | None, Depends(require_role("analyst"))],
     reason: Annotated[str, Query(min_length=8, max_length=500)],
@@ -800,6 +889,14 @@ def workflow_run_cancel(
         raise HTTPException(status_code=404, detail="Workflow run bulunamadı")
     if run.status not in {"running", "awaiting_approval"}:
         raise HTTPException(status_code=409, detail="Bu run iptal edilebilir durumda değil")
+    if settings.enable_dbos:
+        try:
+            await DBOS.cancel_workflow_async(run_id)
+        except Exception as error:
+            raise HTTPException(
+                status_code=409,
+                detail="Durable workflow iptal edilemedi; application state değiştirilmedi",
+            ) from error
     approvals = (
         db.query(ApprovalRequest)
         .filter(ApprovalRequest.run_id == run_id, ApprovalRequest.status == "pending")
@@ -843,35 +940,23 @@ async def workflow_run_retry(
         raise HTTPException(
             status_code=409, detail="Yalnız terminal başarısız run yeniden denenebilir"
         )
-    if previous.workflow_id == "builtin-growth-diagnostic":
-        try:
-            result = await run_growth_diagnostic(
-                db,
-                settings,
-                actor_id=None if actor is None else actor.id,
-                idempotency_key=idempotency_key,
-            )
-            run = result.run
-        except Exception as error:
-            raise HTTPException(status_code=409, detail="Diagnostic retry tamamlanamadı") from error
-    else:
-        row = db.get(
-            WorkflowDefinitionRow,
-            (previous.workflow_id, previous.workflow_version),
+    row = db.get(
+        WorkflowDefinitionRow,
+        (previous.workflow_id, previous.workflow_version),
+    )
+    if row is None or row.status != "published":
+        raise HTTPException(status_code=409, detail="Pinned published workflow version bulunamadı")
+    try:
+        run = await start_persisted_workflow(
+            db,
+            settings,
+            row,
+            idempotency_key,
+            None if actor is None else actor.id,
+            input_json={"retry_of": run_id},
         )
-        if row is None:
-            raise HTTPException(status_code=409, detail="Pinned workflow version bulunamadı")
-        try:
-            run = await start_persisted_workflow(
-                db,
-                settings,
-                row,
-                idempotency_key,
-                None if actor is None else actor.id,
-                input_json={"retry_of": run_id},
-            )
-        except Exception as error:
-            raise HTTPException(status_code=409, detail="Workflow retry tamamlanamadı") from error
+    except Exception as error:
+        raise HTTPException(status_code=409, detail="Workflow retry tamamlanamadı") from error
     record_audit(
         db,
         actor_id=None if actor is None else actor.id,

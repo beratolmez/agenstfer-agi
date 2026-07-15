@@ -143,7 +143,9 @@ Script'in var olması bu kapıların geçtiği anlamına gelmez.
 
 Yapar: read-only demo/CSV/XLSX ingest, canonical context ve immutable evidence, OKF 0.1 + Git
 candidate lifecycle, evidence-gated Growth Diagnostic pipeline, constrained workflow/DBOS/approval,
-rapor ve portable OKF export. Release raporu üretmek için ayrıca qualified model profili gerekir.
+rapor ve portable OKF export. Kurulumda seçilen code-defined model profili immutable workflow
+sürümüne pinlenir; Dashboard ve sihirbaz aynı persisted DBOS run'ını izler. Release raporu üretmek
+için ayrıca qualified model profili gerekir.
 
 Yapmaz: gerçek CRM/ERP write-back, dış lead scraping, outreach, inbound/outbound call, finansal işlem,
 siber güvenlik operasyonu, rakip otomasyonu veya multi-tenant SaaS. Bu işler yeni ADR, threat model,

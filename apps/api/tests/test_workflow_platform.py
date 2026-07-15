@@ -50,6 +50,7 @@ from agi_server.workflow.registry_service import (
     workflow_from_row,
 )
 from agi_server.workflow.scheduler import cron_matches, expire_approvals, run_due_schedules
+from pydantic import SecretStr
 from pydantic_ai.models.test import TestModel
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import sessionmaker
@@ -258,7 +259,14 @@ def test_schedule_uses_timezone_and_prevents_duplicate_minute_runs(
 def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> None:
     engine, local_session = _database(tmp_path)
     knowledge_root = tmp_path / "knowledge"
-    settings = Settings(knowledge_root=knowledge_root, qmd_url=None)
+    settings = Settings(
+        knowledge_root=knowledge_root,
+        qmd_url=None,
+        model_profile="cloud-balanced",
+        cloud_models_enabled=True,
+        cloud_provider="groq",
+        cloud_api_key=SecretStr("test-key"),
+    )
     with local_session() as db:
         sync_demo_company(db, settings.raw_root)
         ensure_active_repository(settings.company_bundle)
@@ -280,6 +288,7 @@ def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> 
             )
         )
         assert run.status == "awaiting_approval"
+        assert run.model_profile == "local-balanced"
         approval_id = db.scalar(select(ApprovalRequest.id).where(ApprovalRequest.run_id == run.id))
         assert approval_id is not None
         assert db.scalar(

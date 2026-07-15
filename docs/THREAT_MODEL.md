@@ -28,12 +28,16 @@ Company source content, credentials, personal/contact data, canonical context, O
   must escape formula prefixes.
 - Prompt-injection separation: source content cannot modify system policy or tool scope.
 - Classification and redaction before cloud calls; block confidential/restricted data.
+- Installation configuration accepts only code-defined model profiles, source modes, locales, and
+  bounded company fields. A UI-provided provider URL, model identifier, or secret is never trusted.
 - Compose allowlists application environment variables. Cloud API keys are mounted only as the
   cloud-profile secret file and are never inherited by PostgreSQL or the base app environment.
 - Do not log secrets, prompts, source bodies, or evidence excerpts.
 - Release evidence must reject content-bearing secret/prompt/source fields, independently validate
   model/restart claims, and hash-bind required artifacts before a rehearsal can report success.
 - Idempotent workflows and approvals; stale/replayed decisions fail closed.
+- Cancellation changes application/approval/candidate state only after DBOS confirms cancellation;
+  retry cannot substitute a newer workflow for the run's pinned immutable version.
 - Approval-controlled OKF merge and conflict detection.
 
 ## Required negative tests

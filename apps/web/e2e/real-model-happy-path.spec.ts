@@ -197,7 +197,8 @@ test.describe("real model release journey", () => {
     await next.click();
     await expect(page.locator(".setup-panel > p").first()).toContainText("3 / 10");
     const probeResponse = page.waitForResponse(
-      (response) => response.url().endsWith("/api/models/probe") && response.request().method() === "POST",
+      (response) => new URL(response.url()).pathname === "/api/models/probe"
+        && response.request().method() === "POST",
       { timeout: timeoutMs },
     );
     await next.click();

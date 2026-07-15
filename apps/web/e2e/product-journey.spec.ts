@@ -16,6 +16,25 @@ test("dashboard never presents a synthetic fallback as an agent result", async (
   await expect(page.getByRole("button", { name: "İlk tanıyı çalıştır" })).toBeEnabled();
 });
 
+test("setup exposes only code-defined model profiles and keeps cloud disabled by default", async ({ page, request }) => {
+  const reset = await request.put("/api/setup/progress", {
+    data: {
+      current_step: 2,
+      completed_steps: [0, 1],
+      configuration: setupConfiguration,
+      status: "in_progress",
+    },
+  });
+  expect(reset.ok()).toBeTruthy();
+
+  await page.goto("/#setup");
+  const profiles = page.getByLabel("Model profili");
+  await expect(profiles).toBeVisible();
+  await expect(profiles.locator('option[value="local-balanced"]')).toHaveCount(1);
+  await expect(profiles.locator('option[value="local-strong"]')).toHaveCount(1);
+  await expect(profiles.locator('option[value="cloud-balanced"]')).toHaveAttribute("disabled", "");
+});
+
 test("setup progress survives reload and demo data uses the real source pipeline", async ({ page, request }) => {
   const reset = await request.put("/api/setup/progress", {
     data: {

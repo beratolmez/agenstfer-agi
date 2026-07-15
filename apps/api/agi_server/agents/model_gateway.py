@@ -25,6 +25,39 @@ CLOUD_PROVIDERS = {
 }
 
 
+def configured_model_profiles(settings: Settings) -> list[dict[str, object]]:
+    """Return the code-defined profile catalog without exposing provider credentials."""
+    profiles = [
+        {
+            "id": profile.id,
+            "provider": profile.provider,
+            "model": profile.model_name,
+            "local": profile.local,
+            "enabled": True,
+            "configured": True,
+            "selected": settings.model_profile == profile.id,
+        }
+        for profile in PROFILES.values()
+    ]
+    cloud_default = CLOUD_PROVIDERS.get(settings.cloud_provider or "")
+    profiles.append(
+        {
+            "id": "cloud-balanced",
+            "provider": settings.cloud_provider,
+            "model": settings.cloud_model or (cloud_default[1] if cloud_default else None),
+            "local": False,
+            "enabled": settings.cloud_models_enabled,
+            "configured": bool(
+                settings.cloud_models_enabled
+                and settings.cloud_provider
+                and settings.cloud_api_key is not None
+            ),
+            "selected": settings.model_profile == "cloud-balanced",
+        }
+    )
+    return profiles
+
+
 def resolve_model_profile(profile_id: str, settings: Settings) -> ModelProfile:
     effective_profile = profile_id
     if effective_profile == "cloud-balanced":

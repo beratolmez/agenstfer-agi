@@ -72,6 +72,31 @@ export interface WorkflowDefinition {
   edges: WorkflowEdgeDto[];
 }
 
+export interface ModelProfileView {
+  id: string;
+  provider: string | null;
+  model: string | null;
+  local: boolean;
+  enabled: boolean;
+  configured: boolean;
+  selected: boolean;
+  available: boolean;
+}
+
+export interface WorkflowRunStart {
+  run_id: string;
+  status: string;
+  current_step?: string | null;
+  workflow_id: string;
+  workflow_version: number;
+  model_profile: string | null;
+}
+
+export interface WorkflowRunDetail extends WorkflowRunView {
+  output: { diagnostic?: GrowthDiagnostic } | null;
+  error: { code?: string; message?: string } | null;
+}
+
 export interface UserView {
   id: string;
   email: string;

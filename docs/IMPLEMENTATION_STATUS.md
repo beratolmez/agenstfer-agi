@@ -63,6 +63,10 @@ and manager architecture are unchanged vision inputs; they are not completion cl
   retryable DBOS steps; approvals wait through durable `recv`, and decisions/expiry resume safely.
 - [x] Published Growth Diagnostic workflow v2 runs all four typed agents, including Wiki Curator,
   before report creation and durable approval. Its persisted output is the Dashboard data source.
+- [x] The deprecated `POST /api/diagnostics/run` compatibility view now starts only an immutable
+  published workflow through the DBOS runtime. Setup and Dashboard no longer invoke the old synchronous
+  service path. Each run's top-level model profile is derived from its published agent nodes rather than
+  being mislabeled with the installation default.
 - [x] The live missing-model drill created the same run ID in DBOS, persisted completed steps, then
   failed at the model node without fallback.
 
@@ -70,6 +74,9 @@ and manager architecture are unchanged vision inputs; they are not completion cl
 
 - [x] Setup progress is persisted across all ten steps. Model probe, demo sync, OKF validation,
   diagnostic, report review, and candidate decision call real APIs.
+- [x] Setup discovers the code-defined local/cloud profile catalog, prevents selection of a disabled
+  cloud profile, probes the selected profile, and creates or reuses an immutable workflow version with
+  that profile pinned before starting and polling the diagnostic run.
 - [x] Sources, Opportunities, Approval Center, Settings/Registry, Dashboard, Knowledge Explorer,
   run trace, and React Flow editor use persisted backend resources.
 - [x] Dashboard has no synthetic diagnostic fallback. Before a successful evidence-reviewed run it
@@ -82,6 +89,9 @@ and manager architecture are unchanged vision inputs; they are not completion cl
 
 - [x] Source instructions remain untrusted data; cloud contact identifiers are redacted and
   confidential/restricted evidence is denied to cloud tools.
+- [x] Installation model/source/locale/company fields are allowlist and bounds validated. Durable run
+  cancellation fails closed: DBOS cancellation must succeed before run, approval, or candidate state
+  can be changed. Retry always uses the exact pinned published workflow version, including built-ins.
 - [x] Archive traversal/symlink/bomb, formula-like cells, HTML XSS, auth/CSRF, arbitrary condition
   code, duplicate runs/decisions, and candidate rejection are covered by automated tests.
 - [x] Default Docker networking blocks app egress; cloud access requires the allowlisted Squid
@@ -141,15 +151,15 @@ release blockers above are closed. External write actions remain prohibited.
 
 ## Current verification evidence
 
-- Backend suite: 60 tests; Ruff passes. The receipt integrity suite includes digest tampering,
+- Backend suite: 66 tests; Ruff passes. The receipt integrity suite includes digest tampering,
   missing-member rejection, legacy receipt absence, and unknown-classification rejection.
 - Frontend suite: 7 Vitest tests; production build passes.
 - Ruff and Alembic drift: pass; migration head `20260713_0007`.
 - Compose: base, development, production, cloud, observability, temporary model-download, and
   isolated browser-E2E configurations validate.
-- Browser E2E: 3 model-independent Playwright tests pass against isolated empty volumes for truthful
-  dashboard state, persisted setup/demo sync and Sources UI, plus workflow clone and labeled
-  deterministic dry-run. Two additional opt-in suites cover real-model release acceptance and
+- Browser E2E: 4 model-independent Playwright tests pass against isolated empty volumes for truthful
+  dashboard state, code-defined model-profile discovery, persisted setup/demo sync and Sources UI,
+  plus workflow clone and labeled deterministic dry-run. Two additional opt-in suites cover real-model release acceptance and
   restored lexical-fallback state; both remain intentionally unchecked until release capacity exists.
 - Live upgrade smoke: existing user-owned `growth-diagnostic` versions remained untouched while the
   reserved `builtin-growth-diagnostic:2` four-agent workflow was seeded as published; API health is ok.

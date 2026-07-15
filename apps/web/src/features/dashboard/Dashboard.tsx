@@ -157,7 +157,13 @@ export function Dashboard({ onNavigate }: { onNavigate: (id: ViewId) => void }) 
   async function rerun() {
     setRunning(true);
     setRunError(null);
-    try { setDiagnostic(await api.runDiagnostic()); }
+    try {
+      const setup = await api.setupProgress();
+      const profile = String(setup.configuration.model_profile ?? "local-balanced");
+      const workflow = await api.prepareDiagnosticWorkflow(profile);
+      const started = await api.runDiagnostic(workflow);
+      setDiagnostic(await api.waitForDiagnostic(started.run_id));
+    }
     catch (reason) { setRunError(reason instanceof Error ? reason.message : "Tanı çalıştırılamadı"); }
     finally { setRunning(false); }
   }

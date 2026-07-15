@@ -50,6 +50,13 @@ PostgreSQL owns operational state and evidence locators. OKF owns portable compa
 
 Published objects are immutable. A new edit creates a new version.
 
+The v0.1 `POST /api/diagnostics/run` compatibility contract accepts only a published workflow ID and
+version and returns a persisted run descriptor. Clients obtain the diagnostic from run state; this
+view cannot accept an inline definition or execute the legacy synchronous service. Model-profile
+discovery returns code-defined identifiers and configuration/availability metadata, never provider
+keys. A run's top-level profile is derived from its published agent nodes; each step retains the exact
+resolved provider and model.
+
 ## Typed diagnostic outputs
 
 - `CompanyAnalysis`: profile, segments, strengths, weaknesses, data gaps, and evidence IDs.
