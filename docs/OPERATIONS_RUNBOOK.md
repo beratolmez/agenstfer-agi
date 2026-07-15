@@ -138,9 +138,18 @@ export AGI_E2E_ADMIN_PASSWORD='<secret>'
 ```
 
 The rehearsal owns the dedicated `agi-release-rehearsal` Compose project and deletes only its
-volumes. It writes a content-safe ignored manifest under `artifacts/release/rehearsal-*`. A manifest
-records step status, duration, commit, host type, and model profile only; it never records prompts,
-source bodies, evidence excerpts, passwords, bootstrap tokens, or provider keys.
+volumes. It starts a restart watchdog before the real-model browser journey. The watchdog interrupts
+the exact app container during a persisted agent step and again during the same run's pending approval,
+then requires that run to complete after the browser decision. The browser tolerates only transient
+restart failures and waits for a run-ID-bound healthy marker before approval.
+
+The rehearsal writes a content-safe ignored v2 manifest under `artifacts/release/rehearsal-*`.
+Qualification JSON is independently checked for at least 20 attempts, all evaluation thresholds,
+attempt/result consistency, and forbidden content-bearing fields. Restart evidence is checked for the
+same workflow run and container across both interruptions. The manifest binds qualification, restart,
+SBOM, Trivy, and backup-checksum artifacts by SHA-256. A zero exit cannot produce a passing manifest
+when a required step or artifact is missing. Prompts, source bodies, evidence excerpts, passwords,
+bootstrap tokens, and provider keys are prohibited from these evidence files.
 
 Backup and restore restart the exact app container that was stopped. They do not run a new
 `docker compose up` with base configuration, so a production/cloud overlay cannot be silently

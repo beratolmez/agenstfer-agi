@@ -25,6 +25,8 @@ Last audited: 15 July 2026
 - [ ] The opt-in real-model Browser E2E completes diagnostic, exact citation, durable approval,
   active merge, and export. The executable suite exists; no real provider has passed it yet.
 - [ ] Restart during a real agent step and approval resumes the same DBOS/run ID.
+  The Linux rehearsal now performs and independently validates both interruptions; execution evidence
+  from the qualified external host is still required before checking this item.
 
 ## Quality and security
 
@@ -45,8 +47,10 @@ Last audited: 15 July 2026
 
 - [x] Checksummed application DB + DBOS DB + knowledge backup restores and restarts successfully.
 - [x] PowerShell and Linux wrappers exist for checks, backup/restore, egress, scan, and secret setup.
-- [x] An external Linux x86-64 rehearsal command and content-safe evidence manifest schema exist;
-  it composes qualification, real-model E2E, recovery, lexical fallback, and qmd rebuild gates.
+- [x] An external Linux x86-64 rehearsal command and fail-closed evidence manifest schema exist;
+  it composes qualification, real-model E2E, same-run agent/approval restart, recovery, lexical
+  fallback, and qmd rebuild gates. Required evidence artifacts are independently validated and
+  SHA-256-bound; the rehearsal itself has not yet passed on the required host.
 - [x] Architecture, operations, threat, status, and implementation documents match the candidate.
 - [ ] Verify restored diagnostic artifacts/citations after a real successful model run.
 - [ ] Tag/release only after all unchecked release requirements above are closed.

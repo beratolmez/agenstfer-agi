@@ -69,46 +69,40 @@ evidence_dir="${root}/artifacts/release/rehearsal-${timestamp}"
 steps_file="$(mktemp)"
 manifest="${evidence_dir}/manifest.json"
 backup_dir="${evidence_dir}/backup"
+qualification_evidence="${evidence_dir}/model-qualification.json"
+restart_evidence="${evidence_dir}/restart-resume.json"
+restart_ready_file="${evidence_dir}/approval-restart-ready"
 mkdir -p "${evidence_dir}"
 started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+watchdog_pid=""
 
 write_manifest() {
   local exit_code="$1"
-  python3 - "${steps_file}" "${manifest}" "${started_at}" "${exit_code}" <<'PY'
-import json
-import os
-import platform
-import subprocess
-import sys
-from datetime import datetime, timezone
-from pathlib import Path
-
-steps_path, output_path, started_at, exit_code = sys.argv[1:]
-steps = []
-for line in Path(steps_path).read_text(encoding="utf-8").splitlines():
-    label, status, duration = line.split("\t")
-    steps.append({"name": label, "status": status, "duration_seconds": int(duration)})
-payload = {
-    "schema": "agi-release-rehearsal-v1",
-    "started_at": started_at,
-    "finished_at": datetime.now(timezone.utc).isoformat(),
-    "result": "passed" if exit_code == "0" else "failed",
-    "exit_code": int(exit_code),
-    "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
-    "host": {"system": platform.system(), "machine": platform.machine()},
-    "model_profile": os.environ.get("AGI_MODEL_PROFILE"),
-    "steps": steps,
-    "content_policy": "No prompts, source bodies, evidence excerpts, credentials, or provider keys.",
-}
-Path(output_path).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-PY
+  uv run python scripts/verify-release-evidence.py manifest \
+    --steps "${steps_file}" \
+    --output "${manifest}" \
+    --started-at "${started_at}" \
+    --exit-code "${exit_code}" \
+    --model-profile "${model_profile}" \
+    --artifact "model_qualification=${qualification_evidence}" \
+    --artifact "restart_resume=${restart_evidence}" \
+    --artifact "sbom=${evidence_dir}/scan/sbom.cdx.json" \
+    --artifact "vulnerability_scan=${evidence_dir}/scan/trivy.json" \
+    --artifact "backup_checksums=${backup_dir}/SHA256SUMS" || return $?
   echo "Content-safe rehearsal manifest: ${manifest}"
 }
 
 on_exit() {
   local code=$?
   trap - EXIT
-  write_manifest "${code}" || true
+  if [[ -n "${watchdog_pid}" ]] && kill -0 "${watchdog_pid}" 2>/dev/null; then
+    kill "${watchdog_pid}" 2>/dev/null || true
+    wait "${watchdog_pid}" 2>/dev/null || true
+  fi
+  if ! write_manifest "${code}"; then
+    echo "Release evidence manifest validation failed." >&2
+    [[ ${code} -ne 0 ]] || code=1
+  fi
   rm -f "${steps_file}"
   exit "${code}"
 }
@@ -127,6 +121,26 @@ run_step() {
   status="passed"
   [[ ${code} -eq 0 ]] || status="failed"
   printf '%s\t%s\t%s\n' "${label}" "${status}" "$((end - start))" >> "${steps_file}"
+  return "${code}"
+}
+
+start_restart_watchdog() {
+  ./scripts/watch-workflow-restarts.sh \
+    --workflow-id release-growth-diagnostic \
+    --output "${restart_evidence}" \
+    --approval-ready-file "${restart_ready_file}" \
+    --timeout-seconds "$((timeout_minutes * 60 + 300))" &
+  watchdog_pid=$!
+}
+
+wait_restart_watchdog() {
+  local code
+  if wait "${watchdog_pid}"; then
+    code=0
+  else
+    code=$?
+  fi
+  watchdog_pid=""
   return "${code}"
 }
 
@@ -165,12 +179,29 @@ image_id="$(docker compose images -q app)"
 docker tag "${image_id}" agentic-growth-intelligence-app:release-rehearsal
 run_step "release-scan" ./scripts/release-scan.sh agentic-growth-intelligence-app:release-rehearsal "${evidence_dir}/scan"
 run_step "model-qualification" ./scripts/qualify-model.sh "${model_profile}" "${attempts}"
+run_step "capture-model-qualification" cp \
+  "${root}/artifacts/release/evaluation-${model_profile}.json" "${qualification_evidence}"
+run_step "verify-model-qualification" uv run python scripts/verify-release-evidence.py \
+  qualification \
+  --input "${qualification_evidence}" \
+  --profile "${model_profile}" \
+  --minimum-attempts "${attempts}"
+export AGI_E2E_EXPECT_RESTARTS="true"
+export AGI_E2E_RESTART_READY_FILE="${restart_ready_file}"
+export AGI_E2E_RESTART_EVIDENCE_FILE="${restart_evidence}"
+run_step "restart-watchdog-start" start_restart_watchdog
 run_step "real-model-browser-journey" ./scripts/browser-real-model-e2e.sh \
   --base-url "${base_url}" \
   --admin-email "${admin_email}" \
   --model-profile "${model_profile}" \
   --timeout-minutes "${timeout_minutes}" \
   --confirm-disposable
+run_step "restart-watchdog-completion" wait_restart_watchdog
+run_step "verify-restart-evidence" uv run python scripts/verify-release-evidence.py \
+  restart \
+  --input "${restart_evidence}" \
+  --workflow-id release-growth-diagnostic
+unset AGI_E2E_EXPECT_RESTARTS AGI_E2E_RESTART_READY_FILE AGI_E2E_RESTART_EVIDENCE_FILE
 run_step "backup" ./scripts/backup.sh "${backup_dir}"
 run_step "restore" ./scripts/restore.sh "${backup_dir}"
 

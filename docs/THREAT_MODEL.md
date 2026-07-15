@@ -31,6 +31,8 @@ Company source content, credentials, personal/contact data, canonical context, O
 - Compose allowlists application environment variables. Cloud API keys are mounted only as the
   cloud-profile secret file and are never inherited by PostgreSQL or the base app environment.
 - Do not log secrets, prompts, source bodies, or evidence excerpts.
+- Release evidence must reject content-bearing secret/prompt/source fields, independently validate
+  model/restart claims, and hash-bind required artifacts before a rehearsal can report success.
 - Idempotent workflows and approvals; stale/replayed decisions fail closed.
 - Approval-controlled OKF merge and conflict detection.
 

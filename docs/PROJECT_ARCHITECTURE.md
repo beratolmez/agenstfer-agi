@@ -413,7 +413,10 @@ Center governs.
 
 Release qualification is automated but remains opt-in and destructive. The real-model Playwright
 suite targets an explicitly supplied authenticated deployment, verifies all four pinned agent steps,
-exact evidence, durable approval, active OKF merge, and export. The Linux x86-64 rehearsal composes
-no-egress, scan, 20-run qualification, browser acceptance, backup/restore, lexical fallback, qmd
-rebuild, and a content-safe manifest. Automation availability is not evidence that the external-host
-gate passed.
+exact evidence, durable approval, active OKF merge, and export. During the Linux x86-64 rehearsal a
+host-side watchdog restarts the exact app container once while a real agent step is running and once
+while the same run waits for approval. The browser waits for the second healthy checkpoint and the
+watchdog rejects a changed run/container ID. The rehearsal composes no-egress, scan, independently
+validated 20-run qualification, browser acceptance, restart/resume, backup/restore, lexical fallback,
+qmd rebuild, and a SHA-256-bound content-safe manifest. Automation availability is not evidence that
+the external-host gate passed.

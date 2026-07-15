@@ -134,8 +134,10 @@ $env:AGI_E2E_BOOTSTRAP_TOKEN = "<one-time-secret>"
 ```
 
 Nihai dış-host kapısı için Linux x86-64 üzerinde `scripts/release-rehearsal.sh` kullanılır. Script
-20-run qualification, gerçek-model browser akışı, scan, backup/restore, lexical fallback ve qmd
-rebuild adımlarını birleştirir; var olması bu kapıların geçtiği anlamına gelmez.
+20-run qualification, gerçek-model browser akışı, aynı DBOS run ID'si üzerinde agent/approval
+restart, scan, backup/restore, lexical fallback ve qmd rebuild adımlarını birleştirir. Qualification
+ve restart kanıtları bağımsız doğrulanır; zorunlu artifact'lar SHA-256 ile manifest'e bağlanır.
+Script'in var olması bu kapıların geçtiği anlamına gelmez.
 
 ## MVP'nin yaptığı / yapmadığı
 

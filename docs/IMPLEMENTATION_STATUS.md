@@ -103,6 +103,11 @@ and manager architecture are unchanged vision inputs; they are not completion cl
   locators. Stopping qmd kept the application healthy with lexical fallback active.
 - [x] An isolated production Compose drill created empty volumes, ran all migrations, bootstrapped
   `admin + analyst + approver`, recorded audit, and returned 401 for an unauthenticated resource.
+- [x] The external-host rehearsal now coordinates two exact-container interruptions against one real
+  DBOS run: one while an agent step is `running` and one while approval is `pending`. Its content-safe
+  evidence validator rejects inconsistent qualification attempts, unsupported claims, changed run or
+  container IDs, forbidden content fields, missing artifacts, and false-pass manifests. This tooling
+  has unit/build/syntax coverage; it is not proof that the external-host restart gate passed.
 
 ## Release blockers and deliberately incomplete acceptance
 
@@ -119,11 +124,13 @@ and manager architecture are unchanged vision inputs; they are not completion cl
 - [ ] **Full live happy path:** the typed test-model suite proves the complete diagnostic/evidence/
   approval path, but the browser cannot complete a real model-assisted report until a model profile
   qualifies. An opt-in destructive Playwright suite and wrappers now encode the four-agent DBOS run,
-  exact citation, approval, active merge, and export acceptance; they have not passed a real model.
+  exact citation, same-run agent/approval restart coordination, approval, active merge, and export
+  acceptance; they have not passed a real model.
 - [ ] **External clean Linux host:** clean Linux/amd64 containers and empty volumes were verified on
   Docker Desktop; a separate Linux x86-64 host release rehearsal remains required. The new
-  `scripts/release-rehearsal.sh` command fails outside Linux x86-64 and records a content-safe
-  per-step manifest, but it has not been executed on the required external host.
+  `scripts/release-rehearsal.sh` command fails outside Linux x86-64 and records independently
+  validated, hash-bound content-safe evidence, but it has not been executed on the required external
+  host.
 - [ ] **TLS termination:** production cookies are `Secure`. The production overlay must sit behind
   operator-managed HTTPS; the repository's port 8080 Nginx endpoint is the local/development
   acceptance endpoint and does not terminate TLS.
@@ -134,7 +141,7 @@ release blockers above are closed. External write actions remain prohibited.
 
 ## Current verification evidence
 
-- Backend suite: 51 tests; Ruff passes. The receipt integrity suite includes digest tampering,
+- Backend suite: 60 tests; Ruff passes. The receipt integrity suite includes digest tampering,
   missing-member rejection, legacy receipt absence, and unknown-classification rejection.
 - Frontend suite: 7 Vitest tests; production build passes.
 - Ruff and Alembic drift: pass; migration head `20260713_0007`.

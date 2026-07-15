@@ -1,3 +1,5 @@
+import { access, readFile } from "node:fs/promises";
+
 import { expect, type Page, type APIResponse, test } from "@playwright/test";
 
 const enabled = process.env.AGI_E2E_REAL_MODEL === "true";
@@ -7,6 +9,9 @@ const adminPassword = process.env.AGI_E2E_ADMIN_PASSWORD ?? "";
 const bootstrapToken = process.env.AGI_E2E_BOOTSTRAP_TOKEN ?? "";
 const modelProfile = process.env.AGI_E2E_MODEL_PROFILE ?? "local-balanced";
 const timeoutMs = Number(process.env.AGI_E2E_TIMEOUT_MS ?? 3_600_000);
+const expectRestarts = process.env.AGI_E2E_EXPECT_RESTARTS === "true";
+const restartReadyFile = process.env.AGI_E2E_RESTART_READY_FILE ?? "";
+const restartEvidenceFile = process.env.AGI_E2E_RESTART_EVIDENCE_FILE ?? "";
 
 type SetupStatus = {
   bootstrap_required: boolean;
@@ -78,11 +83,22 @@ async function mutate(
 async function waitForRun(page: Page, runId: string, expected: string): Promise<RunDetail> {
   const deadline = Date.now() + timeoutMs;
   let last: RunDetail | null = null;
+  let lastTransientError = "none";
   while (Date.now() < deadline) {
-    last = await checkedJson<RunDetail>(
-      await page.request.get(`/api/runs/${encodeURIComponent(runId)}`),
-      "Workflow run detail",
-    );
+    let response: APIResponse;
+    try {
+      response = await page.request.get(`/api/runs/${encodeURIComponent(runId)}`);
+    } catch (error) {
+      lastTransientError = error instanceof Error ? error.name : "request error";
+      await page.waitForTimeout(1_000);
+      continue;
+    }
+    if ([502, 503, 504].includes(response.status())) {
+      lastTransientError = `HTTP ${response.status()}`;
+      await page.waitForTimeout(1_000);
+      continue;
+    }
+    last = await checkedJson<RunDetail>(response, "Workflow run detail");
     if (last.status === expected) return last;
     if (["failed", "rejected", "expired", "cancelled"].includes(last.status)) {
       throw new Error(
@@ -93,8 +109,46 @@ async function waitForRun(page: Page, runId: string, expected: string): Promise<
     await page.waitForTimeout(5_000);
   }
   throw new Error(
-    `Workflow did not reach ${expected} within ${timeoutMs} ms; last status was ${last?.status ?? "unknown"}.`,
+    `Workflow did not reach ${expected} within ${timeoutMs} ms; last status was `
+    + `${last?.status ?? "unknown"}; last transient error was ${lastTransientError}.`,
   );
+}
+
+async function waitForCoordinatedRestarts(page: Page, runId: string): Promise<void> {
+  if (!expectRestarts) return;
+  if (!restartReadyFile) {
+    throw new Error("AGI_E2E_RESTART_READY_FILE is required when restart coordination is enabled.");
+  }
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (restartEvidenceFile) {
+      try {
+        const evidence = JSON.parse(await readFile(restartEvidenceFile, "utf-8")) as {
+          status?: string;
+          failure_code?: string | null;
+        };
+        if (evidence.status === "failed") {
+          throw new Error(`Restart watchdog failed: ${evidence.failure_code ?? "unknown"}.`);
+        }
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith("Restart watchdog failed:")) {
+          throw error;
+        }
+      }
+    }
+    try {
+      await access(restartReadyFile);
+      if ((await readFile(restartReadyFile, "utf-8")).trim() !== runId) {
+        throw new Error("Restart coordination marker belongs to a different workflow run.");
+      }
+      const response = await page.request.get("/api/health");
+      if (response.ok()) return;
+    } catch {
+      // The watchdog intentionally interrupts the app twice; retry until its ready marker exists.
+    }
+    await page.waitForTimeout(1_000);
+  }
+  throw new Error("The restart watchdog did not publish a healthy approval-ready checkpoint.");
 }
 
 test.describe("real model release journey", () => {
@@ -210,6 +264,7 @@ test.describe("real model release journey", () => {
       "evidence-reviewer",
       "wiki-curator",
     ]));
+    await waitForCoordinatedRestarts(page, runStart.run_id);
 
     await page.goto("/#dashboard");
     const table = page.getByRole("table");
