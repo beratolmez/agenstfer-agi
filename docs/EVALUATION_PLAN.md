@@ -17,6 +17,12 @@ Use the deterministic Anka dataset through the same connector and mapping path u
 
 Every release-enabled local or cloud model profile runs the same suite. Record provider, exact model ID, prompt/agent versions, retrieval revision, date, hardware where local, latency, token usage, pass/fail, and failure samples. The setup wizard may call a profile “supported” only after a qualifying result exists for the released version.
 
+The executable harness must clone and publish the current built-in workflow, pin the selected model
+profile and exact agent versions, and execute it through the same persistent workflow runtime used by
+production. A legacy synchronous diagnostic is not qualification evidence. The content-safe report
+records workflow identity, per-attempt retrieval revisions, agent bindings, the control-plane policy
+revision, and SHA-256 hashes of the effective prompts; it never records prompt text.
+
 The harness records content-safe per-attempt duration, total token usage, material/supported claim
 counts, unsupported numerical-claim count, safe failure class/stage, CPU/memory, and available Ollama
 context/runtime metadata. It never records prompts, model response bodies, or evidence excerpts.
@@ -62,6 +68,13 @@ ADR-0008 changed the effective prompt by adding a mandatory control-plane system
 all component observations recorded above are diagnostic history only for the earlier effective
 prompt. The next qualification must record the current agent versions and effective-policy revision;
 no earlier isolated pass can qualify the current build.
+
+Observed on 15 July 2026 with the current production-path harness and policy revision
+`2026-07-15.1`: one `local-balanced` smoke attempt pinned workflow
+`qualification-local-balanced:1` and agent versions `3/3/3/2`, then failed closed at
+`company_agent` with `TimeoutError` after 313.34 seconds. The container reported 12 CPUs, 7,902 MiB
+memory, 8,192 Ollama context, and no VRAM. This validates harness provenance and failure recording;
+it is not qualification, and 9B remains unsupported.
 
 ## Failure handling
 

@@ -31,3 +31,5 @@ The web console can manage real agent versions without making prompts or workflo
 hatch around product policy. Full prompt detail is restricted to administrators; summaries remain
 available to authenticated operators. Prompt, schema, policy, capability, or model-mapping changes
 invalidate previous model qualification and require the golden evaluation to be rerun.
+Qualification is valid only when it executes a profile-pinned published persistent workflow and its
+content-safe evidence binds exact agent versions, policy revision, and effective-prompt hashes.

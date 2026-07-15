@@ -101,9 +101,12 @@ Encrypt and move backups using the operator's storage policy; encryption keys st
 .\scripts\qualify-model.ps1 -Profile local-balanced -Attempts 20
 ```
 
-The ignored qualification JSON records safe per-attempt duration, token totals, claim coverage,
-unsupported numerical-claim count, failure class/stage, CPU/memory, and available Ollama runtime
-metadata. It must never include prompts, response bodies, evidence excerpts, or secrets.
+The harness clones/publishes the current built-in workflow, pins the selected profile and exact agent
+versions, and runs the same persistent interpreter used by production. The ignored qualification JSON
+records workflow/agent identity, per-attempt retrieval revisions, policy revision, effective-prompt
+hashes, safe per-attempt duration, token totals, claim coverage, unsupported numerical-claim count,
+failure class/stage, CPU/memory, and available Ollama runtime metadata. It must never include prompts,
+response bodies, evidence excerpts, or secrets.
 
 `release-scan` creates an ignored CycloneDX SBOM and Trivy report. The Trivy image itself is pinned by
 digest. `browser-e2e` uses an isolated Compose project, empty volumes, loopback port 18080, explicit
@@ -144,8 +147,9 @@ then requires that run to complete after the browser decision. The browser toler
 restart failures and waits for a run-ID-bound healthy marker before approval.
 
 The rehearsal writes a content-safe ignored v2 manifest under `artifacts/release/rehearsal-*`.
-Qualification JSON is independently checked for at least 20 attempts, all evaluation thresholds,
-attempt/result consistency, and forbidden content-bearing fields. Restart evidence is checked for the
+Qualification JSON is independently checked for the published persistent-workflow path, exact
+workflow/agent/policy provenance, at least 20 attempts, all evaluation thresholds, attempt/result
+consistency, and forbidden content-bearing fields. Restart evidence is checked for the
 same workflow run and container across both interruptions. The manifest binds qualification, restart,
 SBOM, Trivy, and backup-checksum artifacts by SHA-256. A zero exit cannot produce a passing manifest
 when a required step or artifact is missing. Prompts, source bodies, evidence excerpts, passwords,

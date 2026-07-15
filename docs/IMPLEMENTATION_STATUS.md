@@ -124,6 +124,10 @@ and manager architecture are unchanged vision inputs; they are not completion cl
   evidence validator rejects inconsistent qualification attempts, unsupported claims, changed run or
   container IDs, forbidden content fields, missing artifacts, and false-pass manifests. This tooling
   has unit/build/syntax coverage; it is not proof that the external-host restart gate passed.
+- [x] Model qualification now clones/publishes the current v3 workflow, pins the requested profile
+  and exact agents, and runs the production persistent interpreter. Reports bind workflow, agent,
+  policy revision, and effective-prompt hashes; the independent validator rejects the legacy
+  synchronous path and content-bearing evidence.
 
 ## Release blockers and deliberately incomplete acceptance
 
@@ -138,7 +142,9 @@ and manager architecture are unchanged vision inputs; they are not completion cl
   HTTP 500. PromptedOutput remains configured and 9B remains development-only. No full successful
   diagnostic or 20-run suite exists; suitable 27B hardware or governed Groq/Mistral is next. The
   ADR-0008 immutable control-plane policy changed the effective prompt, so the historical component
-  observations do not qualify the current build.
+  observations do not qualify the current build. A current production-path smoke pinned workflow
+  `qualification-local-balanced:1`, exact agent versions `3/3/3/2`, retrieval and prompt/policy
+  provenance, then failed closed at `company_agent` with `TimeoutError` after 313.34 seconds.
 - [ ] **Full live happy path:** the typed test-model suite proves the complete diagnostic/evidence/
   approval path, but the browser cannot complete a real model-assisted report until a model profile
   qualifies. An opt-in destructive Playwright suite and wrappers now encode the four-agent DBOS run,
@@ -159,7 +165,7 @@ release blockers above are closed. External write actions remain prohibited.
 
 ## Current verification evidence
 
-- Backend suite: 78 tests; Ruff passes. The receipt integrity suite includes digest tampering,
+- Backend suite: 83 tests; Ruff passes. The receipt integrity suite includes digest tampering,
   missing-member rejection, legacy receipt absence, and unknown-classification rejection.
 - Frontend suite: 8 Vitest tests; production build passes.
 - Ruff and Alembic drift: pass; migration head `20260713_0007`.
@@ -173,8 +179,10 @@ release blockers above are closed. External write actions remain prohibited.
 - Live upgrade smoke: existing user-owned `growth-diagnostic` versions remained untouched while the
   reserved `builtin-growth-diagnostic:3` exact-agent-pinned workflow was seeded as published; API
   health is ok. Historical v2 is not selected by default.
-- Latest safe qualification report: one failed attempt, 307.53 seconds, `TimeoutError` at
-  `company-analyst`; Linux/x86-64 container, 12 CPUs, 7,902 MiB memory, Ollama context 8,192, no VRAM.
+- Latest safe qualification report: current persistent-workflow path, one failed attempt, 313.34
+  seconds, `TimeoutError` at `company_agent`; Linux/x86-64 container, 12 CPUs, 7,902 MiB memory,
+  Ollama context 8,192, no VRAM. It records workflow `qualification-local-balanced:1`, agent
+  versions `3/3/3/2`, retrieval revision, policy revision, and effective-prompt hashes.
 - Final-image receipt smoke: each model prompt exposes at most three evidence IDs while the five
   calculation receipts bind 184, 183, 183, 400, and 258 complete verification members respectively;
   the inspection transaction was rolled back.

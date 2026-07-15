@@ -40,7 +40,9 @@ Company source content, credentials, personal/contact data, canonical context, O
   cloud-profile secret file and are never inherited by PostgreSQL or the base app environment.
 - Do not log secrets, prompts, source bodies, or evidence excerpts.
 - Release evidence must reject content-bearing secret/prompt/source fields, independently validate
-  model/restart claims, and hash-bind required artifacts before a rehearsal can report success.
+  model/restart claims, require the published persistent-workflow qualification path, bind exact
+  agent versions plus effective-prompt hashes/policy revision, and hash-bind required artifacts before
+  a rehearsal can report success.
 - Idempotent workflows and approvals; stale/replayed decisions fail closed.
 - Cancellation changes application/approval/candidate state only after DBOS confirms cancellation;
   retry cannot substitute a newer workflow for the run's pinned immutable version.

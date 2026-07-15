@@ -26,8 +26,8 @@ kontrolleri uygulanmıştır.
 
 Henüz release değildir. Bu makinede `qwen3.5:9b` kurulmuş ve gerçek structured-output probe ile
 izole v3 agent/metric-receipt incelemeleri geçmiştir; ancak tam koşular tekrarlanabilir değildir. Bir
-deneme 939,27 saniye sonra Evidence Reviewer'da, son telemetry'li deneme ise 307,53 saniye sonra
-Company Analyst retry timeout'unda fail-closed bitmiştir. Native JSON Schema ve ToolOutput denemeleri
+historical deneme 939,27 saniye sonra Evidence Reviewer'da, current production-path smoke ise 313,34
+saniye sonra Company Analyst timeout'unda fail-closed bitmiştir. Native JSON Schema ve ToolOutput denemeleri
 de güvenilir değildir. 20-run qualification geçilmediği için 9B profil “supported” değildir;
 uygun donanımda 27B veya governed Groq/Mistral profiliyle qualification ve tam browser happy-path
 hâlâ gereklidir. Sistem deterministic
@@ -101,6 +101,10 @@ geçmelidir:
 ```powershell
 .\scripts\qualify-model.ps1 -Profile cloud-balanced -Attempts 20
 ```
+
+Qualification, seçilen profili current published workflow'un immutable bir klonuna pinler ve aynı
+persistent runtime üzerinden çalışır. Üretilen rapor prompt metnini değil workflow/agent sürümlerini,
+policy revision'ını ve effective-prompt SHA-256 değerlerini taşır.
 
 ## Geliştirme ve doğrulama
 

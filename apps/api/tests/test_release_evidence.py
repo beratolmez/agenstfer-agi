@@ -29,6 +29,29 @@ def _qualification_report(attempts: int = 20) -> dict[str, object]:
         "profile": "local-strong",
         "provider": "ollama",
         "model": "qwen3.5:27b",
+        "qualification_path": "published-persistent-workflow-v1",
+        "retrieval_revisions": ["e" * 40 for _ in range(attempts)],
+        "workflow": {"id": "qualification-local-strong", "version": 1},
+        "workflow_definition_sha256": "f" * 64,
+        "agent_versions": {
+            "company-analyst": 3,
+            "growth-opportunity-analyst": 3,
+            "evidence-reviewer": 3,
+            "wiki-curator": 2,
+        },
+        "agent_model_profiles": {
+            "company-analyst": "local-strong",
+            "growth-opportunity-analyst": "local-strong",
+            "evidence-reviewer": "local-strong",
+            "wiki-curator": "local-strong",
+        },
+        "effective_prompt_sha256": {
+            "company-analyst": "a" * 64,
+            "growth-opportunity-analyst": "b" * 64,
+            "evidence-reviewer": "c" * 64,
+            "wiki-curator": "d" * 64,
+        },
+        "control_plane_policy_revision": "2026-07-15.1",
         "attempts": attempts,
         "successful_runs": attempts,
         "success_rate": 1.0,
@@ -113,6 +136,24 @@ def test_qualification_report_requires_consistent_twenty_run_gate() -> None:
         ),
         (lambda report: report.update(prompt="sensitive"), "Forbidden content-bearing field"),
         (lambda report: report.update(attempts=19), "greater than or equal to 20"),
+        (
+            lambda report: report.update(qualification_path="legacy-synchronous-service"),
+            "published workflow path",
+        ),
+        (
+            lambda report: report["effective_prompt_sha256"].pop("wiki-curator"),
+            "prompt hashes are incomplete",
+        ),
+        (
+            lambda report: report.update(retrieval_revisions=["not-a-revision"] * 20),
+            "retrieval revision is invalid",
+        ),
+        (
+            lambda report: report["agent_model_profiles"].update(
+                {"wiki-curator": "local-balanced"}
+            ),
+            "agent profile does not match",
+        ),
     ],
 )
 def test_qualification_report_rejects_false_or_unsafe_evidence(

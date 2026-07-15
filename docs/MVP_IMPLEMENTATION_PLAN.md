@@ -50,8 +50,9 @@ Exit gate: passed with a 1,783-record live round-trip and exact citation resolut
 Implementation gate: passed with Pydantic AI typed test models, deterministic aggregate receipts,
 and claim-complete reviewer batching. Release gate: blocked because no provider profile has passed
 qualification; the installed 9B profile passes isolated nodes but failed its latest full golden run
-at Company Analyst after an invalid-output retry exhausted its budget (307.53 seconds total). A preceding full attempt
-had reached Evidence Reviewer before failing after 939.27 seconds.
+at Company Analyst after its current production-path timeout budget was exhausted (313.34 seconds
+total). A preceding historical full attempt had reached Evidence Reviewer before failing after
+939.27 seconds.
 
 ## Phase 4 — Functional agent and workflow platform
 
@@ -96,6 +97,9 @@ Exit gate: UI/API functionality passed; complete happy path awaits a qualified m
 - [x] Opt-in real-model and restored-state Playwright contracts plus a Linux x86-64 release rehearsal
   orchestrator. The rehearsal coordinates same-run agent/approval restarts and fail-closed,
   hash-bound evidence validation. These are executable gates, not completion evidence.
+- [x] Qualification executes a profile-pinned immutable clone of the current published workflow and
+  records content-safe workflow/agent/policy/effective-prompt provenance; legacy synchronous reports
+  fail independent release-evidence validation.
 - [ ] Run full browser E2E with a qualified model on a separate clean Linux x86-64 host.
 - [ ] Run qmd loss/rebuild and final 20-run model evaluation on that host.
 

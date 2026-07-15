@@ -28,6 +28,11 @@ from agi_server.diagnostics.service import _material_claims
 from agi_server.domain.metrics import (
     calculate_verified_growth_metrics,
 )
+from agi_server.evaluation import (
+    prepare_qualification_workflow,
+    qualification_provenance,
+    summarize_qualification_run,
+)
 from agi_server.ingestion import sync_demo_company
 from agi_server.okf.git_repo import GitKnowledgeRepository
 from agi_server.okf.lifecycle import ensure_active_repository
@@ -253,6 +258,38 @@ def test_workflow_publish_pins_exact_agent_versions(tmp_path: Path) -> None:
     engine.dispose()
 
 
+def test_qualification_workflow_pins_profile_agents_and_effective_prompt_hashes(
+    tmp_path: Path,
+) -> None:
+    engine, local_session = _database(tmp_path)
+    with local_session() as db:
+        workflow = prepare_qualification_workflow(db, "local-strong")
+        definition = workflow_from_row(workflow)
+        provenance = qualification_provenance(db, workflow)
+
+        assert workflow.id == "qualification-local-strong"
+        assert workflow.status == "published"
+        assert {
+            node.config["model_profile"]
+            for node in definition.nodes
+            if node.kind == NodeKind.AGENT_RUN
+        } == {"local-strong"}
+        assert provenance["qualification_path"] == "published-persistent-workflow-v1"
+        assert provenance["workflow"] == {"id": workflow.id, "version": 1}
+        assert len(provenance["workflow_definition_sha256"]) == 64
+        assert set(provenance["agent_versions"]) == {
+            "company-analyst",
+            "growth-opportunity-analyst",
+            "evidence-reviewer",
+            "wiki-curator",
+        }
+        assert set(provenance["agent_model_profiles"].values()) == {"local-strong"}
+        assert all(
+            len(digest) == 64 for digest in provenance["effective_prompt_sha256"].values()
+        )
+    engine.dispose()
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [
@@ -417,6 +454,12 @@ def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> 
         assert run.output_json["okf_change_set"]["concept_paths"] == [
             "reports/growth-diagnostic.md"
         ]
+        qualification = summarize_qualification_run(run)
+        assert qualification["material_claim_count"] == qualification[
+            "supported_claim_count"
+        ]
+        assert qualification["evidence_coverage"] == 100
+        assert qualification["unsupported_numerical_claims"] == 0
         duplicate = asyncio.run(
             start_persisted_workflow(
                 db,

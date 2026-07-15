@@ -176,6 +176,54 @@ def validate_qualification_report(
     if not isinstance(report.get("model"), str) or not report["model"]:
         raise ReleaseEvidenceError("Qualified model identity is missing")
 
+    if report.get("qualification_path") != "published-persistent-workflow-v1":
+        raise ReleaseEvidenceError("Qualification did not exercise the published workflow path")
+    retrieval_revisions = report.get("retrieval_revisions")
+    if not isinstance(retrieval_revisions, list) or len(retrieval_revisions) != attempts:
+        raise ReleaseEvidenceError("Qualification retrieval revisions are incomplete")
+    if any(
+        not isinstance(revision, str)
+        or re.fullmatch(r"[0-9a-f]{40,64}", revision) is None
+        for revision in retrieval_revisions
+    ):
+        raise ReleaseEvidenceError("Qualification retrieval revision is invalid")
+    workflow = report.get("workflow")
+    expected_workflow_id = f"qualification-{expected_profile}"
+    if not isinstance(workflow, Mapping) or workflow.get("id") != expected_workflow_id:
+        raise ReleaseEvidenceError("Qualification workflow identity is missing")
+    _integer(workflow.get("version"), "workflow.version", minimum=1)
+    workflow_digest = report.get("workflow_definition_sha256")
+    valid_workflow_digest = isinstance(workflow_digest, str) and re.fullmatch(
+        r"[0-9a-f]{64}", workflow_digest
+    )
+    if not valid_workflow_digest:
+        raise ReleaseEvidenceError("Qualification workflow definition hash is invalid")
+    agent_versions = report.get("agent_versions")
+    agent_profiles = report.get("agent_model_profiles")
+    prompt_hashes = report.get("effective_prompt_sha256")
+    required_agents = {
+        "company-analyst",
+        "growth-opportunity-analyst",
+        "evidence-reviewer",
+        "wiki-curator",
+    }
+    if not isinstance(agent_versions, Mapping) or set(agent_versions) != required_agents:
+        raise ReleaseEvidenceError("Qualification agent-version bindings are incomplete")
+    if not isinstance(agent_profiles, Mapping) or set(agent_profiles) != required_agents:
+        raise ReleaseEvidenceError("Qualification agent-profile bindings are incomplete")
+    if not isinstance(prompt_hashes, Mapping) or set(prompt_hashes) != required_agents:
+        raise ReleaseEvidenceError("Qualification effective-prompt hashes are incomplete")
+    for agent_id in required_agents:
+        _integer(agent_versions[agent_id], f"agent_versions.{agent_id}", minimum=1)
+        if agent_profiles[agent_id] != expected_profile:
+            raise ReleaseEvidenceError("Qualification agent profile does not match release profile")
+        digest = prompt_hashes[agent_id]
+        if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+            raise ReleaseEvidenceError("Qualification effective-prompt hash is invalid")
+    policy_revision = report.get("control_plane_policy_revision")
+    if not isinstance(policy_revision, str) or not policy_revision:
+        raise ReleaseEvidenceError("Control-plane policy revision is missing")
+
     return {
         "profile": expected_profile,
         "attempts": attempts,

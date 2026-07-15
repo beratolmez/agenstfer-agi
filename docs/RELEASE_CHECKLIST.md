@@ -19,8 +19,11 @@ Last audited: 15 July 2026
 - [x] Candidate approval merges and rejection leaves active knowledge unchanged in integration tests.
 - [x] Workflow edit/validate/dry-run/publish/run/history and DBOS missing-model failure path work.
 - [x] OKF export/import preserves unknown types and metadata.
-- [x] Isolated browser E2E verifies truthful no-result dashboard state, persisted setup/demo sync,
-  Sources UI, and workflow clone plus explicitly labeled deterministic dry-run.
+- [x] Isolated browser E2E verifies truthful no-result dashboard state, model-profile discovery,
+  persisted setup/demo sync, Sources UI, Agent Registry create/publish, and workflow
+  dry-run/publish/version/schedule management.
+- [x] The qualification harness exercises a profile-pinned published persistent workflow and binds
+  exact agent versions, effective-prompt hashes, and policy revision in content-safe evidence.
 - [ ] A real release model passes structured-output and 20-run golden qualification.
 - [ ] The opt-in real-model Browser E2E completes diagnostic, exact citation, durable approval,
   active merge, and export. The executable suite exists; no real provider has passed it yet.

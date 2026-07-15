@@ -12,13 +12,17 @@ from pathlib import Path
 
 import httpx
 from agi_server.agents.model_gateway import resolve_model_profile
-from agi_server.agents.registry import AgentRegistry
 from agi_server.config import Settings
 from agi_server.db import WorkflowRun, WorkflowStepRun
-from agi_server.diagnostics import run_growth_diagnostic
+from agi_server.evaluation import (
+    prepare_qualification_workflow,
+    qualification_provenance,
+    summarize_qualification_run,
+)
 from agi_server.ingestion import sync_demo_company
 from agi_server.migrations import run_migrations
 from agi_server.okf.lifecycle import ensure_active_repository
+from agi_server.workflow.persistent_runtime import start_persisted_workflow
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
@@ -66,9 +70,12 @@ async def evaluate(profile_id: str, attempts: int) -> dict[str, object]:
     evidence_coverage: list[int] = []
     unsupported_numerical_counts: list[int] = []
     attempt_results: list[dict[str, object]] = []
+    retrieval_revisions: list[str | None] = []
+    provenance: dict[str, object] | None = None
     started = time.perf_counter()
     for index in range(attempts):
         attempt_started = time.perf_counter()
+        retrieval_revision: str | None = None
         with tempfile.TemporaryDirectory(prefix="agi-golden-") as temporary:
             root = Path(temporary)
             database_url = f"sqlite:///{(root / 'eval.db').as_posix()}"
@@ -81,6 +88,7 @@ async def evaluate(profile_id: str, attempts: int) -> dict[str, object]:
                 cloud_provider=base_settings.cloud_provider,
                 cloud_api_key=base_settings.cloud_api_key,
                 cloud_model=base_settings.cloud_model,
+                enable_dbos=False,
             )
             run_migrations(database_url)
             engine = create_engine(database_url)
@@ -88,45 +96,36 @@ async def evaluate(profile_id: str, attempts: int) -> dict[str, object]:
             try:
                 with local_session() as db:
                     sync_demo_company(db, settings.raw_root)
-                    ensure_active_repository(settings.company_bundle)
-                    result = await run_growth_diagnostic(
+                    retrieval_revision = ensure_active_repository(settings.company_bundle)
+                    workflow = prepare_qualification_workflow(db, profile_id)
+                    provenance = qualification_provenance(db, workflow)
+                    run = await start_persisted_workflow(
                         db,
                         settings,
-                        actor_id=None,
-                        idempotency_key=f"golden-{index}",
+                        workflow,
+                        f"golden-{index}",
+                        None,
+                        input_json={"qualification": True},
                     )
-                    outputs.append([item.id for item in result.diagnostic.opportunities[:5]])
-                    planted_counts.append(len(result.diagnostic.detected_planted_insights))
-                    output = result.run.output_json or {}
-                    company = output.get("company_analysis", {})
-                    hypotheses = output.get("hypotheses", {}).get("hypotheses", [])
-                    decisions = output.get("evidence_review", {}).get("decisions", [])
-                    expected_claims = (
-                        len(company.get("strengths", []))
-                        + len(company.get("weaknesses", []))
-                        + len(hypotheses)
-                        + 5
+                    summary = summarize_qualification_run(run)
+                    diagnostic = summary["diagnostic"]
+                    outputs.append([item.id for item in diagnostic.opportunities[:5]])
+                    planted_counts.append(len(diagnostic.detected_planted_insights))
+                    evidence_coverage.append(summary["evidence_coverage"])
+                    unsupported_numerical_counts.append(
+                        summary["unsupported_numerical_claims"]
                     )
-                    supported_decisions = [item for item in decisions if item.get("supported")]
-                    coverage = round(100 * len(supported_decisions) / max(1, expected_claims))
-                    evidence_coverage.append(coverage)
-                    numerical_ids = {
-                        f"metric-{item.id}" for item in result.diagnostic.opportunities
-                    }
-                    supported_ids = {
-                        item.get("claim_id") for item in supported_decisions if item.get("claim_id")
-                    }
-                    unsupported_count = len(numerical_ids - supported_ids)
-                    unsupported_numerical_counts.append(unsupported_count)
                     attempt_results.append(
                         {
                             "attempt": index + 1,
                             "status": "passed",
                             "duration_seconds": round(time.perf_counter() - attempt_started, 2),
-                            "token_usage": result.run.token_usage,
-                            "material_claim_count": expected_claims,
-                            "supported_claim_count": len(supported_decisions),
-                            "unsupported_numerical_claims": unsupported_count,
+                            "token_usage": run.token_usage,
+                            "material_claim_count": summary["material_claim_count"],
+                            "supported_claim_count": summary["supported_claim_count"],
+                            "unsupported_numerical_claims": summary[
+                                "unsupported_numerical_claims"
+                            ],
                         }
                     )
             except Exception as error:  # The report records only safe exception classes.
@@ -171,6 +170,7 @@ async def evaluate(profile_id: str, attempts: int) -> dict[str, object]:
                         }
                     )
             finally:
+                retrieval_revisions.append(retrieval_revision)
                 engine.dispose()
     success_rate = len(outputs) / attempts
     repeated_overlap = min((overlap(outputs[0], item) for item in outputs[1:]), default=1.0)
@@ -198,7 +198,8 @@ async def evaluate(profile_id: str, attempts: int) -> dict[str, object]:
         "safe_error_classes": errors,
         "safe_failure_stages": failure_stages,
         "attempt_results": attempt_results,
-        "agent_versions": {item.id: item.version for item in AgentRegistry().list()},
+        "retrieval_revisions": retrieval_revisions,
+        **(provenance or {}),
         "platform": {
             "system": platform.system(),
             "machine": platform.machine(),

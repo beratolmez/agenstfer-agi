@@ -446,3 +446,9 @@ watchdog rejects a changed run/container ID. The rehearsal composes no-egress, s
 validated 20-run qualification, browser acceptance, restart/resume, backup/restore, lexical fallback,
 qmd rebuild, and a SHA-256-bound content-safe manifest. Automation availability is not evidence that
 the external-host gate passed.
+
+The qualification harness itself clones and publishes the current built-in workflow, pins the chosen
+profile to all exact-version agent nodes, and executes the non-DBOS in-process form of the same
+persistent interpreter. Its report binds workflow/version, agent versions, control-plane policy
+revision, and effective-prompt SHA-256 values. The independent validator rejects legacy synchronous
+qualification reports and any report containing prompt/source/secret content.
