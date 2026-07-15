@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from agi_server.agents.model_gateway import CONTROL_PLANE_POLICY_REVISION
 from agi_server.release_evidence import (
     ReleaseEvidenceError,
     build_release_manifest,
@@ -51,7 +52,7 @@ def _qualification_report(attempts: int = 20) -> dict[str, object]:
             "evidence-reviewer": "c" * 64,
             "wiki-curator": "d" * 64,
         },
-        "control_plane_policy_revision": "2026-07-15.1",
+        "control_plane_policy_revision": CONTROL_PLANE_POLICY_REVISION,
         "attempts": attempts,
         "successful_runs": attempts,
         "success_rate": 1.0,
@@ -121,6 +122,7 @@ def test_qualification_report_requires_consistent_twenty_run_gate() -> None:
         "attempts": 20,
         "successful_runs": 20,
         "success_rate": 1.0,
+        "control_plane_policy_revision": CONTROL_PLANE_POLICY_REVISION,
     }
 
 
@@ -129,9 +131,7 @@ def test_qualification_report_requires_consistent_twenty_run_gate() -> None:
     [
         (lambda report: report.update(passed=False), "not marked passed"),
         (
-            lambda report: report["attempt_results"][0].update(
-                unsupported_numerical_claims=1
-            ),
+            lambda report: report["attempt_results"][0].update(unsupported_numerical_claims=1),
             "unsupported material claims",
         ),
         (lambda report: report.update(prompt="sensitive"), "Forbidden content-bearing field"),
@@ -154,11 +154,13 @@ def test_qualification_report_requires_consistent_twenty_run_gate() -> None:
             ),
             "agent profile does not match",
         ),
+        (
+            lambda report: report.update(control_plane_policy_revision="2026-07-15.1"),
+            "policy revision is stale",
+        ),
     ],
 )
-def test_qualification_report_rejects_false_or_unsafe_evidence(
-    mutation: Any, message: str
-) -> None:
+def test_qualification_report_rejects_false_or_unsafe_evidence(mutation: Any, message: str) -> None:
     report = _qualification_report()
     mutation(report)
     with pytest.raises(ReleaseEvidenceError, match=message):

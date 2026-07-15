@@ -23,7 +23,8 @@ Last audited: 15 July 2026
   persisted setup/demo sync, Sources UI, Agent Registry create/publish, and workflow
   dry-run/publish/version/schedule management.
 - [x] The qualification harness exercises a profile-pinned published persistent workflow and binds
-  exact agent versions, effective-prompt hashes, and policy revision in content-safe evidence.
+  exact agent versions, effective-prompt hashes, and the running code's exact policy revision in
+  independently validated content-safe evidence.
 - [ ] A real release model passes structured-output and 20-run golden qualification.
 - [ ] The opt-in real-model Browser E2E completes diagnostic, exact citation, durable approval,
   active merge, and export. The executable suite exists; no real provider has passed it yet.

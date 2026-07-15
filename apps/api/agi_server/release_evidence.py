@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+from agi_server.agents.model_gateway import CONTROL_PLANE_POLICY_REVISION
+
 
 class ReleaseEvidenceError(ValueError):
     """Raised when release evidence is incomplete, inconsistent, or unsafe to retain."""
@@ -182,8 +184,7 @@ def validate_qualification_report(
     if not isinstance(retrieval_revisions, list) or len(retrieval_revisions) != attempts:
         raise ReleaseEvidenceError("Qualification retrieval revisions are incomplete")
     if any(
-        not isinstance(revision, str)
-        or re.fullmatch(r"[0-9a-f]{40,64}", revision) is None
+        not isinstance(revision, str) or re.fullmatch(r"[0-9a-f]{40,64}", revision) is None
         for revision in retrieval_revisions
     ):
         raise ReleaseEvidenceError("Qualification retrieval revision is invalid")
@@ -223,12 +224,15 @@ def validate_qualification_report(
     policy_revision = report.get("control_plane_policy_revision")
     if not isinstance(policy_revision, str) or not policy_revision:
         raise ReleaseEvidenceError("Control-plane policy revision is missing")
+    if policy_revision != CONTROL_PLANE_POLICY_REVISION:
+        raise ReleaseEvidenceError("Qualification control-plane policy revision is stale")
 
     return {
         "profile": expected_profile,
         "attempts": attempts,
         "successful_runs": successful_runs,
         "success_rate": success_rate,
+        "control_plane_policy_revision": policy_revision,
     }
 
 

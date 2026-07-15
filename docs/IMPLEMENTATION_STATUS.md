@@ -93,15 +93,17 @@ and manager architecture are unchanged vision inputs; they are not completion cl
 
 ### Security and operations
 
-- [x] Source instructions remain untrusted data; cloud contact identifiers are redacted and
-  confidential/restricted evidence is denied to cloud tools.
+- [x] Source instructions remain untrusted data. Cloud contact identifiers are redacted at the
+  final model boundary; diagnostic steps inherit the highest classification across their complete
+  persisted canonical/evidence scope, and any confidential/restricted member blocks cloud execution before
+  prompt transmission.
 - [x] Installation model/source/locale/company fields are allowlist and bounds validated. Durable run
   cancellation fails closed: DBOS cancellation must succeed before run, approval, or candidate state
   can be changed. Retry always uses the exact pinned published workflow version, including built-ins.
 - [x] Archive traversal/symlink/bomb, formula-like cells, HTML XSS, auth/CSRF, arbitrary condition
   code, duplicate runs/decisions, and candidate rejection are covered by automated tests.
 - [x] Default Docker networking blocks app egress; cloud access requires the allowlisted Squid
-  profile for Groq or Mistral.
+  profile and HTTPS CONNECT to Groq or Mistral on port 443.
 - [x] Opt-in OpenTelemetry exports content-safe HTTP metrics/traces to digest-pinned Jaeger v2.19.
   The live Jaeger service list contains `agi-control-plane`.
 - [x] PowerShell and Linux backup/restore scripts cover the application DB, DBOS system DB, and the
@@ -165,7 +167,7 @@ release blockers above are closed. External write actions remain prohibited.
 
 ## Current verification evidence
 
-- Backend suite: 83 tests; Ruff passes. The receipt integrity suite includes digest tampering,
+- Backend suite: 88 tests; Ruff passes. The receipt integrity suite includes digest tampering,
   missing-member rejection, legacy receipt absence, and unknown-classification rejection.
 - Frontend suite: 8 Vitest tests; production build passes.
 - Ruff and Alembic drift: pass; migration head `20260713_0007`.
@@ -183,12 +185,17 @@ release blockers above are closed. External write actions remain prohibited.
   seconds, `TimeoutError` at `company_agent`; Linux/x86-64 container, 12 CPUs, 7,902 MiB memory,
   Ollama context 8,192, no VRAM. It records workflow `qualification-local-balanced:1`, agent
   versions `3/3/3/2`, retrieval revision, policy revision, and effective-prompt hashes.
+- Current release policy is `2026-07-15.2`; the validator rejects qualification evidence from any
+  earlier revision. The `2026-07-15.1` 9B report above remains failure history, not current release
+  qualification evidence.
 - Final-image receipt smoke: each model prompt exposes at most three evidence IDs while the five
   calculation receipts bind 184, 183, 183, 400, and 258 complete verification members respectively;
   the inspection transaction was rolled back.
 - Observability smoke: Jaeger v2 UI/API is reachable only in the explicit profile and receives
   `agi-control-plane` OTLP traces; the standard stack was restored afterward.
 - No-egress: an HTTPS request from the default app container is blocked.
+- Cloud-egress smoke: Squid 6.10 parses the checked-in policy; an `example.com` HTTPS tunnel is
+  denied while Groq and Mistral HTTPS tunnels reach provider-auth responses through port 443 only.
 - Backup/restore and clean-production evidence are recorded above; generated release reports remain
   ignored under `artifacts/release/`.
 

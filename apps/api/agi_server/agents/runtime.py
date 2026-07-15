@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from agi_server.agents.contracts import (
@@ -17,6 +18,7 @@ from agi_server.agents.contracts import (
 from agi_server.agents.model_gateway import build_pydantic_ai_agent, resolve_model_profile
 from agi_server.agents.registry import AgentRegistry, ManagedAgentSpec
 from agi_server.config import Settings
+from agi_server.db import CanonicalEntity, EvidenceItem
 from agi_server.domain.metrics import MetricSnapshot
 from agi_server.ingestion import resolve_evidence_excerpt
 from agi_server.okf import FileSystemOKFBundle
@@ -29,6 +31,12 @@ OUTPUT_TYPES = {
 }
 EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 PHONE_PATTERN = re.compile(r"(?<!\d)(?:\+?\d[\d ()-]{7,}\d)(?!\d)")
+DATA_CLASSIFICATION_ORDER = {
+    "public": 0,
+    "internal": 1,
+    "confidential": 2,
+    "restricted": 3,
+}
 
 
 @dataclass(frozen=True)
@@ -49,6 +57,30 @@ def redact_identifiers(value: Any) -> Any:
     if isinstance(value, str):
         return PHONE_PATTERN.sub("[REDACTED_PHONE]", EMAIL_PATTERN.sub("[REDACTED_EMAIL]", value))
     return value
+
+
+def classify_model_data_scope(db: Session) -> str:
+    """Classify the complete canonical/evidence scope used by a diagnostic."""
+    classifications = set(db.scalars(select(EvidenceItem.classification).distinct()))
+    classifications.update(db.scalars(select(CanonicalEntity.classification).distinct()))
+    unknown = classifications.difference(DATA_CLASSIFICATION_ORDER)
+    if unknown:
+        raise ValueError(f"Unknown evidence classifications: {sorted(unknown)}")
+    return max(
+        classifications,
+        key=DATA_CLASSIFICATION_ORDER.__getitem__,
+        default="internal",
+    )
+
+
+def enforce_cloud_data_policy(classification: str, *, cloud: bool) -> None:
+    """Fail closed before a cloud call can receive protected diagnostic context."""
+    if classification not in DATA_CLASSIFICATION_ORDER:
+        raise ValueError(f"Unknown model data classification: {classification}")
+    if cloud and classification in {"confidential", "restricted"}:
+        raise PermissionError(
+            "Cloud profiles cannot process confidential or restricted diagnostic data"
+        )
 
 
 class ScopedCapabilityTools:
@@ -150,6 +182,9 @@ async def run_managed_agent(
         raise ValueError("Agent specification ID does not match requested agent")
     output_type = OUTPUT_TYPES[spec.output_type]
     profile = resolve_model_profile(profile_id, settings)
+    if tools.cloud != (not profile.local):
+        raise RuntimeError("Model profile and capability-tool trust boundary do not match")
+    prompt = redact_identifiers(prompt) if tools.cloud else prompt
     agent = build_pydantic_ai_agent(
         spec,
         output_type,

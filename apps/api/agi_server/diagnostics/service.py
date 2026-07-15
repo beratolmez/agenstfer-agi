@@ -21,7 +21,13 @@ from agi_server.agents.contracts import (
 )
 from agi_server.agents.model_gateway import resolve_model_profile
 from agi_server.agents.registry import AgentRegistry
-from agi_server.agents.runtime import AgentExecution, ScopedCapabilityTools, run_managed_agent
+from agi_server.agents.runtime import (
+    AgentExecution,
+    ScopedCapabilityTools,
+    classify_model_data_scope,
+    enforce_cloud_data_policy,
+    run_managed_agent,
+)
 from agi_server.config import Settings
 from agi_server.db import (
     Artifact,
@@ -80,9 +86,7 @@ def _signal_prompt_view(metrics: MetricSnapshot) -> list[dict[str, Any]]:
 
 def _claim_prompt_view(claims: list[MaterialClaim]) -> list[MaterialClaim]:
     return [
-        claim.model_copy(
-            update={"evidence_ids": claim.evidence_ids[:MODEL_EVIDENCE_LIMIT]}
-        )
+        claim.model_copy(update={"evidence_ids": claim.evidence_ids[:MODEL_EVIDENCE_LIMIT]})
         for claim in claims
     ]
 
@@ -120,9 +124,7 @@ def _usage_total(executions: list[AgentExecution]) -> dict[str, int]:
     return {key: sum(int(item.usage.get(key, 0)) for item in executions) for key in keys}
 
 
-def _evidence_review_prompt(
-    claims: list[MaterialClaim], evidence_catalog: dict[str, Any]
-) -> str:
+def _evidence_review_prompt(claims: list[MaterialClaim], evidence_catalog: dict[str, Any]) -> str:
     evidence_ids = {item for claim in claims for item in claim.evidence_ids}
     batch_catalog = {
         evidence_id: evidence_catalog[evidence_id]
@@ -289,14 +291,20 @@ async def _agent_step(
         model_profile=profile_id,
     )
     run.current_step = agent_id
-    profile = resolve_model_profile(profile_id, settings)
-    step.model_profile = profile.id
-    step.model_provider = profile.provider
-    step.model_name = profile.model_name
-    step.data_classification = "internal"
-    step.redaction_applied = profile.provider in {"groq", "mistral"}
-    db.commit()
     try:
+        profile = resolve_model_profile(profile_id, settings)
+        step.model_profile = profile.id
+        step.model_provider = profile.provider
+        step.model_name = profile.model_name
+        step.data_classification = classify_model_data_scope(db)
+        step.redaction_applied = False
+        db.commit()
+        enforce_cloud_data_policy(
+            step.data_classification,
+            cloud=not profile.local,
+        )
+        step.redaction_applied = not profile.local
+        db.commit()
         model_override = (model_overrides or {}).get(agent_id)
         if agent_id == "evidence-reviewer" and evidence_claims is not None:
             execution = await _run_evidence_reviewer(
@@ -328,7 +336,7 @@ async def _agent_step(
     step.model_profile = execution.profile_id
     step.model_provider = execution.provider
     step.model_name = execution.model_name
-    step.data_classification = "internal"
+    step.data_classification = classify_model_data_scope(db)
     step.redaction_applied = execution.provider in {"groq", "mistral"}
     step.token_usage = execution.usage
     step.completed_at = utcnow()
@@ -352,9 +360,7 @@ def _material_claims(
         )
     for signal in metrics.signals:
         if not signal.verification_evidence_id:
-            raise ValueError(
-                f"Metric signal {signal.id} has no deterministic verification receipt"
-            )
+            raise ValueError(f"Metric signal {signal.id} has no deterministic verification receipt")
         claims.append(
             MaterialClaim(
                 id=f"metric-{signal.id}",
@@ -494,18 +500,6 @@ async def run_growth_diagnostic(
         profile = resolve_model_profile(profile_id, settings)
         if not model_overrides:
             await _require_ready_model(settings, profile_id)
-        if not profile.local:
-            blocked = db.scalar(
-                select(EvidenceItem.id).where(
-                    EvidenceItem.classification.in_(["confidential", "restricted"])
-                )
-            )
-            if blocked:
-                raise PermissionError(
-                    "Cloud diagnostic is blocked while confidential or restricted "
-                    "evidence is in scope"
-                )
-
         metric_step = _create_step(db, run.id, 1, "deterministic-metrics", "metric", run.input_json)
         metrics = calculate_verified_growth_metrics(db)
         metric_step.status = "completed"
@@ -564,9 +558,7 @@ async def run_growth_diagnostic(
         claims = _material_claims(metrics, company, hypotheses)
         claims_for_model = _claim_prompt_view(claims)
         evidence_catalog: dict[str, Any] = {}
-        for evidence_id in {
-            item for claim in claims_for_model for item in claim.evidence_ids
-        }:
+        for evidence_id in {item for claim in claims_for_model for item in claim.evidence_ids}:
             row = db.get(EvidenceItem, evidence_id)
             if row is None:
                 continue

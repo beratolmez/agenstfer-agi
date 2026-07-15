@@ -76,6 +76,12 @@ Observed on 15 July 2026 with the current production-path harness and policy rev
 memory, 8,192 Ollama context, and no VRAM. This validates harness provenance and failure recording;
 it is not qualification, and 9B remains unsupported.
 
+Policy revision `2026-07-15.2` adds complete diagnostic-scope classification propagation, a
+fail-closed cloud boundary, and final-boundary identifier redaction. The release-evidence validator
+now requires an exact match with the running code's policy revision. Therefore the historical
+`2026-07-15.1` smoke above cannot qualify the current build; the next real qualification must report
+`2026-07-15.2`.
+
 ## Failure handling
 
 A failed profile remains configurable for development but cannot be selected as a production-supported profile. Never weaken evidence or unsupported-number gates to make a model pass.

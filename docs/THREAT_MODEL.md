@@ -33,7 +33,11 @@ Company source content, credentials, personal/contact data, canonical context, O
 - Agent and workflow publication revalidates code-defined model/output/capability bindings. New
   agent IDs start at version 1 and later versions are created only by cloning, so client-supplied
   version numbers cannot forge history.
-- Classification and redaction before cloud calls; block confidential/restricted data.
+- Classification and redaction before cloud calls. Because the MVP diagnostic computes aggregate
+  metrics across the complete persisted canonical context, the model-call classification is the
+  highest classification in that canonical/evidence scope; any `confidential` or `restricted` member blocks
+  the cloud call before prompt transmission. The final model-gateway boundary also reapplies contact
+  identifier redaction and rejects a local/cloud tool-boundary mismatch.
 - Installation configuration accepts only code-defined model profiles, source modes, locales, and
   bounded company fields. A UI-provided provider URL, model identifier, or secret is never trusted.
 - Compose allowlists application environment variables. Cloud API keys are mounted only as the
@@ -58,6 +62,8 @@ the MVP build.
 Metric-receipt tampering and missing-member rejection are mandatory for numerical-claim changes.
 Malicious editable-agent-prompt, arbitrary agent contract value, version-lineage forgery, and
 unresolved workflow-agent binding tests are mandatory for agent-registry or model-gateway changes.
+Cloud-model tests must also cover aggregate-scope classification propagation, trust-boundary mismatch,
+and HTTPS-only provider allowlisting at the egress proxy.
 
 ## Deferred risks
 

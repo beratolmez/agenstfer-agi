@@ -18,6 +18,7 @@ from agi_server.db import (
     AgentDefinitionRow,
     ApprovalRequest,
     Base,
+    CanonicalEntity,
     CapabilityDefinitionRow,
     OKFCandidate,
     WorkflowDefinitionRow,
@@ -284,9 +285,61 @@ def test_qualification_workflow_pins_profile_agents_and_effective_prompt_hashes(
             "wiki-curator",
         }
         assert set(provenance["agent_model_profiles"].values()) == {"local-strong"}
-        assert all(
-            len(digest) == 64 for digest in provenance["effective_prompt_sha256"].values()
+        assert all(len(digest) == 64 for digest in provenance["effective_prompt_sha256"].values())
+    engine.dispose()
+
+
+def test_cloud_qualification_blocks_restricted_canonical_scope_before_model(
+    tmp_path: Path,
+) -> None:
+    engine, local_session = _database(tmp_path)
+    knowledge_root = tmp_path / "knowledge"
+    settings = Settings(
+        knowledge_root=knowledge_root,
+        cloud_models_enabled=True,
+        cloud_provider="groq",
+        cloud_api_key=SecretStr("test-key"),
+        enable_dbos=False,
+    )
+    with local_session() as db:
+        sync_demo_company(db, settings.raw_root)
+        db.add(
+            CanonicalEntity(
+                id="restricted-account",
+                entity_type="accounts",
+                classification="restricted",
+            )
         )
+        db.commit()
+        workflow = prepare_qualification_workflow(db, "cloud-balanced")
+
+        with pytest.raises(PermissionError, match="restricted diagnostic data"):
+            asyncio.run(
+                start_persisted_workflow(
+                    db,
+                    settings,
+                    workflow,
+                    "cloud-restricted-scope",
+                    None,
+                )
+            )
+
+        run = db.scalar(
+            select(WorkflowRun).where(WorkflowRun.idempotency_key == "cloud-restricted-scope")
+        )
+        assert run is not None and run.status == "failed"
+        blocked_step = db.scalar(
+            select(WorkflowStepRun).where(
+                WorkflowStepRun.run_id == run.id,
+                WorkflowStepRun.agent_id == "company-analyst",
+            )
+        )
+        assert blocked_step is not None
+        assert blocked_step.status == "failed"
+        assert blocked_step.model_provider == "groq"
+        assert blocked_step.data_classification == "restricted"
+        assert blocked_step.redaction_applied is False
+        assert blocked_step.token_usage is None
     engine.dispose()
 
 
@@ -455,9 +508,7 @@ def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> 
             "reports/growth-diagnostic.md"
         ]
         qualification = summarize_qualification_run(run)
-        assert qualification["material_claim_count"] == qualification[
-            "supported_claim_count"
-        ]
+        assert qualification["material_claim_count"] == qualification["supported_claim_count"]
         assert qualification["evidence_coverage"] == 100
         assert qualification["unsupported_numerical_claims"] == 0
         duplicate = asyncio.run(

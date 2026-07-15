@@ -17,7 +17,12 @@ from agi_server.agents.contracts import (
     OpportunityHypotheses,
 )
 from agi_server.agents.model_gateway import resolve_model_profile
-from agi_server.agents.runtime import ScopedCapabilityTools, run_managed_agent
+from agi_server.agents.runtime import (
+    ScopedCapabilityTools,
+    classify_model_data_scope,
+    enforce_cloud_data_policy,
+    run_managed_agent,
+)
 from agi_server.config import Settings
 from agi_server.db import (
     AgentDefinitionRow,
@@ -291,8 +296,14 @@ async def _execute_node(
         step.model_profile = profile.id
         step.model_provider = profile.provider
         step.model_name = profile.model_name
-        step.data_classification = "internal"
-        step.redaction_applied = profile.provider in {"groq", "mistral"}
+        step.data_classification = classify_model_data_scope(db)
+        step.redaction_applied = False
+        db.commit()
+        enforce_cloud_data_policy(
+            step.data_classification,
+            cloud=not profile.local,
+        )
+        step.redaction_applied = not profile.local
         db.commit()
         metrics = (
             MetricSnapshot.model_validate(result["metrics"])
@@ -313,15 +324,9 @@ async def _execute_node(
             hypotheses = OpportunityHypotheses.model_validate(
                 result["agent_results"]["growth-opportunity-analyst"]
             )
-            evidence_claims = _claim_prompt_view(
-                _material_claims(metrics, company, hypotheses)
-            )
+            evidence_claims = _claim_prompt_view(_material_claims(metrics, company, hypotheses))
             evidence_catalog = {}
-            for evidence_id in {
-                item
-                for claim in evidence_claims
-                for item in claim.evidence_ids
-            }:
+            for evidence_id in {item for claim in evidence_claims for item in claim.evidence_ids}:
                 row = db.get(EvidenceItem, evidence_id)
                 if row is None:
                     continue
@@ -360,7 +365,7 @@ async def _execute_node(
         step.model_profile = execution.profile_id
         step.model_provider = execution.provider
         step.model_name = execution.model_name
-        step.data_classification = "internal"
+        step.data_classification = classify_model_data_scope(db)
         step.redaction_applied = execution.provider in {"groq", "mistral"}
         step.token_usage = execution.usage
     elif node.kind == NodeKind.REPORT_OUTPUT:
@@ -584,9 +589,7 @@ async def durable_decision_step(run_id: str, payload: dict[str, Any]) -> dict[st
 def durable_expiry_step(run_id: str, approval_id: str) -> dict[str, Any]:
     with SessionLocal() as db:
         approval = db.scalar(
-            select(ApprovalRequest)
-            .where(ApprovalRequest.id == approval_id)
-            .with_for_update()
+            select(ApprovalRequest).where(ApprovalRequest.id == approval_id).with_for_update()
         )
         run = db.get(WorkflowRun, run_id)
         if approval is None or run is None or approval.run_id != run_id:
