@@ -26,7 +26,13 @@ Company source content, credentials, personal/contact data, canonical context, O
   fall back to representative raw rows; unknown evidence classifications block receipt creation.
 - HTML export escaping. Formula-like imported cells are flagged as untrusted; any future CSV export
   must escape formula prefixes.
-- Prompt-injection separation: source content cannot modify system policy or tool scope.
+- Prompt-injection separation: source content cannot modify system policy or tool scope. The model
+  gateway appends an immutable control-plane policy after every versioned editable agent instruction;
+  even an administrator-authored prompt cannot reclassify source text as instructions, expand
+  capabilities, authorize external actions, or invent evidence IDs.
+- Agent and workflow publication revalidates code-defined model/output/capability bindings. New
+  agent IDs start at version 1 and later versions are created only by cloning, so client-supplied
+  version numbers cannot forge history.
 - Classification and redaction before cloud calls; block confidential/restricted data.
 - Installation configuration accepts only code-defined model profiles, source modes, locales, and
   bounded company fields. A UI-provided provider URL, model identifier, or secret is never trusted.
@@ -48,6 +54,8 @@ unexpected egress, duplicate run/approval, stale candidate, and restore tamperin
 rebinding/redirect tests become mandatory before adding a URL connector; no URL capability exists in
 the MVP build.
 Metric-receipt tampering and missing-member rejection are mandatory for numerical-claim changes.
+Malicious editable-agent-prompt, arbitrary agent contract value, version-lineage forgery, and
+unresolved workflow-agent binding tests are mandatory for agent-registry or model-gateway changes.
 
 ## Deferred risks
 

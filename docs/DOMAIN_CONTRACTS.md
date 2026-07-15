@@ -39,16 +39,27 @@ PostgreSQL owns operational state and evidence locators. OKF owns portable compa
 ## Agents, workflows, and artifacts
 
 - **Capability:** code-defined, versioned, allowlisted tool contract.
-- **Agent Version:** immutable published prompt, output schema, capability versions, default model profile, and policy limits.
+- **Agent Draft:** administrator-editable typed definition with a code-allowlisted model profile,
+  output type, capabilities, classification, risk, timeout, token budget, and versioned instruction.
+- **Agent Version:** immutable published typed definition. The versioned instruction is composed with
+  an immutable control-plane system policy at execution time; it is never the complete trust policy.
 - **Workflow Draft:** editable typed DAG.
-- **Workflow Version:** immutable published DAG referencing exact agent and capability versions.
+- **Workflow Version:** immutable published DAG whose agent nodes contain exact `agent_id` +
+  `agent_version` bindings and code-defined capability contracts.
 - **Workflow Run:** idempotent execution pinned to workflow and model profiles.
 - **Step Run:** attempt, timing, status, safe input/output references, provider/model profile,
   classification/redaction outcome, usage, and safe error metadata.
 - **Approval Request:** pending decision, requested role, artifact, expiry, actor, reason, and decision time.
 - **Artifact:** content-addressed diagnostic, report, trace, or OKF candidate produced by a run.
 
-Published objects are immutable. A new edit creates a new version.
+Published objects are immutable. A new edit creates a new version through the clone operation. A new
+agent ID must start at version 1; clients cannot forge a later version by PUT. Full prompt detail is
+admin-only. Workflow publication must resolve each agent reference and reject output-type or model-
+profile mismatches. Capability IDs remain code-defined and allowlisted.
+
+A **Workflow Schedule** references one published workflow version and stores a validated cron,
+timezone, enabled state, next-run time, and duplicate-run guard. Enabling or disabling it is an
+authenticated admin operation and is audited.
 
 The v0.1 `POST /api/diagnostics/run` compatibility contract accepts only a published workflow ID and
 version and returns a persisted run descriptor. Clients obtain the diagnostic from run state; this

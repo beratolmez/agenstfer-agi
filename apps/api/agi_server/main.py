@@ -1504,6 +1504,25 @@ def agent_versions(
     }
 
 
+@app.get("/api/agents/{agent_id}/versions/{version}")
+def agent_version_detail(
+    agent_id: str,
+    version: int,
+    db: Annotated[Session, Depends(get_db)],
+    _: Annotated[User | None, Depends(require_role("admin"))],
+) -> dict[str, Any]:
+    """Return the editable prompt only to an authenticated administrator."""
+    row = db.get(AgentDefinitionRow, (agent_id, version))
+    if row is None:
+        raise HTTPException(status_code=404, detail="Agent version bulunamadı")
+    return {
+        **agent_from_row(row).model_dump(),
+        "status": row.status,
+        "created_at": row.created_at,
+        "updated_at": row.updated_at,
+    }
+
+
 @app.post("/api/agents/{agent_id}/versions/{version}/clone", status_code=201)
 def agent_clone(
     agent_id: str,
@@ -1914,6 +1933,37 @@ def workflow_schedules(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any
             }
             for row in rows
         ]
+    }
+
+
+@app.put("/api/workflow-schedules/{schedule_id}")
+def workflow_schedule_update(
+    schedule_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+    enabled: Annotated[bool, Query()],
+) -> dict[str, Any]:
+    row = db.get(WorkflowSchedule, schedule_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Workflow schedule bulunamadı")
+    row.enabled = enabled
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="workflow.schedule_enabled" if enabled else "workflow.schedule_disabled",
+        target_type="workflow_schedule",
+        target_id=row.id,
+        metadata={"workflow_id": row.workflow_id, "version": row.workflow_version},
+    )
+    db.commit()
+    return {
+        "id": row.id,
+        "workflow_id": row.workflow_id,
+        "workflow_version": row.workflow_version,
+        "cron": row.cron,
+        "timezone": row.timezone,
+        "enabled": row.enabled,
+        "last_fire_key": row.last_fire_key,
     }
 
 

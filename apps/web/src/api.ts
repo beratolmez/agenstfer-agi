@@ -1,9 +1,12 @@
 import type {
+  AgentDefinitionView,
   AuthSession,
+  CapabilityDefinitionView,
   DataSourceView,
   FilePreview,
   GrowthDiagnostic,
   ModelProfileView,
+  ManagedUserView,
   OKFCandidateView,
   ApprovalView,
   SetupProgress,
@@ -11,6 +14,8 @@ import type {
   SourceSyncRunView,
   UserView,
   WorkflowDefinition,
+  WorkflowScheduleView,
+  WorkflowSummary,
   WorkflowRunDetail,
   WorkflowRunStart,
   WorkflowRunView,
@@ -106,11 +111,15 @@ export const api = {
     },
   ),
   workflow: () => request<WorkflowDefinition>("/api/workflows/default"),
-  cloneWorkflow: (workflow: WorkflowDefinition) =>
-    request<WorkflowDefinition>(
-      `/api/workflows/${encodeURIComponent(workflow.id)}/versions/${workflow.version}/clone?target_id=growth-diagnostic`,
+  workflows: () => request<{ items: WorkflowSummary[] }>("/api/workflows"),
+  cloneWorkflow: (workflow: WorkflowDefinition, targetId?: string) => {
+    const target = targetId ?? (workflow.id.startsWith("builtin-") ? "growth-diagnostic" : null);
+    const query = target ? `?target_id=${encodeURIComponent(target)}` : "";
+    return request<WorkflowDefinition>(
+      `/api/workflows/${encodeURIComponent(workflow.id)}/versions/${workflow.version}/clone${query}`,
       { method: "POST" },
-    ),
+    );
+  },
   workflowVersions: (workflowId: string) =>
     request<{ items: WorkflowDefinition[] }>(
       `/api/workflows/${encodeURIComponent(workflowId)}/versions`,
@@ -178,6 +187,18 @@ export const api = {
         headers: { "Idempotency-Key": `workflow-${crypto.randomUUID()}` },
       },
     ),
+  workflowSchedules: () =>
+    request<{ items: WorkflowScheduleView[] }>("/api/workflow-schedules"),
+  createWorkflowSchedule: (workflow: WorkflowDefinition, cron: string, timezone: string) =>
+    request<WorkflowScheduleView>(
+      `/api/workflows/${encodeURIComponent(workflow.id)}/versions/${workflow.version}/schedules?cron=${encodeURIComponent(cron)}&timezone=${encodeURIComponent(timezone)}`,
+      { method: "POST" },
+    ),
+  setWorkflowScheduleEnabled: (scheduleId: string, enabled: boolean) =>
+    request<WorkflowScheduleView>(
+      `/api/workflow-schedules/${encodeURIComponent(scheduleId)}?enabled=${enabled}`,
+      { method: "PUT" },
+    ),
   knowledge: (query = "") =>
     request<{ items: Array<Record<string, unknown>> }>(`/api/knowledge?query=${encodeURIComponent(query)}`),
   setupDemo: () => request<Record<string, unknown>>("/api/setup/demo", { method: "POST" }),
@@ -220,11 +241,34 @@ export const api = {
     throw new Error("Diagnostic workflow zaman aşımına uğradı");
   },
   evidence: (evidenceId: string) => request<Record<string, unknown>>(`/api/evidence/${encodeURIComponent(evidenceId)}`),
-  agents: () => request<{ items: Array<Record<string, unknown>> }>("/api/agents"),
-  capabilities: () => request<{ items: Array<Record<string, unknown>> }>("/api/capabilities"),
-  users: () => request<{ items: Array<UserView & { active: boolean; created_at: string }> }>("/api/users"),
+  agents: () => request<{ items: AgentDefinitionView[] }>("/api/agents"),
+  agentVersions: (agentId: string) => request<{ items: AgentDefinitionView[] }>(
+    `/api/agents/${encodeURIComponent(agentId)}/versions`,
+  ),
+  agentVersion: (agentId: string, version: number) => request<AgentDefinitionView>(
+    `/api/agents/${encodeURIComponent(agentId)}/versions/${version}`,
+  ),
+  cloneAgent: (agent: AgentDefinitionView) => request<AgentDefinitionView>(
+    `/api/agents/${encodeURIComponent(agent.id)}/versions/${agent.version}/clone`,
+    { method: "POST" },
+  ),
+  saveAgent: (agent: AgentDefinitionView) => request<AgentDefinitionView>(
+    `/api/agents/${encodeURIComponent(agent.id)}/draft`,
+    { method: "PUT", body: JSON.stringify(agent) },
+  ),
+  publishAgent: (agent: AgentDefinitionView) => request<AgentDefinitionView>(
+    `/api/agents/${encodeURIComponent(agent.id)}/versions/${agent.version}/publish`,
+    { method: "POST" },
+  ),
+  capabilities: () => request<{ items: CapabilityDefinitionView[] }>("/api/capabilities"),
+  users: () => request<{ items: ManagedUserView[] }>("/api/users"),
   createUser: (payload: { email: string; name: string; password: string; roles: string[] }) =>
     request<UserView>("/api/users", { method: "POST", body: JSON.stringify(payload) }),
+  updateUserRoles: (userId: string, roles: string[], active: boolean) =>
+    request<UserView>(`/api/users/${encodeURIComponent(userId)}/roles`, {
+      method: "PUT",
+      body: JSON.stringify({ roles, active }),
+    }),
   sources: () => request<{ items: DataSourceView[] }>("/api/sources"),
   sourceSyncRuns: () => request<{ items: SourceSyncRunView[] }>("/api/sources/sync-runs"),
   previewSourceFile: (file: File, entityType: string) => {

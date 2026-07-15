@@ -118,13 +118,13 @@ export default function App() {
         {view === "knowledge" ? <Knowledge /> : null}
         {view === "workflow" ? (
           <Suspense fallback={<div className="loading-state">Workflow editörü yükleniyor…</div>}>
-            <WorkflowEditor />
+            <WorkflowEditor userRoles={user?.roles ?? []} />
           </Suspense>
         ) : null}
         {view === "setup" ? <SetupWizard onComplete={() => navigate("dashboard")} /> : null}
         {view === "sources" ? <Sources /> : null}
         {view === "approvals" ? <ApprovalCenter /> : null}
-        {view === "settings" ? <Settings onSetup={() => navigate("setup")} /> : null}
+        {view === "settings" ? <Settings onSetup={() => navigate("setup")} userRoles={user?.roles ?? []} /> : null}
       </div>
     </div>
   );

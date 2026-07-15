@@ -125,7 +125,7 @@ sequenceDiagram
     CP->>ING: test_connection + preview + sync(cursor)
     ING->>CP: snapshot + canonical records + EvidenceItem
     CP->>OKF: Reference ve concept adaylarını derle
-    CP->>WF: Growth Diagnostic workflow v2 başlat
+    CP->>WF: Growth Diagnostic workflow v3 başlat
     WF->>AI: Company Analyst
     AI-->>WF: typed company analysis
     WF->>AI: Growth Opportunity Analyst
@@ -219,6 +219,12 @@ Kurulum UI'sı yalnız code-defined profil kataloğunu listeler; secret veya ser
 girişi kabul etmez. Seçilen profil gerçek probe'a gönderilir ve diagnostic başlamadan önce immutable
 bir published workflow sürümündeki bütün agent node'larına pinlenir.
 
+Registry'deki agent instruction administrator tarafından versioned olarak düzenlenebilir; ancak bu
+metin bütün sistem prompt'u değildir. Model Gateway her çağrıda immutable control-plane policy'yi
+editable instruction'ın sonuna ekler. Bu policy kaynak/evidence/retrieval içeriğini untrusted data
+olarak tutar, capability genişletmeyi ve external action'ı reddeder, model çıktısını evidence saymaz
+ve yalnız runtime'ın verdiği evidence ID'lerine izin verir. Editable prompt bu policy'yi kaldıramaz.
+
 Local Qwen 3.5 profilleri typed extraction sırasında unpersisted reasoning'i kapatır ve Pydantic AI
 PromptedOutput kullanır. Company Analyst v3 ve Growth Opportunity Analyst v3 bounded prompt/output
 sözleşmeleri kullanır; opportunity contract aynı beş signal ID'yi tam birer kez ister. Evidence
@@ -272,7 +278,9 @@ capability atamaları hangi verinin sunulabileceğini tanımlar; agent çalışm
 genişletemez. Current published v3 analyzer/reviewer timeout ve output bütçeleri bounded ve
 fail-closed'dur; bir profil release için ayrıca 20-run golden qualification geçmelidir.
 
-`ManagedAgentSpec`; Pydantic AI Agent Spec'e model profile, prompt version, typed output, capability ID, timeout/token sınırı, veri sınıflandırması ve approval riski ekler.
+`ManagedAgentSpec`; Pydantic AI Agent Spec'e model profile, prompt version, typed output, capability ID, timeout/token sınırı, veri sınıflandırması ve approval riski ekler. Alanlar server-side
+allowlist/bounds ile doğrulanır. Yeni agent ID'si v1 ile başlar; sonraki sürüm yalnız clone ile açılır,
+published sürüm değiştirilemez. Full prompt detail yalnız Admin'e döner.
 
 İzinli capability seti:
 
@@ -280,7 +288,11 @@ fail-closed'dur; bir profil release için ayrıca 20-run golden qualification ge
 - `demo_crm.read`, `erp_file.read`, `metrics.calculate`
 - `wiki.propose_update`, `report.publish`
 
-Workflow DSL node'ları planla aynı sabit catalog'dan gelir. Publish öncesi: node allowlist, edge type, required config, tek trigger, erişilebilir output ve DAG kontrol edilir. Published sürüm immutable; run, workflow/agent/capability sürümlerine bağlanır.
+Workflow DSL node'ları planla aynı sabit catalog'dan gelir. Publish öncesi: node allowlist, edge type, required config, tek trigger, erişilebilir output ve DAG kontrol edilir. Ayrıca agent referansının
+published olduğu, node output contract'ının agent ile eşleştiği, model profilinin code catalog'da
+bulunduğu ve specialized Growth Diagnostic runtime için dört zorunlu rolün mevcut olduğu çözülür.
+Published sürüm immutable; run, workflow/agent/capability sürümlerine bağlanır. Web Console gerçek
+API'lerle workflow/agent version history, read-only published view ve schedule create/toggle sunar.
 
 ## 12. Güvenlik ve approval
 
@@ -288,6 +300,8 @@ Workflow DSL node'ları planla aynı sabit catalog'dan gelir. Publish öncesi: n
 - Parolalar Argon2id; cookie HttpOnly, Secure, SameSite; state-changing isteklerde CSRF.
 - Connector ve model secrets, env içine düz metin koymak yerine production Docker secret/master key ile şifrelenir.
 - Doküman içeriği untrusted input'tur; instruction/data ayrımı ve tool allowlist uygulanır.
+- Versioned editable agent prompt'u immutable control-plane policy'yi kaldıramaz veya tool/evidence
+  scope'unu genişletemez; publication binding validation fail-closed çalışır.
 - MVP build'inde URL ingestion capability yoktur; gelecek URL connector allowlist, DNS rebinding,
   private IP, redirect ve boyut sınırlarını geçmeden eklenemez.
 - HTML export escape edilir; formula benzeri tabular hücre uyarılır ve untrusted kalır. Gelecek CSV
@@ -415,7 +429,9 @@ Cloud profiles are permitted only through explicit administrator configuration a
 ### Release workflow and qualification automation
 
 The immutable built-in Growth Diagnostic workflow uses the reserved ID
-`builtin-growth-diagnostic` and version 2. User clones must use a non-reserved ID. It executes Company Analyst,
+`builtin-growth-diagnostic` and version 3. Version 3 pins exact agent versions in every agent node;
+the earlier unpinned version 2 remains historical and is not selected by default. User clones must
+use a non-reserved ID. The current version executes Company Analyst,
 Growth Opportunity Analyst, Evidence Reviewer, and Wiki Curator before report creation and durable
 approval. Dashboard compatibility reads the reserved built-in ID plus legacy/user
 `growth-diagnostic` IDs; therefore the browser displays the same persisted DBOS output that Approval

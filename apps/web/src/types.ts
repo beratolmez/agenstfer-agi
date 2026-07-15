@@ -83,6 +83,50 @@ export interface ModelProfileView {
   available: boolean;
 }
 
+export interface AgentDefinitionView {
+  id: string;
+  name: string;
+  version: number;
+  model_profile: "local-balanced" | "local-strong" | "cloud-balanced";
+  output_type: "CompanyAnalysis" | "OpportunityHypotheses" | "EvidenceReview" | "OKFChangeSet";
+  capabilities: string[];
+  timeout_seconds: number;
+  max_output_tokens: number;
+  data_classification: "public" | "internal" | "confidential" | "restricted";
+  approval_risk: "low" | "medium" | "high";
+  system_prompt?: string;
+  status: "draft" | "published";
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CapabilityDefinitionView {
+  id: string;
+  version: number;
+  name: string;
+  status: string;
+  definition: Record<string, unknown>;
+}
+
+export interface WorkflowSummary {
+  id: string;
+  version: number;
+  name: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkflowScheduleView {
+  id: string;
+  workflow_id: string;
+  workflow_version: number;
+  cron: string;
+  timezone: string;
+  enabled: boolean;
+  last_fire_key: string | null;
+}
+
 export interface WorkflowRunStart {
   run_id: string;
   status: string;
@@ -102,6 +146,11 @@ export interface UserView {
   email: string;
   name: string;
   roles: string[];
+}
+
+export interface ManagedUserView extends UserView {
+  active: boolean;
+  created_at: string;
 }
 
 export interface AuthSession {

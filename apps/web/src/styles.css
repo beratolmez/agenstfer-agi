@@ -171,13 +171,33 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .source-preview small { color: var(--muted); font-size: 9px; letter-spacing: 1px; }
 .source-preview code { display: block; margin-top: 11px; color: #33455e; font-size: 11px; white-space: pre-wrap; }
 
-.workflow-screen { display: grid; grid-template-rows: 78px minmax(0, 1fr) 50px; height: 100vh; background: white; }
+.workflow-screen { position: relative; display: grid; grid-template-rows: 78px minmax(0, 1fr) 50px; height: 100vh; background: white; }
 .workflow-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 0 28px; border-bottom: 1px solid var(--line); }
 .workflow-toolbar > div { display: flex; align-items: center; gap: 14px; }
 .workflow-toolbar h1 { margin: 0; font-size: 24px; letter-spacing: -0.6px; }
 .workflow-toolbar > div:first-child > span { padding: 5px 10px; border: 1px solid var(--line); border-radius: 5px; background: #f6f7f9; font-size: 11px; }
+.workflow-identity select { max-width: 190px; min-height: 36px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: white; font-size: 10px; }
 .workflow-toolbar button { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 17px; border: 1px solid #cbd4df; border-radius: 6px; background: white; font-size: 13px; font-weight: 600; cursor: pointer; }
 .workflow-toolbar .publish-button { border-color: #00868f; background: #00868f; color: white; }
+.workflow-toolbar button:disabled { cursor: not-allowed; opacity: 0.48; }
+.workflow-drawer { position: absolute; z-index: 24; top: 78px; right: 0; bottom: 50px; width: min(420px, calc(100vw - 28px)); padding: 18px; overflow: auto; border-left: 1px solid var(--line); background: white; box-shadow: -18px 16px 40px #14253b1c; }
+.workflow-drawer > header, .workflow-drawer > header > div, .schedule-panel h2 { display: flex; align-items: center; gap: 8px; }
+.workflow-drawer > header { justify-content: space-between; }
+.workflow-drawer h2 { margin: 0; font-size: 14px; }
+.workflow-drawer > header button, .workflow-version-list button, .schedule-panel button { min-height: 34px; border: 1px solid var(--line); border-radius: 6px; background: white; color: #34435a; cursor: pointer; }
+.workflow-version-list { display: grid; gap: 7px; margin-top: 16px; }
+.workflow-version-list button { display: flex; align-items: center; justify-content: space-between; padding: 10px; text-align: left; }
+.workflow-version-list button.is-selected { border-color: var(--teal); background: #eefafb; }
+.workflow-version-list button span { display: grid; gap: 3px; }
+.workflow-version-list small, .schedule-panel small, .schedule-panel p { color: var(--muted); font-size: 9px; }
+.schedule-panel { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.schedule-panel article { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+.schedule-panel article > div { display: grid; gap: 4px; }
+.schedule-panel article button { padding: 0 9px; font-size: 9px; }
+.schedule-form { display: grid; gap: 8px; margin-top: 14px; }
+.schedule-form label { display: grid; gap: 4px; color: var(--muted); font-size: 9px; }
+.schedule-form input { min-height: 34px; padding: 0 9px; border: 1px solid var(--line); border-radius: 5px; }
+.schedule-form button { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .workflow-body { display: grid; grid-template-columns: 235px minmax(0, 1fr) 286px; min-height: 0; }
 .node-catalog, .node-inspector { overflow: auto; border-right: 1px solid var(--line); background: white; }
 .node-catalog { padding: 17px 15px; }
@@ -219,6 +239,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .node-inspector input:disabled { background: #f7f9fb; color: #657187; }
 .inspector-note { margin-top: 20px; padding: 13px; border: 1px solid #cce2f4; border-radius: 6px; background: #eff8ff; color: #4c6079; font-size: 9px; line-height: 1.5; }
 .delete-button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 38px; margin-top: 36px; padding: 0 12px; border: 1px solid #e1c8c6; border-radius: 6px; background: white; color: #cf3328; font-size: 10px; cursor: pointer; }
+.node-inspector.is-readonly section, .node-inspector.is-readonly .inspector-note { pointer-events: none; opacity: 0.58; }
 .node-inspector--empty { display: grid; align-content: center; justify-items: center; color: #748096; text-align: center; }
 .node-inspector--empty h2 { margin-top: 12px; }
 .node-inspector--empty p { max-width: 190px; font-size: 11px; line-height: 1.5; }
@@ -358,6 +379,34 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .settings-card ul { max-height: 210px; margin: 14px 0 0; padding: 0; overflow: auto; list-style: none; }
 .settings-card li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line-soft); font-size: 10px; }
 .settings-card li span { color: var(--muted); }
+.registry-workspace { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 14px; max-width: 1180px; margin: 18px auto 0; }
+.registry-list, .registry-editor, .user-management { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: white; }
+.registry-list > header, .registry-list > header > div, .registry-editor > header, .registry-actions, .user-management > header { display: flex; align-items: center; gap: 8px; }
+.registry-list > header, .registry-editor > header { justify-content: space-between; }
+.registry-list h2, .registry-editor h2, .user-management h2 { margin: 0; font-size: 15px; }
+.registry-list > header button, .registry-actions button { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: white; font-size: 9px; cursor: pointer; }
+.registry-version { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 8px; padding: 10px; border: 1px solid var(--line-soft); border-radius: 6px; background: white; text-align: left; cursor: pointer; }
+.registry-version.is-selected { border-color: var(--teal); background: #eefafb; }
+.registry-version span { display: grid; gap: 3px; }
+.registry-version strong { font-size: 10px; }
+.registry-version small { color: var(--muted); font-size: 8px; }
+.registry-editor fieldset { min-width: 0; margin: 18px 0 0; padding: 0; border: 0; }
+.registry-form-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.registry-form-grid label, .prompt-editor { display: grid; gap: 5px; color: var(--muted); font-size: 9px; }
+.registry-form-grid input, .registry-form-grid select, .prompt-editor textarea { min-width: 0; min-height: 36px; padding: 8px; border: 1px solid var(--line); border-radius: 5px; background: white; font: inherit; }
+.capability-picker { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 15px; }
+.capability-picker > span { flex: 0 0 100%; color: var(--muted); font-size: 9px; }
+.capability-picker label { display: flex; align-items: center; gap: 5px; padding: 7px 9px; border: 1px solid var(--line-soft); border-radius: 5px; font-size: 9px; }
+.prompt-editor { margin-top: 15px; }
+.prompt-editor textarea { min-height: 130px; resize: vertical; }
+.user-management { max-width: 1180px; margin: 18px auto 0; }
+.user-list { margin-top: 12px; }
+.user-list article { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+.user-list article > div:first-child { display: grid; gap: 3px; }
+.user-list small { color: var(--muted); font-size: 9px; }
+.role-picker { display: flex; flex-wrap: wrap; gap: 5px; }
+.role-picker button { min-height: 28px; padding: 0 8px; border: 1px solid var(--line); border-radius: 5px; background: white; color: var(--muted); font-size: 8px; cursor: pointer; }
+.role-picker button.is-selected { border-color: var(--teal); background: #eefafb; color: #086d73; }
 .compact-form { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 14px; }
 .compact-form input, .compact-form select { min-width: 0; min-height: 34px; padding: 0 9px; border: 1px solid var(--line); border-radius: 5px; font-size: 10px; }
 .compact-form button { min-height: 34px; border: 0; border-radius: 5px; background: var(--navy); color: white; font-size: 10px; cursor: pointer; }
@@ -424,6 +473,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .workflow-screen { height: calc(100vh - 58px); }
   .workflow-toolbar { padding: 0 14px; }
   .workflow-toolbar h1 { font-size: 18px; }
+  .workflow-identity select { max-width: 120px; }
   .workflow-toolbar button { padding: 0 10px; }
   .workflow-toolbar button:not(.publish-button) { font-size: 0; }
   .workflow-body { grid-template-columns: minmax(0, 1fr); }
@@ -449,6 +499,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .source-inventory article { grid-template-columns: 26px minmax(0, 1fr) auto; padding: 10px 14px; }
   .source-run { display: none; }
   .settings-grid, .opportunity-cards { grid-template-columns: 1fr; }
+  .registry-workspace { grid-template-columns: 1fr; }
+  .registry-form-grid { grid-template-columns: 1fr 1fr; }
+  .user-list article { align-items: flex-start; flex-direction: column; }
   .approval-card { align-items: flex-start; flex-direction: column; }
   .approval-actions { flex-wrap: wrap; }
   .diff-review { inset: 72px 14px 14px; width: auto; }

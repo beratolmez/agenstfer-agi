@@ -19,7 +19,8 @@ durum:
 ## Mevcut durum
 
 Kod tabanı production-candidate seviyesindedir: ingestion/evidence/OKF, dört typed Pydantic AI
-agent, deterministic scoring, Evidence Reviewer, immutable workflow/agent sürümleri, gerçek DBOS
+agent, deterministic scoring, Evidence Reviewer, yönetilebilir immutable workflow/agent sürümleri,
+workflow version history ve schedules, gerçek DBOS
 durability, Approval Center, kalıcı kurulum sihirbazı, backup/restore, no-egress, SBOM ve güvenlik
 kontrolleri uygulanmıştır.
 
@@ -121,8 +122,9 @@ Canlı health ile `-Live`; no-egress, backup/restore ve release scan için:
 
 Linux script karşılıkları `scripts/*.sh` altındadır.
 
-`browser-e2e` modelden bağımsız dashboard, setup/demo sync, Sources ve güvenli workflow dry-run
-akışlarını izole volume'larda doğrular. Gerçek model diagnostic → citation → approval → export akışı
+`browser-e2e` modelden bağımsız dashboard, setup/demo sync, Sources, Agent Registry
+create/publish ve workflow version/schedule/dry-run akışlarını izole volume'larda doğrular. Gerçek
+model diagnostic → citation → approval → export akışı
 release için ayrıca çalıştırılmalıdır. Bu akış mevcut bir disposable deployment'a karşı şu wrapper
 ile çalıştırılır; secret değerlerini komut satırına yazmayın:
 

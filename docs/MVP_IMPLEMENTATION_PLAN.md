@@ -57,6 +57,8 @@ had reached Evidence Reviewer before failing after 939.27 seconds.
 
 - [x] Immutable Agent/Capability/Workflow versions and editable drafts.
 - [x] Code-defined capabilities; no custom code/plugin/unrestricted network nodes.
+- [x] Admin Agent Registry create/clone/edit/save/publish/version-detail flow, strict typed contract
+  allowlists, server-controlled version lineage, and immutable system-policy composition.
 - [x] CRUD/clone/validate/dry-run/publish/run, safe conditions/branches, schedules, idempotency, and
   persisted run/step/approval/artifact histories. Inline draft dry-run is a labeled deterministic
   simulation; only a published run invokes configured agents.
@@ -64,7 +66,8 @@ had reached Evidence Reviewer before failing after 939.27 seconds.
   decisions, and restart-safe PostgreSQL checkpoints.
 - [x] Cancellation first cancels the DBOS workflow and changes application state only on success;
   retry always references the original immutable published workflow version.
-- [x] React Flow actions, version list, run trace, and registry views use real APIs.
+- [x] React Flow actions, workflow selection/version history, schedule create/enable/disable, run
+  trace, and Agent/Capability registry management use real APIs. Published/history views are read-only.
 
 Exit gate: implementation passed; real-provider approval wait/resume remains part of final E2E.
 

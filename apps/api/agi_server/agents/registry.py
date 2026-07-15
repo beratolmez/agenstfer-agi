@@ -1,23 +1,36 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ManagedAgentSpec(BaseModel):
-    id: str
-    name: str
+    id: str = Field(pattern=r"^[a-z][a-z0-9_-]{2,79}$")
+    name: str = Field(min_length=2, max_length=160)
     version: int = Field(ge=1)
-    model_profile: str
-    output_type: str
-    capabilities: list[str]
+    model_profile: Literal["local-balanced", "local-strong", "cloud-balanced"]
+    output_type: Literal[
+        "CompanyAnalysis",
+        "OpportunityHypotheses",
+        "EvidenceReview",
+        "OKFChangeSet",
+    ]
+    capabilities: list[str] = Field(min_length=1, max_length=16)
     timeout_seconds: int = Field(gt=0, le=600)
     max_output_tokens: int = Field(gt=0, le=32768)
-    data_classification: str
-    approval_risk: str
-    system_prompt: str
+    data_classification: Literal["public", "internal", "confidential", "restricted"]
+    approval_risk: Literal["low", "medium", "high"]
+    system_prompt: str = Field(min_length=20, max_length=8000)
+
+    @field_validator("capabilities")
+    @classmethod
+    def capabilities_are_unique(cls, value: list[str]) -> list[str]:
+        if len(value) != len(set(value)):
+            raise ValueError("Agent capabilities must be unique")
+        return value
 
 
 class AgentRegistry:

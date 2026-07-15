@@ -1,15 +1,19 @@
 import {
   Bot,
   Box,
+  CalendarClock,
   Check,
   ChevronDown,
   CirclePlay,
+  Copy,
   Database,
   FileOutput,
   FileSearch,
   GitBranch,
   GripVertical,
+  History,
   Play,
+  Plus,
   Search,
   Save,
   ShieldCheck,
@@ -38,7 +42,13 @@ import {
 } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
-import type { WorkflowDefinition } from "../../types";
+import type {
+  AgentDefinitionView,
+  ModelProfileView,
+  WorkflowDefinition,
+  WorkflowScheduleView,
+  WorkflowSummary,
+} from "../../types";
 
 type Tone = "green" | "blue" | "violet" | "amber";
 interface WorkflowNodeData extends Record<string, unknown> {
@@ -150,23 +160,53 @@ function NodeCatalog() {
   );
 }
 
-function Inspector({ node, onChange, onDelete }: { node: FlowNode | null; onChange: (node: FlowNode) => void; onDelete: () => void }) {
+function Inspector({
+  node,
+  agents,
+  modelProfiles,
+  readOnly,
+  onChange,
+  onDelete,
+}: {
+  node: FlowNode | null;
+  agents: AgentDefinitionView[];
+  modelProfiles: ModelProfileView[];
+  readOnly: boolean;
+  onChange: (node: FlowNode) => void;
+  onDelete: () => void;
+}) {
   if (!node) return <aside className="node-inspector node-inspector--empty"><SlidersHorizontal size={28} /><h2>Node seçin</h2><p>Konfigürasyonu burada düzenleyebilirsiniz.</p></aside>;
   const currentNode = node;
   const config = currentNode.data.config;
   function updateConfig(key: string, value: unknown) {
     onChange({ ...currentNode, data: { ...currentNode.data, config: { ...config, [key]: value } } });
   }
+  function updateAgent(agentId: string) {
+    const selected = agents.find((agent) => agent.id === agentId);
+    onChange({
+      ...currentNode,
+      data: {
+        ...currentNode.data,
+        subtitle: selected?.name ?? agentId,
+        config: {
+          ...config,
+          agent_id: agentId,
+          agent_version: selected?.version,
+          output_type: selected?.output_type ?? config.output_type,
+        },
+      },
+    });
+  }
   return (
-    <aside className="node-inspector">
+    <aside className={`node-inspector ${readOnly ? "is-readonly" : ""}`}>
       <header><h2>{node.data.label}</h2><button type="button" aria-label="Inspector kapat"><X size={18} /></button></header>
       <section><h3>Genel</h3><label>ID<input value={node.id} disabled /></label><label>Açıklama<textarea value={node.data.subtitle} onChange={(event) => onChange({ ...node, data: { ...node.data, subtitle: event.target.value } })} /></label></section>
       {node.data.kind === "agent_run" ? (
         <section>
           <h3>Konfigürasyon</h3>
-          <label>Agent<select value={String(config.agent_id ?? "company-analyst")} onChange={(event) => updateConfig("agent_id", event.target.value)}><option value="company-analyst">Company Analyst</option><option value="growth-opportunity-analyst">Growth Opportunity Analyst</option><option value="evidence-reviewer">Evidence Reviewer</option><option value="wiki-curator">Wiki Curator</option></select></label>
-          <label>Model profili<select value={String(config.model_profile ?? "local-balanced")} onChange={(event) => updateConfig("model_profile", event.target.value)}><option>local-balanced</option><option>local-strong</option><option>cloud-balanced</option></select></label>
-          <label>Çıktı tipi<select value={String(config.output_type ?? "CompanyAnalysis")} onChange={(event) => updateConfig("output_type", event.target.value)}><option>CompanyAnalysis</option><option>OpportunityHypotheses</option><option>EvidenceReview</option></select></label>
+          <label>Agent<select value={String(config.agent_id ?? "company-analyst")} onChange={(event) => updateAgent(event.target.value)}>{agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name} · v{agent.version}</option>)}</select></label>
+          <label>Model profili<select value={String(config.model_profile ?? "local-balanced")} onChange={(event) => updateConfig("model_profile", event.target.value)}>{modelProfiles.map((profile) => <option disabled={!profile.enabled} key={profile.id} value={profile.id}>{profile.id}{profile.available ? " · erişilebilir" : " · erişilebilir değil"}</option>)}</select></label>
+          <label>Çıktı tipi<select value={String(config.output_type ?? "CompanyAnalysis")} onChange={(event) => updateConfig("output_type", event.target.value)}><option>CompanyAnalysis</option><option>OpportunityHypotheses</option><option>EvidenceReview</option><option>OKFChangeSet</option></select></label>
         </section>
       ) : null}
       {node.data.kind === "condition" ? (
@@ -178,15 +218,25 @@ function Inspector({ node, onChange, onDelete }: { node: FlowNode | null; onChan
         </section>
       ) : null}
       <div className="inspector-note">Bu node, yalnız registry'de izin verilen capability ve typed output sözleşmesini kullanır.</div>
-      <button className="delete-button" type="button" onClick={onDelete}><Trash2 size={16} /> Node'u sil</button>
+      <button className="delete-button" disabled={readOnly} type="button" onClick={onDelete}><Trash2 size={16} /> Node'u sil</button>
     </aside>
   );
 }
 
-function EditorSurface() {
+function EditorSurface({ userRoles }: { userRoles: string[] }) {
+  const canEdit = userRoles.includes("analyst");
+  const isAdmin = userRoles.includes("admin");
   const [workflow, setWorkflow] = useState<WorkflowDefinition | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [agents, setAgents] = useState<AgentDefinitionView[]>([]);
+  const [modelProfiles, setModelProfiles] = useState<ModelProfileView[]>([]);
+  const [workflowCatalog, setWorkflowCatalog] = useState<WorkflowSummary[]>([]);
+  const [versionHistory, setVersionHistory] = useState<WorkflowDefinition[]>([]);
+  const [schedules, setSchedules] = useState<WorkflowScheduleView[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [cron, setCron] = useState("0 9 * * 1-5");
+  const [timezone, setTimezone] = useState("Europe/Istanbul");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [validation, setValidation] = useState("Geçerli graph");
   const [saved, setSaved] = useState("Yükleniyor…");
@@ -194,20 +244,103 @@ function EditorSurface() {
   const [actionError, setActionError] = useState<string | null>(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
 
-  useEffect(() => {
-    api.workflow().then(async (definition) => {
-      const editable = definition.status === "published"
-        ? await api.cloneWorkflow(definition)
-        : definition;
-      const flow = toFlow(editable);
-      setWorkflow(editable);
-      setNodes(flow.nodes);
-      setEdges(flow.edges);
-      setSelectedId("company_agent");
-      requestAnimationFrame(() => fitView({ padding: 0.2 }));
-      setSaved("Taslak yüklendi");
-    }).catch((reason: Error) => setActionError(reason.message));
+  const loadDefinition = useCallback((definition: WorkflowDefinition) => {
+    const flow = toFlow(definition);
+    setWorkflow(definition);
+    setNodes(flow.nodes);
+    setEdges(flow.edges);
+    setSelectedId(null);
+    setSaved(definition.status === "published"
+      ? `Published v${definition.version} salt okunur`
+      : `Taslak v${definition.version} yüklendi`);
+    requestAnimationFrame(() => fitView({ padding: 0.2 }));
   }, [fitView, setEdges, setNodes]);
+
+  const refreshMetadata = useCallback(async (workflowId: string) => {
+    const [catalog, versions, scheduleResult] = await Promise.all([
+      api.workflows(),
+      api.workflowVersions(workflowId),
+      api.workflowSchedules(),
+    ]);
+    setWorkflowCatalog(catalog.items);
+    setVersionHistory(versions.items);
+    setSchedules(scheduleResult.items);
+  }, []);
+
+  useEffect(() => {
+    Promise.all([api.workflow(), api.workflows(), api.agents(), api.modelProfiles()]).then(async ([definition, catalog, agentResult, profileResult]) => {
+      const latestAgents = agentResult.items.filter((agent, index, items) =>
+        agent.status === "published"
+        && items.findIndex((candidate) => candidate.id === agent.id && candidate.status === "published") === index,
+      );
+      setAgents(latestAgents);
+      setModelProfiles(profileResult.items);
+
+      const userSummary = catalog.items.find((item) => item.id === "growth-diagnostic");
+      let selected = definition;
+      if (userSummary) selected = (await api.workflowVersions(userSummary.id)).items[0] ?? definition;
+      if (canEdit && selected.status === "published") selected = await api.cloneWorkflow(selected);
+      loadDefinition(selected);
+      await refreshMetadata(selected.id);
+    }).catch((reason: Error) => setActionError(reason.message));
+  }, [canEdit, loadDefinition, refreshMetadata]);
+
+  async function openWorkflow(workflowId: string) {
+    setBusy(true);
+    setActionError(null);
+    try {
+      const versions = await api.workflowVersions(workflowId);
+      if (!versions.items[0]) throw new Error("Workflow sürümü bulunamadı");
+      setVersionHistory(versions.items);
+      loadDefinition(versions.items[0]);
+      await refreshMetadata(workflowId);
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : "Workflow yüklenemedi");
+    } finally { setBusy(false); }
+  }
+
+  async function openVersion(definition: WorkflowDefinition) {
+    loadDefinition(definition);
+    setHistoryOpen(false);
+  }
+
+  async function cloneCurrent() {
+    if (!workflow || !canEdit) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      const draft = await api.cloneWorkflow(workflow);
+      loadDefinition(draft);
+      await refreshMetadata(draft.id);
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : "Workflow klonlanamadı");
+    } finally { setBusy(false); }
+  }
+
+  async function createSchedule() {
+    if (!workflow || workflow.status !== "published" || !isAdmin) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      await api.createWorkflowSchedule(workflow, cron, timezone);
+      await refreshMetadata(workflow.id);
+      setSaved(`v${workflow.version} için schedule oluşturuldu`);
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : "Schedule oluşturulamadı");
+    } finally { setBusy(false); }
+  }
+
+  async function toggleSchedule(schedule: WorkflowScheduleView) {
+    if (!isAdmin) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      await api.setWorkflowScheduleEnabled(schedule.id, !schedule.enabled);
+      if (workflow) await refreshMetadata(workflow.id);
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : "Schedule güncellenemedi");
+    } finally { setBusy(false); }
+  }
 
   const selectedNode = nodes.find((node) => node.id === selectedId) ?? null;
   const onConnect = useCallback((connection: Connection) => setEdges((current) => addEdge({ ...connection, markerEnd: { type: MarkerType.ArrowClosed } }, current)), [setEdges]);
@@ -235,6 +368,7 @@ function EditorSurface() {
       const persisted = await api.saveWorkflow({ ...dto, status: "draft" });
       setWorkflow(persisted);
       setSaved(`Taslak v${persisted.version} kaydedildi`);
+      await refreshMetadata(persisted.id);
       return persisted;
     } catch (reason) {
       setActionError(reason instanceof Error ? reason.message : "Taslak kaydedilemedi");
@@ -258,7 +392,8 @@ function EditorSurface() {
     setBusy(true);
     try {
       const published = await api.publishWorkflow(persisted);
-      setWorkflow(published);
+      loadDefinition(published);
+      await refreshMetadata(published.id);
       setSaved(`v${published.version} immutable olarak yayınlandı`);
     } catch (reason) { setActionError(reason instanceof Error ? reason.message : "Workflow yayınlanamadı"); }
     finally { setBusy(false); }
@@ -277,6 +412,7 @@ function EditorSurface() {
   }
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
+    if (!canEdit || workflow?.status === "published") return;
     const kind = event.dataTransfer.getData("application/agi-node");
     const info = nodeInfo[kind];
     if (!info) return;
@@ -284,13 +420,52 @@ function EditorSurface() {
     const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
     setNodes((current) => current.concat({ id, type: "workflowNode", position, data: { label: info.label, kind, subtitle: info.subtitle, tone: info.tone, config: info.config ?? {}, outputType: info.output } }));
     setSelectedId(id);
-  }, [screenToFlowPosition, setNodes]);
+  }, [canEdit, screenToFlowPosition, setNodes, workflow?.status]);
+  const workflowOptions = workflowCatalog.filter((item, index, items) =>
+    items.findIndex((candidate) => candidate.id === item.id) === index,
+  );
+  const currentSchedules = schedules.filter((item) => item.workflow_id === workflow?.id);
+  const readOnly = !canEdit || workflow?.status === "published";
   return (
     <div className="workflow-screen">
       <header className="workflow-toolbar">
-        <div><h1>{workflow?.name ?? "Growth Diagnostic"}</h1><span>{workflow?.status === "published" ? "Yayınlandı" : `Taslak v${workflow?.version ?? "–"}`}</span></div>
-        <div><button type="button" onClick={save} disabled={busy || workflow?.status === "published"}><Save size={17} /> Kaydet</button><button type="button" onClick={dryRun} disabled={busy}><CirclePlay size={17} /> Dry-run</button><button type="button" onClick={validate} disabled={busy}><Check size={17} /> Doğrula</button><button type="button" onClick={run} disabled={busy || workflow?.status !== "published"}><Play size={17} /> Çalıştır</button><button className="publish-button" type="button" onClick={publish} disabled={busy || workflow?.status === "published"}><Upload size={17} /> Yayınla<ChevronDown size={15} /></button></div>
+        <div className="workflow-identity">
+          <select aria-label="Workflow seçimi" value={workflow?.id ?? ""} onChange={(event) => openWorkflow(event.target.value)}>
+            {workflowOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+          <h1>{workflow?.name ?? "Growth Diagnostic"}</h1>
+          <span>{workflow?.status === "published" ? `Published v${workflow.version}` : `Taslak v${workflow?.version ?? "–"}`}</span>
+        </div>
+        <div>
+          <button aria-expanded={historyOpen} type="button" onClick={() => setHistoryOpen((current) => !current)}><History size={17} /> Sürümler</button>
+          {workflow?.status === "published" ? <button type="button" onClick={cloneCurrent} disabled={busy || !canEdit}><Copy size={17} /> Klonla</button> : null}
+          <button type="button" onClick={save} disabled={busy || readOnly}><Save size={17} /> Kaydet</button>
+          <button type="button" onClick={dryRun} disabled={busy || !canEdit}><CirclePlay size={17} /> Dry-run</button>
+          <button type="button" onClick={validate} disabled={busy}><Check size={17} /> Doğrula</button>
+          <button type="button" onClick={run} disabled={busy || !canEdit || workflow?.status !== "published"}><Play size={17} /> Çalıştır</button>
+          <button className="publish-button" type="button" onClick={publish} disabled={busy || !isAdmin || workflow?.status === "published"}><Upload size={17} /> Yayınla<ChevronDown size={15} /></button>
+        </div>
       </header>
+      {historyOpen ? <aside className="workflow-drawer">
+        <header><div><History size={18} /><h2>Sürüm geçmişi</h2></div><button aria-label="Sürüm geçmişini kapat" type="button" onClick={() => setHistoryOpen(false)}><X size={17} /></button></header>
+        <section className="workflow-version-list">
+          {versionHistory.map((item) => <button className={workflow?.version === item.version ? "is-selected" : ""} key={`${item.id}-${item.version}`} onClick={() => openVersion(item)} type="button">
+            <span><strong>v{item.version}</strong><small>{item.nodes.length} node · {item.edges.length} edge</small></span><em className="tag">{item.status}</em>
+          </button>)}
+        </section>
+        <section className="schedule-panel">
+          <h2><CalendarClock size={17} /> Schedule</h2>
+          {currentSchedules.length === 0 ? <p>Bu workflow için schedule yok.</p> : currentSchedules.map((item) => <article key={item.id}>
+            <div><strong>{item.cron}</strong><small>v{item.workflow_version} · {item.timezone}</small></div>
+            <button disabled={busy || !isAdmin} onClick={() => toggleSchedule(item)} type="button">{item.enabled ? "Devre dışı bırak" : "Etkinleştir"}</button>
+          </article>)}
+          {workflow?.status === "published" && isAdmin ? <div className="schedule-form">
+            <label>Cron<input value={cron} onChange={(event) => setCron(event.target.value)} /></label>
+            <label>Timezone<input value={timezone} onChange={(event) => setTimezone(event.target.value)} /></label>
+            <button disabled={busy} onClick={createSchedule} type="button"><Plus size={15} /> Schedule ekle</button>
+          </div> : <p>Yeni schedule yalnız admin tarafından published sürüme bağlanabilir.</p>}
+        </section>
+      </aside> : null}
       <div className="workflow-body">
         <NodeCatalog />
         <div className="flow-canvas" onDrop={onDrop} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}>
@@ -303,6 +478,8 @@ function EditorSurface() {
             onConnect={onConnect}
             onNodeClick={(_, node) => setSelectedId(node.id)}
             onPaneClick={() => setSelectedId(null)}
+            nodesConnectable={!readOnly}
+            nodesDraggable={!readOnly}
             fitView
             minZoom={0.35}
             maxZoom={1.5}
@@ -312,14 +489,14 @@ function EditorSurface() {
             <Controls showInteractive={false} />
           </ReactFlow>
         </div>
-        <Inspector node={selectedNode} onChange={updateSelected} onDelete={() => { if (selectedId) setNodes((current) => current.filter((node) => node.id !== selectedId)); setSelectedId(null); }} />
+        <Inspector agents={agents} modelProfiles={modelProfiles} node={selectedNode} readOnly={readOnly} onChange={readOnly ? () => undefined : updateSelected} onDelete={() => { if (!readOnly && selectedId) setNodes((current) => current.filter((node) => node.id !== selectedId)); setSelectedId(null); }} />
       </div>
       {actionError ? <div className="inline-alert inline-alert--error" role="alert">{actionError}</div> : null}
-      <footer className="workflow-status"><span><GitBranch size={15} /> {nodes.length} node</span><span><i /> <strong>{validation}:</strong> Growth Diagnostic v{workflow?.version ?? "–"}</span><span><Check size={15} /> {saved} · 10:24:31</span></footer>
+      <footer className="workflow-status"><span><GitBranch size={15} /> {nodes.length} node</span><span><i /> <strong>{validation}:</strong> {workflow?.id} v{workflow?.version ?? "–"}</span><span><Check size={15} /> {saved}</span></footer>
     </div>
   );
 }
 
-export default function WorkflowEditor() {
-  return <ReactFlowProvider><EditorSurface /></ReactFlowProvider>;
+export default function WorkflowEditor({ userRoles }: { userRoles: string[] }) {
+  return <ReactFlowProvider><EditorSurface userRoles={userRoles} /></ReactFlowProvider>;
 }

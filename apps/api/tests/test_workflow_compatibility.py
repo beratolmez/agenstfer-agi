@@ -7,9 +7,15 @@ from types import SimpleNamespace
 import pytest
 from agi_server.config import Settings
 from agi_server.db import AuditEvent, Base, WorkflowDefinitionRow, WorkflowRun
-from agi_server.main import run_diagnostic, setup_progress_update, workflow_run_cancel
+from agi_server.main import (
+    agent_version_detail,
+    run_diagnostic,
+    setup_progress_update,
+    workflow_run_cancel,
+    workflow_schedule_update,
+)
 from agi_server.schemas import SetupProgressUpdate
-from agi_server.workflow.registry_service import ensure_platform_registry
+from agi_server.workflow.registry_service import create_schedule, ensure_platform_registry
 from fastapi import HTTPException
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
@@ -55,13 +61,13 @@ def test_diagnostic_compatibility_view_starts_only_the_published_pinned_workflow
                 settings,
                 "compatibility-run-001",
                 "builtin-growth-diagnostic",
-                2,
+                3,
             )
         )
         workflow = captured["workflow"]
         assert isinstance(workflow, WorkflowDefinitionRow)
         assert workflow.id == "builtin-growth-diagnostic"
-        assert workflow.version == 2
+        assert workflow.version == 3
         assert workflow.status == "published"
         assert captured["input"] == {"compatibility_view": "diagnostics.run"}
         assert response == {
@@ -69,7 +75,7 @@ def test_diagnostic_compatibility_view_starts_only_the_published_pinned_workflow
             "status": "running",
             "current_step": "company_agent",
             "workflow_id": "builtin-growth-diagnostic",
-            "workflow_version": 2,
+            "workflow_version": 3,
             "model_profile": "local-balanced",
         }
         audit = db.scalar(select(AuditEvent).where(AuditEvent.action == "diagnostic.run_started"))
@@ -83,7 +89,7 @@ def test_diagnostic_compatibility_view_rejects_a_draft_version(tmp_path: Path) -
     settings = Settings(knowledge_root=tmp_path / "knowledge")
     with local_session() as db:
         ensure_platform_registry(db)
-        published = db.get(WorkflowDefinitionRow, ("builtin-growth-diagnostic", 2))
+        published = db.get(WorkflowDefinitionRow, ("builtin-growth-diagnostic", 3))
         assert published is not None
         draft = WorkflowDefinitionRow(
             id="draft-diagnostic",
@@ -174,4 +180,45 @@ def test_setup_rejects_unknown_or_disabled_model_profiles(
     with local_session() as db, pytest.raises(HTTPException) as rejected:
         setup_progress_update(payload, settings, db, None)
     assert rejected.value.status_code == 422
+    engine.dispose()
+
+
+def test_admin_agent_detail_survives_refresh_with_the_versioned_prompt(tmp_path: Path) -> None:
+    engine, local_session = _database(tmp_path)
+    with local_session() as db:
+        ensure_platform_registry(db)
+
+        detail = agent_version_detail("company-analyst", 3, db, None)
+
+        assert detail["id"] == "company-analyst"
+        assert detail["version"] == 3
+        assert detail["status"] == "published"
+        assert "system_prompt" in detail
+        assert len(detail["system_prompt"]) > 20
+    engine.dispose()
+
+
+def test_admin_can_disable_and_reenable_a_persisted_schedule_with_audit(
+    tmp_path: Path,
+) -> None:
+    engine, local_session = _database(tmp_path)
+    with local_session() as db:
+        ensure_platform_registry(db)
+        workflow = db.get(WorkflowDefinitionRow, ("builtin-growth-diagnostic", 3))
+        assert workflow is not None
+        schedule = create_schedule(db, workflow, "15 9 * * 1-5", "Europe/Istanbul", None)
+
+        disabled = workflow_schedule_update(schedule.id, db, None, False)
+        enabled = workflow_schedule_update(schedule.id, db, None, True)
+
+        assert disabled["enabled"] is False
+        assert enabled["enabled"] is True
+        actions = list(
+            db.scalars(
+                select(AuditEvent.action)
+                .where(AuditEvent.target_id == schedule.id)
+                .order_by(AuditEvent.occurred_at)
+            )
+        )
+        assert actions == ["workflow.schedule_disabled", "workflow.schedule_enabled"]
     engine.dispose()

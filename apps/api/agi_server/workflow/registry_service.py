@@ -15,7 +15,7 @@ from agi_server.db import (
     WorkflowSchedule,
 )
 from agi_server.workflow.default import build_default_workflow
-from agi_server.workflow.models import WorkflowDefinition
+from agi_server.workflow.models import NodeKind, WorkflowDefinition
 from agi_server.workflow.validator import validate_workflow
 
 SAFE_ID = re.compile(r"^[a-z][a-z0-9_-]{2,79}$")
@@ -98,6 +98,15 @@ def save_workflow_draft(
         raise ValueError("Published workflow versions are immutable")
     payload = definition.model_copy(update={"status": "draft"}).model_dump(mode="json")
     if row is None:
+        max_version = db.scalar(
+            select(func.max(WorkflowDefinitionRow.version)).where(
+                WorkflowDefinitionRow.id == definition.id
+            )
+        )
+        if max_version is not None:
+            raise ValueError("New workflow versions must be created by cloning")
+        if definition.version != 1:
+            raise ValueError("A new workflow must start at version 1")
         row = WorkflowDefinitionRow(
             id=definition.id,
             version=definition.version,
@@ -145,6 +154,71 @@ def clone_workflow_version(
     return row
 
 
+def validate_workflow_bindings(db: Session, workflow: WorkflowDefinition) -> WorkflowDefinition:
+    """Validate and pin registry references the pure graph validator cannot inspect."""
+    issues: list[str] = []
+    agent_ids: set[str] = set()
+    pinned_nodes = []
+    for node in workflow.nodes:
+        if node.kind != NodeKind.AGENT_RUN:
+            pinned_nodes.append(node)
+            continue
+        agent_id = str(node.config.get("agent_id", ""))
+        agent_ids.add(agent_id)
+        requested_version = node.config.get("agent_version")
+        if requested_version is not None and (
+            isinstance(requested_version, bool)
+            or not isinstance(requested_version, int)
+            or requested_version < 1
+        ):
+            issues.append(f"{node.id}: agent_version must be a positive integer")
+            pinned_nodes.append(node)
+            continue
+        if requested_version is None:
+            row = db.scalar(
+                select(AgentDefinitionRow)
+                .where(
+                    AgentDefinitionRow.id == agent_id,
+                    AgentDefinitionRow.status == "published",
+                )
+                .order_by(AgentDefinitionRow.version.desc())
+            )
+        else:
+            row = db.get(AgentDefinitionRow, (agent_id, requested_version))
+            if row is not None and row.status != "published":
+                row = None
+        if row is None:
+            suffix = "" if requested_version is None else f" {requested_version}"
+            issues.append(f"{node.id}: agent '{agent_id}'{suffix} has no published version")
+            pinned_nodes.append(node)
+            continue
+        spec = agent_from_row(row)
+        output_type = node.config.get("output_type")
+        if output_type is not None and output_type != spec.output_type:
+            issues.append(
+                f"{node.id}: output_type '{output_type}' does not match agent '{spec.output_type}'"
+            )
+        profile = node.config.get("model_profile")
+        if profile not in {"local-balanced", "local-strong", "cloud-balanced"}:
+            issues.append(f"{node.id}: model profile is not allowlisted")
+        pinned_nodes.append(
+            node.model_copy(update={"config": {**node.config, "agent_version": row.version}})
+        )
+
+    required_report_agents = {
+        "company-analyst",
+        "growth-opportunity-analyst",
+        "evidence-reviewer",
+        "wiki-curator",
+    }
+    missing = sorted(required_report_agents - agent_ids)
+    if missing:
+        issues.append(f"report output requires built-in agent roles: {missing}")
+    if issues:
+        raise ValueError(f"Workflow registry binding validation failed: {issues}")
+    return workflow.model_copy(update={"nodes": pinned_nodes})
+
+
 def publish_workflow(db: Session, row: WorkflowDefinitionRow) -> WorkflowDefinitionRow:
     if row.status != "draft":
         raise ValueError("Only a draft can be published")
@@ -152,6 +226,7 @@ def publish_workflow(db: Session, row: WorkflowDefinitionRow) -> WorkflowDefinit
     validation = validate_workflow(workflow)
     if not validation.valid:
         raise ValueError(f"Workflow validation failed: {[item.code for item in validation.issues]}")
+    workflow = validate_workflow_bindings(db, workflow)
     row.status = "published"
     row.definition = workflow.model_copy(update={"status": "published"}).model_dump(mode="json")
     db.commit()
@@ -200,6 +275,13 @@ def save_agent_draft(
     if row is not None and row.status != "draft":
         raise ValueError("Published agent versions are immutable")
     if row is None:
+        max_version = db.scalar(
+            select(func.max(AgentDefinitionRow.version)).where(AgentDefinitionRow.id == spec.id)
+        )
+        if max_version is not None:
+            raise ValueError("New agent versions must be created by cloning")
+        if spec.version != 1:
+            raise ValueError("A new agent must start at version 1")
         row = AgentDefinitionRow(
             id=spec.id,
             version=spec.version,

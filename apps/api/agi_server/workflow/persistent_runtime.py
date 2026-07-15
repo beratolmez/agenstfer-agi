@@ -102,6 +102,13 @@ def _latest_published_agent(db: Session, agent_id: str) -> AgentDefinitionRow:
     return row
 
 
+def _published_agent_version(db: Session, agent_id: str, version: int) -> AgentDefinitionRow:
+    row = db.get(AgentDefinitionRow, (agent_id, version))
+    if row is None or row.status != "published":
+        raise ValueError(f"Pinned published agent not found: {agent_id}:{version}")
+    return row
+
+
 def _step(
     db: Session,
     run: WorkflowRun,
@@ -174,8 +181,9 @@ def _agent_prompt(
     state: dict[str, Any],
     metrics: MetricSnapshot,
     evidence_catalog: dict[str, Any] | None = None,
+    output_type: str | None = None,
 ) -> str:
-    if agent_id == "company-analyst":
+    if agent_id == "company-analyst" or output_type == "CompanyAnalysis":
         instruction = (
             "Analyze the persisted company context. Return a maximum two-sentence, 400-character "
             "summary; 2-4 segments; 2-3 strengths; 2-3 weaknesses; and 1-4 data gaps. Keep each "
@@ -188,7 +196,7 @@ def _agent_prompt(
             "knowledge_status": state.get("knowledge_status"),
             "metric_context": _metric_prompt_view(metrics),
         }
-    elif agent_id == "growth-opportunity-analyst":
+    elif agent_id == "growth-opportunity-analyst" or output_type == "OpportunityHypotheses":
         instruction = (
             "Return exactly one hypothesis for each deterministic signal without changing scores. "
             "Use only that signal's supplied evidence IDs and keep each rationale to one sentence "
@@ -198,7 +206,7 @@ def _agent_prompt(
             "company_analysis": state.get("agent_results", {}).get("company-analyst"),
             "signals": _signal_prompt_view(metrics),
         }
-    elif agent_id == "evidence-reviewer":
+    elif agent_id == "evidence-reviewer" or output_type == "EvidenceReview":
         company = CompanyAnalysis.model_validate(state["agent_results"]["company-analyst"])
         hypotheses = OpportunityHypotheses.model_validate(
             state["agent_results"]["growth-opportunity-analyst"]
@@ -271,7 +279,10 @@ async def _execute_node(
         result.setdefault("policy_checks", {})[node.id] = "passed"
     elif node.kind == NodeKind.AGENT_RUN:
         agent_id = str(node.config["agent_id"])
-        agent_row = _latest_published_agent(db, agent_id)
+        pinned_version = (run.agent_versions or {}).get(agent_id)
+        if not isinstance(pinned_version, int):
+            raise ValueError(f"Run has no pinned agent version: {agent_id}")
+        agent_row = _published_agent_version(db, agent_id, pinned_version)
         spec = agent_from_row(agent_row)
         profile_id = str(node.config.get("model_profile") or spec.model_profile)
         profile = resolve_model_profile(profile_id, settings)
@@ -297,7 +308,7 @@ async def _execute_node(
         )
         evidence_catalog = None
         evidence_claims = None
-        if agent_id == "evidence-reviewer":
+        if spec.output_type == "EvidenceReview":
             company = CompanyAnalysis.model_validate(result["agent_results"]["company-analyst"])
             hypotheses = OpportunityHypotheses.model_validate(
                 result["agent_results"]["growth-opportunity-analyst"]
@@ -318,7 +329,7 @@ async def _execute_node(
                     row, tools.read_evidence(evidence_id)
                 )
         model_override = (model_overrides or {}).get(agent_id)
-        if agent_id == "evidence-reviewer" and evidence_claims is not None:
+        if spec.output_type == "EvidenceReview" and evidence_claims is not None:
             execution = await _run_evidence_reviewer(
                 evidence_claims,
                 evidence_catalog or {},
@@ -331,7 +342,13 @@ async def _execute_node(
         else:
             execution = await run_managed_agent(
                 agent_id,
-                _agent_prompt(agent_id, result, metrics, evidence_catalog),
+                _agent_prompt(
+                    agent_id,
+                    result,
+                    metrics,
+                    evidence_catalog,
+                    output_type=spec.output_type,
+                ),
                 settings,
                 tools,
                 profile_id=profile_id,
@@ -620,7 +637,13 @@ async def start_persisted_workflow(
     resolved_profiles: set[str] = set()
     for node in workflow.nodes:
         if node.kind == NodeKind.AGENT_RUN:
-            agent = _latest_published_agent(db, str(node.config["agent_id"]))
+            agent_id = str(node.config["agent_id"])
+            configured_version = node.config.get("agent_version")
+            agent = (
+                _published_agent_version(db, agent_id, configured_version)
+                if isinstance(configured_version, int) and not isinstance(configured_version, bool)
+                else _latest_published_agent(db, agent_id)
+            )
             versions[agent.id] = agent.version
             spec = agent_from_row(agent)
             requested_profile = str(node.config.get("model_profile") or spec.model_profile)

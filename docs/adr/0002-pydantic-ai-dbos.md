@@ -32,3 +32,6 @@ The built-in immutable Growth Diagnostic workflow advances to reserved ID
 executes Company Analyst, Growth Opportunity Analyst, Evidence Reviewer, and Wiki Curator before
 candidate report creation and Approval. Dashboard compatibility consumes this persisted workflow
 output, so the release browser path no longer validates a separate synchronous-only result.
+
+ADR-0008 advances the current default to version 3 so every agent node pins an exact published agent
+version. Version 2 remains historical and is not selected by default.

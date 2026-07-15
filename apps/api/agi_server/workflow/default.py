@@ -32,6 +32,7 @@ def build_default_workflow() -> WorkflowDefinition:
             220,
             {
                 "agent_id": "company-analyst",
+                "agent_version": 3,
                 "model_profile": "local-balanced",
                 "output_type": "CompanyAnalysis",
             },
@@ -45,6 +46,7 @@ def build_default_workflow() -> WorkflowDefinition:
             380,
             {
                 "agent_id": "growth-opportunity-analyst",
+                "agent_version": 3,
                 "model_profile": "local-balanced",
                 "output_type": "OpportunityHypotheses",
             },
@@ -67,6 +69,7 @@ def build_default_workflow() -> WorkflowDefinition:
             380,
             {
                 "agent_id": "evidence-reviewer",
+                "agent_version": 3,
                 "model_profile": "local-balanced",
                 "output_type": "EvidenceReview",
             },
@@ -80,6 +83,7 @@ def build_default_workflow() -> WorkflowDefinition:
             540,
             {
                 "agent_id": "wiki-curator",
+                "agent_version": 2,
                 "model_profile": "local-balanced",
                 "output_type": "OKFChangeSet",
             },
@@ -135,7 +139,7 @@ def build_default_workflow() -> WorkflowDefinition:
     return WorkflowDefinition(
         id="builtin-growth-diagnostic",
         name="Growth Diagnostic",
-        version=2,
+        version=3,
         nodes=nodes,
         edges=edges,
     )

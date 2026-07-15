@@ -59,9 +59,14 @@ and manager architecture are unchanged vision inputs; they are not completion cl
 - [x] Agent, Capability, and Workflow drafts/immutable versions; clone/save/validate/dry-run/publish/
   run APIs; safe conditions; typed branches; idempotency; schedules; and histories exist. Draft
   dry-run is explicitly a deterministic simulation and never claims that an agent/model executed.
+- [x] Agent contracts are server-bounded and version lineage is clone-only. Editable agent
+  instructions are composed with an immutable untrusted-data/tool/evidence policy. Workflow publish
+  rejects unresolved agents, output-contract mismatches, unknown model profiles, and missing required
+  diagnostic roles.
 - [x] Standard Compose starts real DBOS workflows. The PostgreSQL checkpoint runtime is invoked by
   retryable DBOS steps; approvals wait through durable `recv`, and decisions/expiry resume safely.
-- [x] Published Growth Diagnostic workflow v2 runs all four typed agents, including Wiki Curator,
+- [x] Published Growth Diagnostic workflow v3 pins and runs exact versions of all four typed agents,
+  including Wiki Curator,
   before report creation and durable approval. Its persisted output is the Dashboard data source.
 - [x] The deprecated `POST /api/diagnostics/run` compatibility view now starts only an immutable
   published workflow through the DBOS runtime. Setup and Dashboard no longer invoke the old synchronous
@@ -81,7 +86,8 @@ and manager architecture are unchanged vision inputs; they are not completion cl
   run trace, and React Flow editor use persisted backend resources.
 - [x] Dashboard has no synthetic diagnostic fallback. Before a successful evidence-reviewed run it
   shows a truthful empty state and offers only the real diagnostic action.
-- [x] Workflow Save, Validate, Dry-run, Publish, and Run are API-connected.
+- [x] Agent Registry create/clone/edit/save/publish/version detail and Workflow Save, Validate,
+  Dry-run, Publish, Run, version-history, schedule-create, and schedule-toggle are API-connected.
 - [x] Turkish-first UI has an i18n boundary, responsive styles, actionable empty/error states, and
   keyboard-native controls for critical forms and buttons.
 
@@ -130,7 +136,9 @@ and manager architecture are unchanged vision inputs; they are not completion cl
   307.53 seconds when an invalid-output retry exhausted its budget. Native JSON Schema produced
   `json_invalid`; ToolOutput was also rejected after Ollama returned malformed function-call XML with
   HTTP 500. PromptedOutput remains configured and 9B remains development-only. No full successful
-  diagnostic or 20-run suite exists; suitable 27B hardware or governed Groq/Mistral is next.
+  diagnostic or 20-run suite exists; suitable 27B hardware or governed Groq/Mistral is next. The
+  ADR-0008 immutable control-plane policy changed the effective prompt, so the historical component
+  observations do not qualify the current build.
 - [ ] **Full live happy path:** the typed test-model suite proves the complete diagnostic/evidence/
   approval path, but the browser cannot complete a real model-assisted report until a model profile
   qualifies. An opt-in destructive Playwright suite and wrappers now encode the four-agent DBOS run,
@@ -151,18 +159,20 @@ release blockers above are closed. External write actions remain prohibited.
 
 ## Current verification evidence
 
-- Backend suite: 66 tests; Ruff passes. The receipt integrity suite includes digest tampering,
+- Backend suite: 78 tests; Ruff passes. The receipt integrity suite includes digest tampering,
   missing-member rejection, legacy receipt absence, and unknown-classification rejection.
-- Frontend suite: 7 Vitest tests; production build passes.
+- Frontend suite: 8 Vitest tests; production build passes.
 - Ruff and Alembic drift: pass; migration head `20260713_0007`.
 - Compose: base, development, production, cloud, observability, temporary model-download, and
   isolated browser-E2E configurations validate.
-- Browser E2E: 4 model-independent Playwright tests pass against isolated empty volumes for truthful
+- Browser E2E: 5 model-independent Playwright tests pass against isolated empty volumes for truthful
   dashboard state, code-defined model-profile discovery, persisted setup/demo sync and Sources UI,
-  plus workflow clone and labeled deterministic dry-run. Two additional opt-in suites cover real-model release acceptance and
-  restored lexical-fallback state; both remain intentionally unchecked until release capacity exists.
+  Agent Registry create/publish, and workflow dry-run/publish/version/schedule management. Two
+  additional opt-in suites cover real-model release acceptance and restored lexical-fallback state;
+  both remain intentionally unchecked until release capacity exists.
 - Live upgrade smoke: existing user-owned `growth-diagnostic` versions remained untouched while the
-  reserved `builtin-growth-diagnostic:2` four-agent workflow was seeded as published; API health is ok.
+  reserved `builtin-growth-diagnostic:3` exact-agent-pinned workflow was seeded as published; API
+  health is ok. Historical v2 is not selected by default.
 - Latest safe qualification report: one failed attempt, 307.53 seconds, `TimeoutError` at
   `company-analyst`; Linux/x86-64 container, 12 CPUs, 7,902 MiB memory, Ollama context 8,192, no VRAM.
 - Final-image receipt smoke: each model prompt exposes at most three evidence IDs while the five

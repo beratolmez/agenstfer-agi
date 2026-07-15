@@ -78,12 +78,37 @@ test("setup progress survives reload and demo data uses the real source pipeline
   await expect(page.getByText("src-strategy-001 · demo")).toBeVisible();
 });
 
-test("workflow editor clones a draft and executes a labeled deterministic dry-run", async ({ page }) => {
+test("agent registry creates and publishes only an allowlisted typed agent draft", async ({ page }) => {
+  await page.goto("/#settings");
+
+  await expect(page.getByRole("heading", { name: "Ayarlar ve Registry" })).toBeVisible();
+  await page.getByRole("button", { name: "Yeni", exact: true }).click();
+  await page.getByLabel("Agent ID").fill("e2e-evidence-agent");
+  await page.getByLabel("Ad", { exact: true }).fill("E2E Evidence Agent");
+  await page.getByLabel("Versioned agent instruction").fill(
+    "Use only supplied immutable evidence and return the requested typed result.",
+  );
+  await page.getByRole("button", { name: "Kaydet" }).click();
+  await expect(page.getByText("e2e-evidence-agent v1 taslağı kaydedildi.")).toBeVisible();
+  await page.getByRole("button", { name: "Yayınla" }).click();
+  await expect(page.getByText("e2e-evidence-agent v1 immutable olarak yayınlandı.")).toBeVisible();
+});
+
+test("workflow editor persists version history and manages a published schedule", async ({ page }) => {
   await page.goto("/#workflow");
 
   await expect(page.getByRole("heading", { name: "Growth Diagnostic" })).toBeVisible();
-  await expect(page.getByText("Taslak yüklendi", { exact: false })).toBeVisible();
+  await expect(page.getByText(/Taslak v\d+ yüklendi/)).toBeVisible();
   await page.getByRole("button", { name: "Dry-run" }).click();
   await expect(page.getByText("Dry-run tamamlandı", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Çalıştır" })).toBeDisabled();
+
+  await page.getByRole("button", { name: "Yayınla" }).click();
+  await expect(page.getByText("immutable olarak yayınlandı", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Çalıştır" })).toBeEnabled();
+  await page.getByRole("button", { name: "Sürümler" }).click();
+  await page.getByRole("button", { name: "Schedule ekle" }).click();
+  await expect(page.getByText("0 9 * * 1-5", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Devre dışı bırak" }).click();
+  await expect(page.getByRole("button", { name: "Etkinleştir" })).toBeVisible();
 });

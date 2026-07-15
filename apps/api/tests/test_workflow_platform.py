@@ -12,6 +12,7 @@ from agi_server.agents.contracts import (
     OpportunityHypotheses,
     OpportunityHypothesis,
 )
+from agi_server.agents.registry import AgentRegistry, ManagedAgentSpec
 from agi_server.config import Settings
 from agi_server.db import (
     AgentDefinitionRow,
@@ -50,7 +51,7 @@ from agi_server.workflow.registry_service import (
     workflow_from_row,
 )
 from agi_server.workflow.scheduler import cron_matches, expire_approvals, run_due_schedules
-from pydantic import SecretStr
+from pydantic import SecretStr, ValidationError
 from pydantic_ai.models.test import TestModel
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import sessionmaker
@@ -151,6 +152,12 @@ def test_registry_versions_are_seeded_cloned_and_immutable(tmp_path: Path) -> No
         assert draft.status == "published"
         with pytest.raises(ValueError, match="immutable"):
             save_workflow_draft(db, definition, None)
+        with pytest.raises(ValueError, match="cloning"):
+            save_workflow_draft(
+                db,
+                definition.model_copy(update={"version": 99, "status": "draft"}),
+                None,
+            )
 
         agent = db.get(AgentDefinitionRow, ("company-analyst", 3))
         assert agent is not None
@@ -172,13 +179,96 @@ def test_registry_versions_are_seeded_cloned_and_immutable(tmp_path: Path) -> No
         publish_agent(db, parsed)
         with pytest.raises(ValueError, match="immutable"):
             save_agent_draft(db, agent_from_payload(spec), None)
+        with pytest.raises(ValueError, match="cloning"):
+            save_agent_draft(
+                db,
+                agent_from_payload(spec | {"version": 99}),
+                None,
+            )
     engine.dispose()
 
 
 def agent_from_payload(payload):
-    from agi_server.agents.registry import ManagedAgentSpec
-
     return ManagedAgentSpec.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("agent_id", "missing-agent", "no published version"),
+        ("model_profile", "arbitrary-provider", "not allowlisted"),
+        ("output_type", "EvidenceReview", "does not match agent"),
+    ],
+)
+def test_workflow_publish_rejects_invalid_agent_registry_bindings(
+    tmp_path: Path, field: str, value: str, message: str
+) -> None:
+    engine, local_session = _database(tmp_path)
+    with local_session() as db:
+        ensure_platform_registry(db)
+        source = db.get(
+            WorkflowDefinitionRow,
+            (build_default_workflow().id, build_default_workflow().version),
+        )
+        assert source is not None
+        draft = clone_workflow_version(db, source, None, target_id="binding-test")
+        definition = workflow_from_row(draft)
+        company = next(node for node in definition.nodes if node.id == "company_agent")
+        company.config[field] = value
+        save_workflow_draft(db, definition, None)
+
+        with pytest.raises(ValueError, match=message):
+            publish_workflow(db, draft)
+    engine.dispose()
+
+
+def test_workflow_publish_pins_exact_agent_versions(tmp_path: Path) -> None:
+    engine, local_session = _database(tmp_path)
+    with local_session() as db:
+        ensure_platform_registry(db)
+        source = db.get(
+            WorkflowDefinitionRow,
+            (build_default_workflow().id, build_default_workflow().version),
+        )
+        assert source is not None
+        draft = clone_workflow_version(db, source, None, target_id="pin-test")
+        definition = workflow_from_row(draft)
+        for node in definition.nodes:
+            node.config.pop("agent_version", None)
+        save_workflow_draft(db, definition, None)
+
+        published = publish_workflow(db, draft)
+        pinned = workflow_from_row(published)
+
+        assert {
+            str(node.config["agent_id"]): node.config["agent_version"]
+            for node in pinned.nodes
+            if node.kind == NodeKind.AGENT_RUN
+        } == {
+            "company-analyst": 3,
+            "growth-opportunity-analyst": 3,
+            "evidence-reviewer": 3,
+            "wiki-curator": 2,
+        }
+    engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("model_profile", "arbitrary-provider"),
+        ("output_type", "ShellCommand"),
+        ("data_classification", "unknown"),
+        ("approval_risk", "critical"),
+        ("capabilities", ["context.query", "context.query"]),
+    ],
+)
+def test_agent_drafts_reject_non_allowlisted_contract_values(field: str, value) -> None:
+    payload = AgentRegistry().get("company-analyst").model_dump()
+    payload[field] = value
+
+    with pytest.raises(ValidationError):
+        ManagedAgentSpec.model_validate(payload)
 
 
 def test_condition_contract_rejects_expressions_and_duplicate_branches() -> None:
@@ -289,6 +379,12 @@ def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> 
         )
         assert run.status == "awaiting_approval"
         assert run.model_profile == "local-balanced"
+        assert run.agent_versions == {
+            "company-analyst": 3,
+            "growth-opportunity-analyst": 3,
+            "evidence-reviewer": 3,
+            "wiki-curator": 2,
+        }
         approval_id = db.scalar(select(ApprovalRequest.id).where(ApprovalRequest.run_id == run.id))
         assert approval_id is not None
         assert db.scalar(
@@ -309,6 +405,15 @@ def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> 
             "evidence-reviewer",
             "wiki-curator",
         }
+        assert {
+            row.agent_id: row.agent_version
+            for row in db.scalars(
+                select(WorkflowStepRun).where(
+                    WorkflowStepRun.run_id == run.id,
+                    WorkflowStepRun.agent_id.is_not(None),
+                )
+            )
+        } == run.agent_versions
         assert run.output_json["okf_change_set"]["concept_paths"] == [
             "reports/growth-diagnostic.md"
         ]

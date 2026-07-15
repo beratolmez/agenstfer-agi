@@ -58,6 +58,11 @@ function-call XML with HTTP 500. PromptedOutput remains configured and 9B remain
 
 Re-run evaluation after changes to prompts, output schemas, capabilities, model mapping, retrieval, chunking, canonical mapping, metrics, scoring, source fixtures, or evidence policy. Diagnose data and evidence failures before tuning prompts.
 
+ADR-0008 changed the effective prompt by adding a mandatory control-plane system policy. Therefore
+all component observations recorded above are diagnostic history only for the earlier effective
+prompt. The next qualification must record the current agent versions and effective-policy revision;
+no earlier isolated pass can qualify the current build.
+
 ## Failure handling
 
 A failed profile remains configurable for development but cannot be selected as a production-supported profile. Never weaken evidence or unsupported-number gates to make a model pass.
