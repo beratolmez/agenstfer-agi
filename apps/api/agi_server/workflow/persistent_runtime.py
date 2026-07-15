@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from agi_server.agents.contracts import (
     CompanyAnalysis,
     EvidenceReview,
+    OKFChangeSet,
     OpportunityHypotheses,
 )
 from agi_server.agents.model_gateway import resolve_model_profile
@@ -352,6 +353,12 @@ async def _execute_node(
             result["agent_results"]["growth-opportunity-analyst"]
         )
         review = EvidenceReview.model_validate(result["agent_results"]["evidence-reviewer"])
+        change_set = OKFChangeSet.model_validate(result["agent_results"]["wiki-curator"])
+        if any(
+            not path.startswith("reports/") or not path.endswith(".md")
+            for path in change_set.concept_paths
+        ):
+            raise ValueError("Wiki Curator proposed a path outside reports/")
         claims = _material_claims(metrics, company, hypotheses)
         evidence_ids = _enforce_evidence_gate(db, claims, review)
         diagnostic = build_computed_diagnostic(db, run.id, metrics, company, hypotheses)
@@ -370,6 +377,7 @@ async def _execute_node(
                 "artifact_uri": artifact_uri,
                 "candidate_id": candidate.id,
                 "evidence_ids": evidence_ids,
+                "okf_change_set": change_set.model_dump(mode="json"),
             }
         )
         run.artifact_uri = artifact_uri

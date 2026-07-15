@@ -613,7 +613,7 @@ def dashboard(db: Annotated[Session, Depends(get_db)]) -> GrowthDiagnostic | Non
     latest = db.scalar(
         select(WorkflowRun)
         .where(
-            WorkflowRun.workflow_id == "builtin-growth-diagnostic",
+            WorkflowRun.workflow_id.in_(["builtin-growth-diagnostic", "growth-diagnostic"]),
             WorkflowRun.status.in_(["awaiting_approval", "completed"]),
         )
         .order_by(WorkflowRun.started_at.desc())
@@ -1516,7 +1516,7 @@ def capabilities(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
 @app.get("/api/workflows/default", response_model=WorkflowDefinition)
 def default_workflow(db: Annotated[Session, Depends(get_db)]) -> WorkflowDefinition:
     ensure_platform_registry(db)
-    row = latest_workflow(db, "growth-diagnostic")
+    row = latest_workflow(db, "builtin-growth-diagnostic", draft_first=False)
     if row is None:
         return build_default_workflow()
     return workflow_from_row(row)
@@ -1634,6 +1634,13 @@ def workflow_clone(
     source = db.get(WorkflowDefinitionRow, (workflow_id, version))
     if source is None:
         raise HTTPException(status_code=404, detail="Workflow version bulunamadı")
+    if workflow_id.startswith("builtin-") and not target_id:
+        raise HTTPException(
+            status_code=422,
+            detail="Built-in workflow clone requires a non-reserved target ID",
+        )
+    if target_id and target_id.startswith("builtin-"):
+        raise HTTPException(status_code=422, detail="Built-in workflow IDs are reserved")
     try:
         row = clone_workflow_version(
             db,

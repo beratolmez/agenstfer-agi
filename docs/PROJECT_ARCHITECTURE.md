@@ -125,7 +125,7 @@ sequenceDiagram
     CP->>ING: test_connection + preview + sync(cursor)
     ING->>CP: snapshot + canonical records + EvidenceItem
     CP->>OKF: Reference ve concept adaylarını derle
-    CP->>WF: Growth Diagnostic v1 başlat
+    CP->>WF: Growth Diagnostic workflow v2 başlat
     WF->>AI: Company Analyst
     AI-->>WF: typed company analysis
     WF->>AI: Growth Opportunity Analyst
@@ -401,3 +401,19 @@ PostgreSQL owns candidate metadata, expiry, artifacts, and audit state. Git work
 ### Cloud production policy
 
 Cloud profiles are permitted only through explicit administrator configuration and the allowlisted egress gateway. There is no local-to-cloud automatic fallback. `public` and policy-approved redacted `internal` content may be processed; `confidential` and `restricted` content is rejected before a cloud request. Every run pins provider/model identity and records content-safe audit metadata.
+
+### Release workflow and qualification automation
+
+The immutable built-in Growth Diagnostic workflow uses the reserved ID
+`builtin-growth-diagnostic` and version 2. User clones must use a non-reserved ID. It executes Company Analyst,
+Growth Opportunity Analyst, Evidence Reviewer, and Wiki Curator before report creation and durable
+approval. Dashboard compatibility reads the reserved built-in ID plus legacy/user
+`growth-diagnostic` IDs; therefore the browser displays the same persisted DBOS output that Approval
+Center governs.
+
+Release qualification is automated but remains opt-in and destructive. The real-model Playwright
+suite targets an explicitly supplied authenticated deployment, verifies all four pinned agent steps,
+exact evidence, durable approval, active OKF merge, and export. The Linux x86-64 rehearsal composes
+no-egress, scan, 20-run qualification, browser acceptance, backup/restore, lexical fallback, qmd
+rebuild, and a content-safe manifest. Automation availability is not evidence that the external-host
+gate passed.

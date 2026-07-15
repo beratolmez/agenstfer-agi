@@ -164,7 +164,7 @@ function Inspector({ node, onChange, onDelete }: { node: FlowNode | null; onChan
       {node.data.kind === "agent_run" ? (
         <section>
           <h3>Konfigürasyon</h3>
-          <label>Agent<select value={String(config.agent_id ?? "company-analyst")} onChange={(event) => updateConfig("agent_id", event.target.value)}><option value="company-analyst">Company Analyst</option><option value="growth-opportunity-analyst">Growth Opportunity Analyst</option><option value="evidence-reviewer">Evidence Reviewer</option></select></label>
+          <label>Agent<select value={String(config.agent_id ?? "company-analyst")} onChange={(event) => updateConfig("agent_id", event.target.value)}><option value="company-analyst">Company Analyst</option><option value="growth-opportunity-analyst">Growth Opportunity Analyst</option><option value="evidence-reviewer">Evidence Reviewer</option><option value="wiki-curator">Wiki Curator</option></select></label>
           <label>Model profili<select value={String(config.model_profile ?? "local-balanced")} onChange={(event) => updateConfig("model_profile", event.target.value)}><option>local-balanced</option><option>local-strong</option><option>cloud-balanced</option></select></label>
           <label>Çıktı tipi<select value={String(config.output_type ?? "CompanyAnalysis")} onChange={(event) => updateConfig("output_type", event.target.value)}><option>CompanyAnalysis</option><option>OpportunityHypotheses</option><option>EvidenceReview</option></select></label>
         </section>
@@ -315,7 +315,7 @@ function EditorSurface() {
         <Inspector node={selectedNode} onChange={updateSelected} onDelete={() => { if (selectedId) setNodes((current) => current.filter((node) => node.id !== selectedId)); setSelectedId(null); }} />
       </div>
       {actionError ? <div className="inline-alert inline-alert--error" role="alert">{actionError}</div> : null}
-      <footer className="workflow-status"><span><GitBranch size={15} /> {nodes.length} node</span><span><i /> <strong>{validation}:</strong> Growth Diagnostic v1</span><span><Check size={15} /> {saved} · 10:24:31</span></footer>
+      <footer className="workflow-status"><span><GitBranch size={15} /> {nodes.length} node</span><span><i /> <strong>{validation}:</strong> Growth Diagnostic v{workflow?.version ?? "–"}</span><span><Check size={15} /> {saved} · 10:24:31</span></footer>
     </div>
   );
 }

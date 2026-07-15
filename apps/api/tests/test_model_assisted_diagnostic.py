@@ -34,6 +34,7 @@ from agi_server.diagnostics.service import (
     _signal_prompt_view,
     run_growth_diagnostic,
 )
+from agi_server.domain.computed_diagnostic import build_computed_diagnostic
 from agi_server.domain.metrics import (
     calculate_growth_metrics,
     calculate_verified_growth_metrics,
@@ -150,6 +151,31 @@ def test_dashboard_has_no_synthetic_fallback_before_a_successful_run(tmp_path: P
     with local_session() as db:
         sync_demo_company(db, tmp_path / "knowledge" / "raw")
         assert dashboard(db) is None
+    engine.dispose()
+
+
+def test_dashboard_reads_the_persisted_durable_growth_workflow(tmp_path: Path) -> None:
+    engine, local_session = _session(tmp_path)
+    with local_session() as db:
+        sync_demo_company(db, tmp_path / "knowledge" / "raw")
+        metrics, company, hypotheses, _, _ = _typed_outputs(db)
+        run = WorkflowRun(
+            idempotency_key="durable-dashboard-001",
+            workflow_id="builtin-growth-diagnostic",
+            workflow_version=2,
+            status="awaiting_approval",
+        )
+        db.add(run)
+        db.commit()
+        diagnostic = build_computed_diagnostic(db, run.id, metrics, company, hypotheses)
+        run.output_json = {"diagnostic": diagnostic.model_dump(mode="json")}
+        db.commit()
+
+        result = dashboard(db)
+
+        assert result is not None
+        assert result.id == diagnostic.id
+        assert len(result.opportunities) == 5
     engine.dispose()
 
 

@@ -73,11 +73,24 @@ def build_default_workflow() -> WorkflowDefinition:
             "agent_result",
         ),
         (
+            "curator",
+            NodeKind.AGENT_RUN,
+            "Wiki Curator",
+            150,
+            540,
+            {
+                "agent_id": "wiki-curator",
+                "model_profile": "local-balanced",
+                "output_type": "OKFChangeSet",
+            },
+            "agent_result",
+        ),
+        (
             "approval",
             NodeKind.APPROVAL,
             "Approval",
             380,
-            540,
+            700,
             {"role": "approver", "timeout_days": 7},
             "approved",
         ),
@@ -85,7 +98,7 @@ def build_default_workflow() -> WorkflowDefinition:
             "report",
             NodeKind.REPORT_OUTPUT,
             "Report Output",
-            610,
+            380,
             540,
             {"format": "okf+html"},
             "artifact",
@@ -111,7 +124,8 @@ def build_default_workflow() -> WorkflowDefinition:
         ("company_agent", "growth_agent", "agent_result"),
         ("growth_agent", "score", "hypotheses"),
         ("score", "review", "scored_opportunities"),
-        ("review", "report", "agent_result"),
+        ("review", "curator", "agent_result"),
+        ("curator", "report", "agent_result"),
         ("report", "approval", "artifact"),
     ]
     edges = [
@@ -119,9 +133,9 @@ def build_default_workflow() -> WorkflowDefinition:
         for source, target, data_type in edge_rows
     ]
     return WorkflowDefinition(
-        id="growth-diagnostic",
-        name="Growth Diagnostic v1",
-        version=1,
+        id="builtin-growth-diagnostic",
+        name="Growth Diagnostic",
+        version=2,
         nodes=nodes,
         edges=edges,
     )

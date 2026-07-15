@@ -8,6 +8,8 @@ def test_default_workflow_is_valid_and_topologically_sorted():
     assert result.valid, result.issues
     assert result.topological_order[0] == "trigger"
     assert result.topological_order[-1] == "approval"
+    assert result.topological_order.index("review") < result.topological_order.index("curator")
+    assert result.topological_order.index("curator") < result.topological_order.index("report")
 
 
 def test_cycle_is_rejected():

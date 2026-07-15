@@ -7,6 +7,8 @@ $ErrorActionPreference = "Stop"
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $base = Join-Path $root "docker-compose.yml"
 $download = Join-Path $root "docker-compose.model-download.yml"
+$projectName = if ($env:COMPOSE_PROJECT_NAME) { $env:COMPOSE_PROJECT_NAME } else { "agentic-growth-intelligence" }
+$downloadNetwork = "${projectName}_model-download"
 
 Push-Location $root
 try {
@@ -21,9 +23,9 @@ finally {
     Write-Host "Restoring the isolated Ollama network..."
     docker compose -f $base up -d --no-deps --force-recreate ollama
     $restoreExitCode = $LASTEXITCODE
-    docker network rm agentic-growth-intelligence_model-download 2>$null | Out-Null
+    docker network rm $downloadNetwork 2>$null | Out-Null
     $temporaryNetworkStillExists = @(
-        docker network ls --filter "name=^agentic-growth-intelligence_model-download$" --format "{{.Name}}"
+        docker network ls --filter "name=^$([regex]::Escape($downloadNetwork))$" --format "{{.Name}}"
     ).Count -gt 0
     Pop-Location
     if ($restoreExitCode -ne 0 -or $temporaryNetworkStillExists) {

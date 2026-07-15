@@ -61,6 +61,8 @@ and manager architecture are unchanged vision inputs; they are not completion cl
   dry-run is explicitly a deterministic simulation and never claims that an agent/model executed.
 - [x] Standard Compose starts real DBOS workflows. The PostgreSQL checkpoint runtime is invoked by
   retryable DBOS steps; approvals wait through durable `recv`, and decisions/expiry resume safely.
+- [x] Published Growth Diagnostic workflow v2 runs all four typed agents, including Wiki Curator,
+  before report creation and durable approval. Its persisted output is the Dashboard data source.
 - [x] The live missing-model drill created the same run ID in DBOS, persisted completed steps, then
   failed at the model node without fallback.
 
@@ -88,8 +90,12 @@ and manager architecture are unchanged vision inputs; they are not completion cl
   The live Jaeger service list contains `agi-control-plane`.
 - [x] PowerShell and Linux backup/restore scripts cover the application DB, DBOS system DB, and the
   complete knowledge Git volume with SHA-256 verification and archive path checks.
+- [x] Backup/restore restarts the original app container rather than recreating it from a possibly
+  different Compose overlay, preserving production/cloud security configuration.
 - [x] A live backup/restore drill restored revision `20260713_0007`, 1,783 entities, DBOS state, and
   healthy service startup.
+- [x] The overlay-preservation regression drill kept the exact same app container ID through both
+  backup and restore, then returned a healthy API; recovery did not recreate the app from base Compose.
 - [x] Runtime/base images and qmd dependency are digest/version pinned. CycloneDX SBOM generation
   indexed 812 packages; digest-pinned Trivy found zero fixable HIGH/CRITICAL or image-secret
   findings.
@@ -112,9 +118,12 @@ and manager architecture are unchanged vision inputs; they are not completion cl
   diagnostic or 20-run suite exists; suitable 27B hardware or governed Groq/Mistral is next.
 - [ ] **Full live happy path:** the typed test-model suite proves the complete diagnostic/evidence/
   approval path, but the browser cannot complete a real model-assisted report until a model profile
-  qualifies.
+  qualifies. An opt-in destructive Playwright suite and wrappers now encode the four-agent DBOS run,
+  exact citation, approval, active merge, and export acceptance; they have not passed a real model.
 - [ ] **External clean Linux host:** clean Linux/amd64 containers and empty volumes were verified on
-  Docker Desktop; a separate Linux x86-64 host release rehearsal remains required.
+  Docker Desktop; a separate Linux x86-64 host release rehearsal remains required. The new
+  `scripts/release-rehearsal.sh` command fails outside Linux x86-64 and records a content-safe
+  per-step manifest, but it has not been executed on the required external host.
 - [ ] **TLS termination:** production cookies are `Secure`. The production overlay must sit behind
   operator-managed HTTPS; the repository's port 8080 Nginx endpoint is the local/development
   acceptance endpoint and does not terminate TLS.
@@ -125,15 +134,18 @@ release blockers above are closed. External write actions remain prohibited.
 
 ## Current verification evidence
 
-- Backend suite: 50 tests; Ruff passes. The receipt integrity suite includes digest tampering,
+- Backend suite: 51 tests; Ruff passes. The receipt integrity suite includes digest tampering,
   missing-member rejection, legacy receipt absence, and unknown-classification rejection.
 - Frontend suite: 7 Vitest tests; production build passes.
 - Ruff and Alembic drift: pass; migration head `20260713_0007`.
 - Compose: base, development, production, cloud, observability, temporary model-download, and
   isolated browser-E2E configurations validate.
-- Browser E2E: 3 Playwright tests pass against isolated empty volumes for truthful dashboard state,
-  persisted setup/demo sync and Sources UI, plus workflow clone and labeled deterministic dry-run.
-  The real-model diagnostic/citation/approval/export journey remains intentionally unchecked.
+- Browser E2E: 3 model-independent Playwright tests pass against isolated empty volumes for truthful
+  dashboard state, persisted setup/demo sync and Sources UI, plus workflow clone and labeled
+  deterministic dry-run. Two additional opt-in suites cover real-model release acceptance and
+  restored lexical-fallback state; both remain intentionally unchecked until release capacity exists.
+- Live upgrade smoke: existing user-owned `growth-diagnostic` versions remained untouched while the
+  reserved `builtin-growth-diagnostic:2` four-agent workflow was seeded as published; API health is ok.
 - Latest safe qualification report: one failed attempt, 307.53 seconds, `TimeoutError` at
   `company-analyst`; Linux/x86-64 container, 12 CPUs, 7,902 MiB memory, Ollama context 8,192, no VRAM.
 - Final-image receipt smoke: each model prompt exposes at most three evidence IDs while the five

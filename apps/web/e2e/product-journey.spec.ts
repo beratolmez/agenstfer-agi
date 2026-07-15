@@ -62,7 +62,7 @@ test("setup progress survives reload and demo data uses the real source pipeline
 test("workflow editor clones a draft and executes a labeled deterministic dry-run", async ({ page }) => {
   await page.goto("/#workflow");
 
-  await expect(page.getByRole("heading", { name: "Growth Diagnostic v1" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Growth Diagnostic" })).toBeVisible();
   await expect(page.getByText("Taslak yüklendi", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "Dry-run" }).click();
   await expect(page.getByText("Dry-run tamamlandı", { exact: false })).toBeVisible();

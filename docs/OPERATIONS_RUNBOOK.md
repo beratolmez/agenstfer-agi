@@ -112,6 +112,40 @@ model-independent flows; it does not satisfy the real-model happy-path release g
 install the pinned Playwright Chromium dependencies first, then run `./scripts/browser-e2e.sh`.
 Repeat the same checks on the release Linux host.
 
+Run the real-model journey only against an explicitly disposable authenticated installation. Put
+password/bootstrap values in process environment variables so they do not appear in command-line
+arguments:
+
+```powershell
+$env:AGI_E2E_ADMIN_PASSWORD = "<secret>"
+$env:AGI_E2E_BOOTSTRAP_TOKEN = "<one-time-secret>"
+.\scripts\browser-real-model-e2e.ps1 -BaseUrl http://127.0.0.1:8080 `
+  -AdminEmail release-admin@example.test -ModelProfile cloud-balanced -ConfirmDisposable
+```
+
+Non-loopback targets must use HTTPS. The suite changes setup state, sources, workflow versions,
+runs, approvals, and active OKF knowledge. It requires DBOS: approval submission must first return
+`decision_submitted`, then the same run must complete.
+
+On the required separate Linux x86-64 release host, use the composed rehearsal after configuring
+HTTPS and one approved model profile:
+
+```bash
+export AGI_E2E_ADMIN_PASSWORD='<secret>'
+./scripts/release-rehearsal.sh --base-url https://agi.example.internal \
+  --admin-email release-admin@example.test --model-profile cloud-balanced \
+  --attempts 20 --confirm-disposable
+```
+
+The rehearsal owns the dedicated `agi-release-rehearsal` Compose project and deletes only its
+volumes. It writes a content-safe ignored manifest under `artifacts/release/rehearsal-*`. A manifest
+records step status, duration, commit, host type, and model profile only; it never records prompts,
+source bodies, evidence excerpts, passwords, bootstrap tokens, or provider keys.
+
+Backup and restore restart the exact app container that was stopped. They do not run a new
+`docker compose up` with base configuration, so a production/cloud overlay cannot be silently
+replaced during a recovery drill.
+
 ## Incident rules
 
 - Disable cloud overlays immediately after unexpected egress/classification/redaction behavior.

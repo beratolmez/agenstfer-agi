@@ -86,6 +86,8 @@ Exit gate: UI/API functionality passed; complete happy path awaits a qualified m
 - [x] Isolated empty-volume production Compose migration/bootstrap/auth drill.
 - [x] Isolated model-independent Playwright coverage for truthful dashboard, persisted demo sync,
   Sources UI, and safe workflow clone/dry-run behavior.
+- [x] Opt-in real-model and restored-state Playwright contracts plus a Linux x86-64 release rehearsal
+  orchestrator. These are executable gates, not completion evidence.
 - [ ] Run full browser E2E with a qualified model on a separate clean Linux x86-64 host.
 - [ ] Run qmd loss/rebuild and final 20-run model evaluation on that host.
 

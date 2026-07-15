@@ -99,7 +99,7 @@ export const api = {
   workflow: () => request<WorkflowDefinition>("/api/workflows/default"),
   cloneWorkflow: (workflow: WorkflowDefinition) =>
     request<WorkflowDefinition>(
-      `/api/workflows/${encodeURIComponent(workflow.id)}/versions/${workflow.version}/clone`,
+      `/api/workflows/${encodeURIComponent(workflow.id)}/versions/${workflow.version}/clone?target_id=growth-diagnostic`,
       { method: "POST" },
     ),
   saveWorkflow: (workflow: WorkflowDefinition) =>

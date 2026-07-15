@@ -135,11 +135,14 @@ def test_registry_versions_are_seeded_cloned_and_immutable(tmp_path: Path) -> No
         ensure_platform_registry(db)
         assert db.scalar(select(func.count()).select_from(AgentDefinitionRow)) == 4
         assert db.scalar(select(func.count()).select_from(CapabilityDefinitionRow)) >= 4
-        published = db.get(WorkflowDefinitionRow, ("growth-diagnostic", 1))
+        published = db.get(
+            WorkflowDefinitionRow,
+            (build_default_workflow().id, build_default_workflow().version),
+        )
         assert published is not None and published.status == "published"
 
-        draft = clone_workflow_version(db, published, None)
-        assert draft.version == 2 and draft.status == "draft"
+        draft = clone_workflow_version(db, published, None, target_id="test-growth-diagnostic")
+        assert draft.version == 1 and draft.status == "draft"
         definition = workflow_from_row(draft)
         definition.name = "Editable Growth Diagnostic"
         save_workflow_draft(db, definition, None)
@@ -224,7 +227,10 @@ def test_schedule_uses_timezone_and_prevents_duplicate_minute_runs(
     settings = Settings(knowledge_root=tmp_path / "knowledge")
     with local_session() as db:
         ensure_platform_registry(db)
-        workflow = db.get(WorkflowDefinitionRow, ("growth-diagnostic", 1))
+        workflow = db.get(
+            WorkflowDefinitionRow,
+            (build_default_workflow().id, build_default_workflow().version),
+        )
         assert workflow is not None
         schedule = create_schedule(db, workflow, "15 9 * * 1-5", "Europe/Istanbul", None)
         instant = datetime(2026, 7, 13, 6, 15, tzinfo=UTC)
@@ -258,7 +264,10 @@ def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> 
         ensure_active_repository(settings.company_bundle)
         ensure_platform_registry(db)
         models = _models(db)
-        workflow = db.get(WorkflowDefinitionRow, ("growth-diagnostic", 1))
+        workflow = db.get(
+            WorkflowDefinitionRow,
+            (build_default_workflow().id, build_default_workflow().version),
+        )
         assert workflow is not None
         run = asyncio.run(
             start_persisted_workflow(
@@ -278,6 +287,22 @@ def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> 
             .select_from(WorkflowStepRun)
             .where(WorkflowStepRun.run_id == run.id)
         ) == len(build_default_workflow().nodes)
+        assert set(
+            db.scalars(
+                select(WorkflowStepRun.agent_id).where(
+                    WorkflowStepRun.run_id == run.id,
+                    WorkflowStepRun.agent_id.is_not(None),
+                )
+            )
+        ) == {
+            "company-analyst",
+            "growth-opportunity-analyst",
+            "evidence-reviewer",
+            "wiki-curator",
+        }
+        assert run.output_json["okf_change_set"]["concept_paths"] == [
+            "reports/growth-diagnostic.md"
+        ]
         duplicate = asyncio.run(
             start_persisted_workflow(
                 db,
@@ -355,7 +380,10 @@ def test_rejected_workflow_candidate_never_changes_active_revision(tmp_path: Pat
         sync_demo_company(db, settings.raw_root)
         ensure_active_repository(settings.company_bundle)
         ensure_platform_registry(db)
-        workflow = db.get(WorkflowDefinitionRow, ("growth-diagnostic", 1))
+        workflow = db.get(
+            WorkflowDefinitionRow,
+            (build_default_workflow().id, build_default_workflow().version),
+        )
         run = asyncio.run(
             start_persisted_workflow(
                 db,
@@ -394,7 +422,10 @@ def test_submitted_approval_expiry_closes_run_step_and_candidate(tmp_path: Path)
         sync_demo_company(db, settings.raw_root)
         ensure_active_repository(settings.company_bundle)
         ensure_platform_registry(db)
-        workflow = db.get(WorkflowDefinitionRow, ("growth-diagnostic", 1))
+        workflow = db.get(
+            WorkflowDefinitionRow,
+            (build_default_workflow().id, build_default_workflow().version),
+        )
         run = asyncio.run(
             start_persisted_workflow(
                 db,

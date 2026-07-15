@@ -21,9 +21,12 @@ remaining release gates.
 2. Run the setup structured-output probe. Do not enable automatic provider fallback.
 3. Run `scripts/qualify-model.ps1` (or `.sh`) with 20 attempts. A failed profile is not “supported.”
 4. Complete the browser journey from a clean installation through approved report and OKF export.
+   Use `browser-real-model-e2e.ps1`/`.sh`; it intentionally refuses auth bypass and requires an
+   explicit disposable-install confirmation.
 5. Restart once during a run and once during approval; confirm the same DBOS/run ID resumes.
 6. Run qmd loss/rebuild, no-egress, release scan, backup, restore, and exact-citation checks.
-7. Repeat the release rehearsal on a clean Linux x86-64 host behind HTTPS.
+7. Run `scripts/release-rehearsal.sh` on a separate clean Linux x86-64 host behind HTTPS. Accept the
+   gate only when its content-safe manifest reports every step passed.
 
 ## Rules while fixing failures
 

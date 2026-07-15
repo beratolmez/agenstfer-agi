@@ -123,7 +123,19 @@ Linux script karşılıkları `scripts/*.sh` altındadır.
 
 `browser-e2e` modelden bağımsız dashboard, setup/demo sync, Sources ve güvenli workflow dry-run
 akışlarını izole volume'larda doğrular. Gerçek model diagnostic → citation → approval → export akışı
-release için ayrıca çalıştırılmalıdır.
+release için ayrıca çalıştırılmalıdır. Bu akış mevcut bir disposable deployment'a karşı şu wrapper
+ile çalıştırılır; secret değerlerini komut satırına yazmayın:
+
+```powershell
+$env:AGI_E2E_ADMIN_PASSWORD = "<secret>"
+$env:AGI_E2E_BOOTSTRAP_TOKEN = "<one-time-secret>"
+.\scripts\browser-real-model-e2e.ps1 -BaseUrl http://127.0.0.1:8080 `
+  -AdminEmail release-admin@example.test -ModelProfile local-strong -ConfirmDisposable
+```
+
+Nihai dış-host kapısı için Linux x86-64 üzerinde `scripts/release-rehearsal.sh` kullanılır. Script
+20-run qualification, gerçek-model browser akışı, scan, backup/restore, lexical fallback ve qmd
+rebuild adımlarını birleştirir; var olması bu kapıların geçtiği anlamına gelmez.
 
 ## MVP'nin yaptığı / yapmadığı
 

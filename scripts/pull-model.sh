@@ -3,6 +3,8 @@ set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 MODEL=${1:-qwen3.5:9b}
+PROJECT_NAME=${COMPOSE_PROJECT_NAME:-agentic-growth-intelligence}
+DOWNLOAD_NETWORK=${PROJECT_NAME}_model-download
 
 case "$MODEL" in
   qwen3.5:9b|qwen3.5:27b) ;;
@@ -13,8 +15,8 @@ restore_isolation() {
   echo "Restoring the isolated Ollama network..."
   restore_status=0
   docker compose -f "$ROOT/docker-compose.yml" up -d --no-deps --force-recreate ollama || restore_status=$?
-  docker network rm agentic-growth-intelligence_model-download >/dev/null 2>&1 || true
-  if docker network inspect agentic-growth-intelligence_model-download >/dev/null 2>&1; then
+  docker network rm "$DOWNLOAD_NETWORK" >/dev/null 2>&1 || true
+  if docker network inspect "$DOWNLOAD_NETWORK" >/dev/null 2>&1; then
     echo "Ollama network isolation could not be restored; stop the stack and inspect Docker networks." >&2
     restore_status=1
   fi

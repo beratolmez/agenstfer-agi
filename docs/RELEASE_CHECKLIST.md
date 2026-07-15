@@ -22,7 +22,8 @@ Last audited: 15 July 2026
 - [x] Isolated browser E2E verifies truthful no-result dashboard state, persisted setup/demo sync,
   Sources UI, and workflow clone plus explicitly labeled deterministic dry-run.
 - [ ] A real release model passes structured-output and 20-run golden qualification.
-- [ ] Browser E2E completes diagnostic, exact citation, durable approval, active merge, and export.
+- [ ] The opt-in real-model Browser E2E completes diagnostic, exact citation, durable approval,
+  active merge, and export. The executable suite exists; no real provider has passed it yet.
 - [ ] Restart during a real agent step and approval resumes the same DBOS/run ID.
 
 ## Quality and security
@@ -44,6 +45,8 @@ Last audited: 15 July 2026
 
 - [x] Checksummed application DB + DBOS DB + knowledge backup restores and restarts successfully.
 - [x] PowerShell and Linux wrappers exist for checks, backup/restore, egress, scan, and secret setup.
+- [x] An external Linux x86-64 rehearsal command and content-safe evidence manifest schema exist;
+  it composes qualification, real-model E2E, recovery, lexical fallback, and qmd rebuild gates.
 - [x] Architecture, operations, threat, status, and implementation documents match the candidate.
 - [ ] Verify restored diagnostic artifacts/citations after a real successful model run.
 - [ ] Tag/release only after all unchecked release requirements above are closed.

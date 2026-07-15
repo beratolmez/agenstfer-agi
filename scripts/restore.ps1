@@ -34,6 +34,21 @@ $container = (docker inspect $appId | ConvertFrom-Json)[0]
 $knowledgeVolume = ($container.Mounts | Where-Object Destination -eq "/data/knowledge").Name
 if (-not $knowledgeVolume) { throw "Could not resolve the mounted knowledge volume." }
 
+function Start-OriginalApp {
+    docker start $appId | Out-Null
+    if ($LASTEXITCODE) { throw "The original app container could not be restarted." }
+    for ($attempt = 0; $attempt -lt 60; $attempt++) {
+        $state = (docker inspect $appId | ConvertFrom-Json)[0].State
+        $status = if ($state.Health) { $state.Health.Status } else { $state.Status }
+        if ($status -in @("healthy", "running")) { return }
+        if ($status -in @("unhealthy", "exited", "dead")) {
+            throw "The original app container entered state '$status'."
+        }
+        Start-Sleep -Seconds 2
+    }
+    throw "The original app container did not become healthy in time."
+}
+
 docker compose stop app
 if ($LASTEXITCODE) { throw "Could not stop the app service." }
 try {
@@ -51,7 +66,6 @@ try {
     if ($LASTEXITCODE) { throw "Knowledge restore failed." }
 }
 finally {
-    docker compose up -d --wait app
-    if ($LASTEXITCODE) { throw "The app service could not be restarted." }
+    Start-OriginalApp
 }
 Write-Host "Restore completed and the app service was restarted."

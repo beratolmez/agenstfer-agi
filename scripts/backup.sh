@@ -19,7 +19,16 @@ if [[ -z "${knowledge_volume}" ]]; then
   exit 1
 fi
 
-restore_app() { docker compose up -d --wait app >/dev/null; }
+restore_app() {
+  docker start "${app_id}" >/dev/null
+  for _ in $(seq 1 60); do
+    status="$(docker inspect "${app_id}" --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}')"
+    [[ "${status}" == "healthy" || "${status}" == "running" ]] && return 0
+    [[ "${status}" == "unhealthy" || "${status}" == "exited" || "${status}" == "dead" ]] && return 1
+    sleep 2
+  done
+  return 1
+}
 docker compose stop app
 trap restore_app EXIT
 docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/agi-postgres.dump'
