@@ -1,7 +1,9 @@
-# Audited MVP Implementation Plan
+# Productized MVP Implementation Plan
 
-Target: a production-candidate, single-company, self-hosted Growth Diagnostic product. The broader
-PRD remains a post-MVP roadmap.
+Target: a production-candidate product sold as an isolated customer installation. The current
+release remains a single-company, self-hosted Growth Diagnostic; the manager's AWS/container
+architecture is the target deployment family, not a reason to add shared SaaS tenancy. The broader
+PRD and business modules remain staged after the MVP.
 
 ## Status rules
 
@@ -9,6 +11,10 @@ PRD remains a post-MVP roadmap.
 - UI-only behavior, schemas, model factories, and mocked provider output are not release completion.
 - Update status, tests, threat model, and relevant ADRs with each material capability.
 - External write actions are prohibited throughout MVP v0.1.
+- Langfuse is an opt-in/self-hosted observability target behind OpenTelemetry; prompts and source
+  bodies remain excluded from traces by default.
+- Dynamic worker/round orchestration is post-MVP and cannot replace the deterministic diagnostic
+  until its bounded task, recovery, and evidence gates pass.
 
 ## Phase 0 — Truthful baseline and project memory
 
@@ -127,3 +133,54 @@ Exit gate: not yet passed; see release blockers in `IMPLEMENTATION_STATUS.md`.
 5. Financial/ERP, CRM hygiene, and cybersecurity insight.
 6. Only after new consent, legal, threat-model, rollback, and ADR gates: controlled external writes,
    messaging, and calling.
+
+## Commercial product track — active architecture alignment
+
+The audited implementation phases above describe the application capabilities. Product delivery now
+adds a separate deployment and support track:
+
+### Productization phase A — customer installation contract
+
+- [ ] Choose the first AWS operating model: vendor-managed private VPC or customer-owned AWS account.
+- [ ] Define one supported AWS runtime and its IaC/image/secret contract.
+- [ ] Keep the Docker Compose deployment as the local reference profile.
+- [ ] Define the vendor GPU server contract: dedicated server versus isolated model process/queue,
+  private connectivity, model provenance, patching, capacity, and incident ownership.
+- [ ] Define a small-company capacity profile, including named roles and one-active-diagnostic policy.
+- [ ] Define signed update, migration, backup, rollback, and support-telemetry procedures.
+
+Exit gate: a customer can receive an isolated installation with a documented owner, boundary,
+backup, update path, and rollback path.
+
+### Productization phase B — model operations and observability
+
+- [ ] Add Langfuse behind the existing OpenTelemetry interface.
+- [ ] Provide a self-hosted customer profile with content-safe tracing and telemetry disabled or
+  explicitly approved according to the customer policy.
+- [ ] Record provider/model, agent/workflow versions, latency, token totals, retries, validation,
+  evidence counts, and safe hashes without prompt/source/evidence bodies.
+- [ ] Add model and observability retention/backup checks to the release checklist.
+
+Exit gate: model behavior can be investigated per customer without exporting protected content.
+
+### Productization phase C — bounded task orchestration (post-MVP)
+
+- [ ] Define typed `TaskPlan`, `WorkerTask`, `RoundOutcome`, budget, and completion contracts.
+- [ ] Add a code-defined worker catalog; the orchestrator may select only bounded worker profiles.
+- [ ] Persist task/round state through DBOS and enforce maximum workers, rounds, duration, and tokens.
+- [ ] Add round-level evidence review and human approval where the output changes knowledge or a
+  report artifact.
+- [ ] Evaluate knowledge-gap resolution and report-completeness use cases before considering
+  controlled fan-out for the core diagnostic.
+
+Exit gate: bounded orchestration passes a separate golden, idempotency, restart/resume, budget,
+prompt-injection, and unsupported-claim suite. It must not introduce arbitrary code, arbitrary MCP,
+external writes, or an unbounded agent loop.
+
+## Product sequencing rule
+
+The deterministic Growth Diagnostic remains the supported MVP workflow. Customer workflow editing
+means cloning and configuring code-defined templates; it does not mean customer-supplied code or
+unrestricted agent creation. First-party CRM/ERP connectors are preferred for known systems. MCP
+bridges, write actions, social/website modules, and dynamic worker teams enter only through a new
+ADR and the relevant security, evidence, and recovery gates.

@@ -1,8 +1,8 @@
-# Agentic Growth Intelligence — MVP Proje Mimarisi
+# Agentic Growth Intelligence — Product Architecture and MVP
 
-**Durum:** Production-candidate uygulama mimarisi; model qualification bekliyor
-**Hedef:** Tek şirket, self-hosted, local-first  
-**Referans tarih:** 15 Temmuz 2026
+**Durum:** Commercial product target; production qualification still pending
+**Hedef:** Şirket başına izole kurulum, customer-private, local-first
+**Referans tarih:** 17 Temmuz 2026
 **Format kararı:** Open Knowledge Format 0.1 (draft, adapter arkasında)
 
 ## 1. Amaç ve iş değeri
@@ -452,3 +452,89 @@ profile to all exact-version agent nodes, and executes the non-DBOS in-process f
 persistent interpreter. Its report binds workflow/version, agent versions, control-plane policy
 revision, and effective-prompt SHA-256 values. The independent validator rejects legacy synchronous
 qualification reports and any report containing prompt/source/secret content.
+
+## 17. Productized customer deployment — 17 July 2026
+
+The manager's `NEW_ARCHITECTURE_PLAN.md` and `NEW_ARCHITECTURE.yaml` are now adopted as the
+product target architecture. They describe the platform family; this document remains the
+implementation truth for the current MVP and its release gates. The commercial product is sold
+and updated as an isolated installation serving one company. Shared SaaS tenancy is not assumed.
+
+The product boundary is therefore:
+
+- The vendor owns the release, agent/capability catalog, workflow templates, support process, and
+  signed update packages.
+- Each customer owns or controls its company data, OKF Git history, PostgreSQL state, model secrets,
+  and observability data.
+- The customer Admin can clone and publish safe workflow drafts, but cannot upload code, arbitrary
+  plugins, unrestricted MCP servers, direct SQL, or external write nodes.
+- A first-party typed CRM/ERP connector is preferred to a generic MCP bridge. MCP remains a later
+  adapter boundary and never bypasses classification, approval, idempotency, or audit policy.
+
+### Commercial deployment profiles
+
+| Profile | Control plane | Inference | Status |
+|---|---|---|---|
+| Local private | Customer Docker host | Vendor GPU gateway or local Ollama/vLLM | Current MVP reference |
+| Managed AWS private | Dedicated customer AWS VPC | Vendor-operated private GPU server | First production candidate |
+| Customer AWS private | Customer AWS account/VPC | Vendor GPU service or approved private model | Product option |
+| Split private | AWS control plane | Vendor GPU server over private service link | Later target |
+
+AWS is a deployment choice, not a change to the OKF/PostgreSQL boundary. The default commercial
+assumption is that the vendor provides and operates the GPU server. For the first release, prefer a
+dedicated GPU server per customer or a dedicated model process/queue with strict isolation. Shared
+GPU execution across customers is not an MVP assumption. Ollama/vLLM must never be exposed on a
+public address; access uses a private VPC link, VPN, private service endpoint, or outbound gateway.
+
+### Langfuse observability boundary
+
+OpenTelemetry remains the instrumentation interface. Jaeger is the minimal local diagnostic sink;
+Langfuse is the product-oriented trace and evaluation sink. Langfuse is deployed per customer or
+in an explicitly approved isolated environment. Traces may contain provider/model, agent/workflow
+versions, duration, token totals, retry counts, validation results, evidence counts, classifications,
+and safe hashes. Prompt bodies, source bodies, evidence excerpts, secrets, and contact identifiers
+are excluded by default. The Langfuse profile must preserve no-egress, retention, access-control,
+backup, and licensing requirements.
+
+### Bounded task orchestration boundary
+
+The MVP Growth Diagnostic remains a deterministic four-agent workflow: Company Analyst, Growth
+Opportunity Analyst, Evidence Reviewer, and Wiki Curator. A later `BoundedTaskOrchestrator` may
+plan a limited number of typed workers over a limited number of rounds for knowledge-gap resolution
+or report completeness. The runtime, not the model, enforces worker profiles, capability scope,
+classification, budgets, timeouts, completion criteria, DBOS persistence, and final evidence review.
+Workers cannot create arbitrary workers or tools and cannot perform external writes. This feature is
+post-MVP and requires its own evaluation and recovery gate.
+
+### Customer workflow ownership
+
+The vendor supplies tested immutable templates. Customer Admins may clone, edit, validate, dry-run,
+schedule, and publish safe versions. Analysts run published versions and Approvers decide candidate
+knowledge changes. New connector types, capabilities, and high-risk actions are vendor-delivered
+product releases and require a new ADR, threat-model review, and evaluation.
+
+### Product architecture diagram
+
+```mermaid
+flowchart LR
+    U[Customer users] --> ING[Approved ingress]
+    subgraph AWS[Customer-isolated AWS VPC or private host]
+        ING --> CP[Control Plane\nFastAPI + React + DBOS]
+        CP --> DB[(PostgreSQL operational state)]
+        CP --> KNOW[OKF Git + raw vault + evidence]
+        CP --> MG[Model Gateway]
+        CP --> OBS[OpenTelemetry]
+        OBS --> LF[Langfuse or Jaeger\ncontent-safe]
+    MG --> LOCAL[Vendor private GPU\nOllama / vLLM]
+    end
+    LOCAL -. private service link, VPN, or outbound gateway .- GPU[Vendor GPU server]
+    CP --> WF[Safe workflow catalog]
+    WF --> A1[Typed agents]
+    A1 --> R[Evidence review + approval]
+    R --> KNOW
+    R --> OUT[Diagnostic/report/export]
+    BO[Later: bounded task orchestrator] -. typed rounds/workers .-> WF
+```
+
+See [PRODUCT_DEPLOYMENT_PLAN.md](./PRODUCT_DEPLOYMENT_PLAN.md) for release, update, network,
+observability, and customer-operations decisions.

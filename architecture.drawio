@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Electron" modified="2026-07-17T17:00:00.000Z" agent="Mozilla/5.0" version="22.0.0" type="device">
+  <diagram name="AGI Architecture" id="page-1">
+    <mxGraphModel dx="1500" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <!-- Layers -->
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- TITLE -->
+        <mxCell id="title" value="&lt;b&gt;Agentic Growth Intelligence (AGI) - Core Architecture Map&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=18;fontColor=#111111;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="800" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Legend / Notes -->
+        <mxCell id="legend" value="&lt;b&gt;Architecture Boundary Properties:&lt;/b&gt;&lt;br&gt;• Single-tenant private deployment&lt;br&gt;• Local-first inference (Ollama / vLLM)&lt;br&gt;• Strict read-only external adapters&lt;br&gt;• OKF 0.1 (Portable Knowledge) + PostgreSQL (State)" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#555555;fillColor=#f9f9f9;strokeColor=#cccccc;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="30" width="320" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== CONTAINERS ==================== -->
+        
+        <!-- Ingress / Client Layer -->
+        <mxCell id="container_ingress" value="Client &amp; Ingress Layer" style="swimlane;startSize=24;fillColor=#f5f5f5;strokeColor=#cccccc;fontStyle=1;fontSize=12;fontColor=#333333;horizontal=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="140" width="220" height="500" as="geometry" />
+        </mxCell>
+        
+        <!-- Control Plane (Core App) -->
+        <mxCell id="container_core" value="Growth Intelligence Control Plane (Core Backend)" style="swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;fontColor=#333333;horizontal=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="140" width="480" height="500" as="geometry" />
+        </mxCell>
+
+        <!-- Data & Knowledge Layer -->
+        <mxCell id="container_data" value="Data &amp; Portable Knowledge Storage" style="swimlane;startSize=24;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;fontColor=#333333;horizontal=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="140" width="340" height="500" as="geometry" />
+        </mxCell>
+
+        <!-- Inference Gateway -->
+        <mxCell id="container_inference" value="Inference &amp; External Network" style="swimlane;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;fontColor=#333333;horizontal=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="670" width="860" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- Observability -->
+        <mxCell id="container_obs" value="Observability Layer" style="swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;fontColor=#333333;horizontal=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="670" width="220" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== CLIENT LAYER NODES ==================== -->
+        
+        <!-- Browser -->
+        <mxCell id="browser" value="&lt;b&gt;React Web Console&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#555555&quot;&gt;TypeScript + React Flow&lt;br&gt;English / Turkish UI&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;" vertex="1" parent="container_ingress">
+          <mxGeometry x="30" y="50" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Nginx Proxy -->
+        <mxCell id="nginx" value="&lt;b&gt;Nginx Web Proxy&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#555555&quot;&gt;Port 8080 Ingress&lt;br&gt;HTTPS Terminator&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;" vertex="1" parent="container_ingress">
+          <mxGeometry x="30" y="160" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Document Uploads -->
+        <mxCell id="documents" value="&lt;b&gt;Company Documents&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#555555&quot;&gt;CSV, XLSX, PDF, TXT&lt;br&gt;Synthetic CRM Data&lt;/font&gt;" style="shape=document;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;fontSize=11;align=center;" vertex="1" parent="container_ingress">
+          <mxGeometry x="30" y="280" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Admin Roles -->
+        <mxCell id="admin_actor" value="&lt;b&gt;Analyst / Approver&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#555555&quot;&gt;RBAC &amp; Session Auth&lt;/font&gt;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="container_ingress">
+          <mxGeometry x="95" y="400" width="30" height="60" as="geometry" />
+        </mxCell>
+
+
+        <!-- ==================== CORE BACKEND NODES ==================== -->
+        
+        <!-- FastAPI Server -->
+        <mxCell id="fastapi" value="&lt;b&gt;FastAPI API Server&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;Python 3.12 Backend&lt;br&gt;Argon2id + HTTP Cookies&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="container_core">
+          <mxGeometry x="30" y="50" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Ingestion Adapters -->
+        <mxCell id="ingestion" value="&lt;b&gt;Read-Only Ingestion&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;ConnectorPort Contract&lt;br&gt;Snapshot Hashing&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="container_core">
+          <mxGeometry x="30" y="160" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Context & Evidence Layer -->
+        <mxCell id="context_evidence" value="&lt;b&gt;Canonical Context&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;Evidence Locator&lt;br&gt;Persisted Metric Receipts&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="container_core">
+          <mxGeometry x="30" y="270" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Trust & Policy Layer -->
+        <mxCell id="policy_audit" value="&lt;b&gt;Trust &amp; Policy Layer&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;Audit Logging&lt;br&gt;Input Redaction / Egress Allow&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="container_core">
+          <mxGeometry x="30" y="380" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- DBOS Orchestrator -->
+        <mxCell id="dbos" value="&lt;b&gt;DBOS Workflow Worker&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;Durable pause / resume&lt;br&gt;Fail-safe checkpointing&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="container_core">
+          <mxGeometry x="270" y="50" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Pydantic AI Agents -->
+        <mxCell id="agents" value="&lt;b&gt;Pydantic AI Agents&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;• Company Analyst v3&lt;br&gt;• Opportunity Analyst v3&lt;br&gt;• Evidence Reviewer v3&lt;br&gt;• Wiki Curator v2&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="container_core">
+          <mxGeometry x="270" y="160" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Model Gateway -->
+        <mxCell id="model_gateway" value="&lt;b&gt;Model Gateway&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;Provider Abstraction&lt;br&gt;Structured-Output Pinning&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="container_core">
+          <mxGeometry x="270" y="290" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Approval Center -->
+        <mxCell id="approval" value="&lt;b&gt;Approval Center&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;7-Day durable wait&lt;br&gt;Approved fast-forward merge&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="container_core">
+          <mxGeometry x="270" y="380" width="180" height="70" as="geometry" />
+        </mxCell>
+
+
+        <!-- ==================== STORAGE & KNOWLEDGE NODES ==================== -->
+        
+        <!-- PostgreSQL -->
+        <mxCell id="postgres" value="&lt;b&gt;PostgreSQL 16&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#2b5e2b&quot;&gt;Application state, DBOS System DB,&lt;br&gt;Users, Audit, Idempotency,&lt;br&gt;Evidence Locators&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#2b5e2b;fontSize=11;align=center;" vertex="1" parent="container_data">
+          <mxGeometry x="40" y="50" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Immutable Raw Vault -->
+        <mxCell id="raw_vault" value="&lt;b&gt;Immutable Raw Vault&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#555555&quot;&gt;Content-addressed files&lt;br&gt;Source raw snapshots&lt;/font&gt;" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="container_data">
+          <mxGeometry x="40" y="190" width="120" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- OKF Main Bundle -->
+        <mxCell id="okf_main" value="&lt;b&gt;OKF Git main&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#555555&quot;&gt;Approved portable&lt;br&gt;knowledge history&lt;/font&gt;" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="container_data">
+          <mxGeometry x="180" y="190" width="120" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- OKF Worktree Candidates -->
+        <mxCell id="okf_candidates" value="&lt;b&gt;OKF Git worktrees&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#555555&quot;&gt;Proposed candidate&lt;br&gt;diagnostic revisions&lt;/font&gt;" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="container_data">
+          <mxGeometry x="40" y="300" width="120" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- qmd Index -->
+        <mxCell id="qmd" value="&lt;b&gt;qmd index&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#555555&quot;&gt;Disposable indexing&lt;br&gt;Lexical vector index&lt;/font&gt;" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="container_data">
+          <mxGeometry x="180" y="300" width="120" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Ingestion / Storage Info -->
+        <mxCell id="storage_info" value="OKF 0.1 Markdown / YAML portable wiki" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#666666;" vertex="1" parent="container_data">
+          <mxGeometry x="40" y="410" width="260" height="30" as="geometry" />
+        </mxCell>
+
+
+        <!-- ==================== INFERENCE NODES ==================== -->
+        
+        <!-- Local Ollama / vLLM -->
+        <mxCell id="local_inference" value="&lt;b&gt;Local Ollama / vLLM&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;Default: Local Qwen 3.5 (9B / 27B)&lt;br&gt;Private hardware environment&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="container_inference">
+          <mxGeometry x="30" y="55" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Egress squid gateway -->
+        <mxCell id="egress_gateway" value="&lt;b&gt;Squid Egress Gateway&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;Docker network whitelist proxy&lt;br&gt;Explicit model destinations only&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" vertex="1" parent="container_inference">
+          <mxGeometry x="320" y="55" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Cloud Models -->
+        <mxCell id="cloud_inference" value="&lt;b&gt;Cloud Model Providers&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;Groq / Mistral (Allowlisted)&lt;br&gt;Strict Confidential/Restricted filter&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="container_inference">
+          <mxGeometry x="600" y="55" width="230" height="70" as="geometry" />
+        </mxCell>
+
+
+        <!-- ==================== OBSERVABILITY NODES ==================== -->
+        
+        <!-- OpenTelemetry -->
+        <mxCell id="opentelemetry" value="&lt;b&gt;OpenTelemetry SDK&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;Content-safe traces / metrics&lt;br&gt;No prompt / source body log&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="container_obs">
+          <mxGeometry x="20" y="40" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Jaeger / Langfuse -->
+        <mxCell id="jaeger_langfuse" value="&lt;b&gt;Jaeger / Langfuse&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot; color=&quot;#666666&quot;&gt;Self-hosted trace collector&lt;br&gt;System monitoring / agent eval&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="container_obs">
+          <mxGeometry x="20" y="110" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== EDGES (CONNECTIONS) ==================== -->
+        <!-- Parent = 1, since they connect nodes across different containers -->
+        
+        <!-- Browser -> Nginx -->
+        <mxCell id="e_brow_nginx" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;" edge="1" parent="1" source="browser" target="nginx">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Nginx -> FastAPI -->
+        <mxCell id="e_nginx_fastapi" value="HTTP API" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="nginx" target="fastapi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Documents -> Ingestion -->
+        <mxCell id="e_doc_ingest" value="Raw Sync" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="documents" target="ingestion">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Ingestion -> Raw Vault -->
+        <mxCell id="e_ingest_raw" value="Write Snapshot" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="ingestion" target="raw_vault">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Ingestion -> Context -->
+        <mxCell id="e_ingest_ctx" value="Update" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d6b656;" edge="1" parent="1" source="ingestion" target="context_evidence">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Context -> Postgres -->
+        <mxCell id="e_ctx_postgres" value="Persist Locators" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82b366;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="context_evidence" target="postgres">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- FastAPI -> DBOS -->
+        <mxCell id="e_api_dbos" value="Trigger Run" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d6b656;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="fastapi" target="dbos">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DBOS -> Agents -->
+        <mxCell id="e_dbos_agents" value="Execute Node" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d6b656;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="dbos" target="agents">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DBOS -> Postgres -->
+        <mxCell id="e_dbos_postgres" value="Checkpoint State" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82b366;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="dbos" target="postgres">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Agents -> Model Gateway -->
+        <mxCell id="e_agents_gateway" value="Request Inference" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d6b656;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="agents" target="model_gateway">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Agents -> qmd -->
+        <mxCell id="e_agents_qmd" value="Retrieval / Query" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82b366;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="agents" target="qmd">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Model Gateway -> Local Model -->
+        <mxCell id="e_gw_local" value="Ollama (Local-First)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#b85450;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="model_gateway" target="local_inference">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Model Gateway -> Egress Gateway -->
+        <mxCell id="e_gw_egress" value="Cloud Route" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#b85450;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="model_gateway" target="egress_gateway">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Egress Gateway -> Cloud Models -->
+        <mxCell id="e_egress_cloud" value="HTTPS tunnel" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#b85450;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="egress_gateway" target="cloud_inference">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Policy Audit checks Model Gateway -->
+        <mxCell id="e_policy_gw" value="Filter / Redact" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d6b656;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="policy_audit" target="model_gateway">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Policy Audit writes Postgres -->
+        <mxCell id="e_policy_pg" value="Audit Log" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82b366;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="policy_audit" target="postgres">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DBOS -> Approval -->
+        <mxCell id="e_dbos_approval" value="Await Approver" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d6b656;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="dbos" target="approval">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Approval -> OKF Candidate -->
+        <mxCell id="e_approval_cand" value="Propose Rev" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82b366;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="approval" target="okf_candidates">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Approver Actor -> Approval -->
+        <mxCell id="e_actor_app" value="Sign Decision" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="admin_actor" target="approval">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- OKF Candidate -> OKF Main -->
+        <mxCell id="e_cand_main" value="Fast-Forward Merge" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82b366;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="okf_candidates" target="okf_main">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- OKF Main -> qmd -->
+        <mxCell id="e_main_qmd" value="Trigger Reindex" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#82b366;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="okf_main" target="qmd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Core App -> OpenTelemetry -->
+        <mxCell id="e_core_otel" value="OTLP Latency/Status" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9673a6;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="fastapi" target="opentelemetry">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- OpenTelemetry -> Jaeger -->
+        <mxCell id="e_otel_jaeger" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9673a6;" edge="1" parent="1" source="opentelemetry" target="jaeger_langfuse">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

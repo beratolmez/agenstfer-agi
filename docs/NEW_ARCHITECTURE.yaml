@@ -1,0 +1,133 @@
+architecture:
+
+  cloud:
+
+    provider: AWS
+
+    api_gateway: true
+
+    vpc:
+
+      private_subnet:
+
+        backend: true
+
+        database: RDS
+
+      public_subnet:
+
+        frontend: EC2
+
+      storage:
+
+        - documents
+
+        - uploads
+
+        - embeddings
+
+        - cache
+
+  containers:
+
+    runtime:
+
+      - kubernetes
+
+      - ecs
+
+      - docker-swarm
+
+      - eks
+
+      - cloudflare-workers
+
+    services:
+
+      - ai-agent
+
+      - rag
+
+      - workflow
+
+      - scheduler
+
+      - auth
+
+      - search
+
+      - api
+
+    private_tools: true
+
+  llm:
+
+    server: ubuntu
+
+    providers:
+
+      - ollama
+
+      - vllm
+
+      - lmstudio
+
+    models:
+
+      - glm-5.2
+
+      - qwen
+
+  management:
+
+    - dashboard
+
+    - erp
+
+    - crm
+
+  modules:
+
+    - documents
+
+    - reports
+
+    - social-media
+
+    - website
+
+  storage:
+
+    - uploads
+
+    - documents
+
+    - embeddings
+
+    - logs
+
+  security:
+
+    database_access: backend_only
+
+    private_tools: internal
+
+    llm: isolated
+
+  future:
+
+    - rag
+
+    - vector-db
+
+    - langgraph
+
+    - langfuse
+
+    - mcp
+
+    - event-bus
+
+    - queues
+
+    - autoscaling

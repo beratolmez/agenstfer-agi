@@ -91,6 +91,60 @@ Restore verifies SHA-256 and archive paths, stops the app to prevent concurrent 
 both databases and knowledge, then restarts the app. A backup is accepted only after a restore drill.
 Encrypt and move backups using the operator's storage policy; encryption keys stay outside archives.
 
+## Customer product deployment
+
+The product is delivered as one isolated installation per company. Before a customer rollout, record
+whether the deployment is local private, managed AWS private, customer AWS private, or split private.
+Do not combine Compose, ECS, EKS, and on-prem inference assumptions in one undocumented profile.
+
+For an AWS deployment, document the customer account/VPC owner, private subnets, TLS terminator,
+RDS/object-storage backup owner, image registry, secret store, and rollback version. Only the approved
+ingress is public. PostgreSQL, the model service, raw vault, and observability services remain private.
+
+The default commercial model server is a vendor-provided GPU server. Use the approved same-private-
+VPC, private-service-link/VPN, or outbound-inference-gateway pattern. Do not publish Ollama or vLLM
+on a public address, and do not enable automatic provider fallback. Record whether the customer has a
+dedicated GPU server or a dedicated isolated model process/queue; shared GPU execution is not an MVP
+default.
+
+## Product updates
+
+1. Verify the signed image/package and compatible migration set.
+2. Run a fresh application, DBOS, knowledge, and observability backup.
+3. Confirm model profile, data classification policy, and deployment manifest.
+4. Apply the update during a controlled maintenance window.
+5. Run migrations, health checks, authentication, evidence-resolution, workflow-start, and trace
+   smoke tests.
+6. Keep the prior image and backup available until the customer accepts the release.
+7. Roll back the complete compatible set when a migration or runtime check fails.
+
+Vendor support should use the content-safe release evidence and operational hashes. Raw prompts,
+source bodies, evidence excerpts, secrets, and contact identifiers must not be copied into tickets.
+
+## Langfuse profile
+
+OpenTelemetry remains the instrumentation boundary. When the customer enables Langfuse, deploy it in
+the same private environment or an explicitly approved isolated network. Configure retention, RBAC,
+backup, and self-hosted telemetry according to the customer policy. Verify that traces contain only
+provider/model, versions, durations, token totals, retry/validation outcomes, evidence counts, and
+safe hashes. Jaeger remains the minimal fallback when Langfuse is unavailable.
+
+## GPU server operations
+
+The vendor owns model image/model-file provenance, GPU driver/runtime compatibility, capacity,
+patching, health checks, and incident response for vendor-provided GPU servers. A customer deployment
+must identify its GPU server or isolated model queue, region, model profile, maximum concurrent model
+requests, and data-retention policy. Model downloads and upgrades are controlled operations and are
+never performed by an agent.
+
+## Capacity and concurrency
+
+Small-company installations may have multiple concurrent browser users, but the default local model
+profile uses one parallel inference request. Until a queue/worker capacity profile is released, run
+one heavy Growth Diagnostic per installation and reject or defer overlapping starts. Candidate merge
+remains serialized. A future bounded worker orchestrator must define its own maximum workers, rounds,
+token budget, and recovery policy before enablement.
+
 ## Release evidence
 
 ```powershell

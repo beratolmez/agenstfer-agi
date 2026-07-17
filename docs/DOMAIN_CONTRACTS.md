@@ -68,6 +68,31 @@ discovery returns code-defined identifiers and configuration/availability metada
 keys. A run's top-level profile is derived from its published agent nodes; each step retains the exact
 resolved provider and model.
 
+## Commercial deployment contracts
+
+- **DeploymentProfile:** `local_private`, `managed_aws_private`, `customer_aws_private`, or
+  `split_private`. It records the control-plane owner, inference pattern, TLS boundary, backup
+  owner, update channel, and observability policy.
+- **InferenceNetworkPattern:** `same_private_vpc`, `site_to_site_vpn`, or
+  `outbound_inference_gateway`. Public Ollama/vLLM endpoints are invalid.
+- **ObservabilityEvent:** content-safe provider/model, agent/workflow versions, timing, token totals,
+  retry/validation outcome, classification, evidence counts, and safe hashes. Prompt/source/evidence
+  bodies and secrets are not valid fields.
+- **ProductRelease:** signed image/package set, migration range, SBOM/vulnerability evidence,
+  compatibility, rollback version, and release notes.
+
+## Bounded task orchestration contracts
+
+- **TaskPlan:** a typed user goal, bounded worker tasks, dependencies, capability scopes,
+  classification, maximum rounds, maximum workers, timeout, token/cost budget, and completion criteria.
+- **WorkerTask:** a code-defined worker profile plus immutable input/evidence references and a typed
+  output contract. It cannot contain executable code or an arbitrary provider/tool URL.
+- **RoundOutcome:** one of `complete`, `continue`, `blocked`, `needs_human_approval`, or
+  `budget_exceeded`, with unresolved task IDs and evidence references.
+
+These contracts are post-MVP. They must be persisted through DBOS and evaluated separately before a
+dynamic worker workflow can be enabled for customer installations.
+
 ## Typed diagnostic outputs
 
 - `CompanyAnalysis`: profile, segments, strengths, weaknesses, data gaps, and evidence IDs.

@@ -1,6 +1,10 @@
 # MVP Release Checklist
 
-Last audited: 15 July 2026
+Last audited: 17 July 2026
+
+The release is a customer-isolated product release, not a shared SaaS release. The first AWS
+runtime, customer account/VPC ownership, inference network, update/rollback path, and observability
+profile must be recorded before a production claim.
 
 ## Build and migration
 
@@ -58,3 +62,16 @@ Last audited: 15 July 2026
 - [x] Architecture, operations, threat, status, and implementation documents match the candidate.
 - [ ] Verify restored diagnostic artifacts/citations after a real successful model run.
 - [ ] Tag/release only after all unchecked release requirements above are closed.
+
+## Commercial deployment readiness
+
+- [ ] Select and document the first AWS runtime and IaC/image/secret contract.
+- [ ] Document customer account/VPC ownership, TLS termination, private subnets, and inference
+  network pattern; public Ollama/vLLM endpoints are prohibited.
+- [ ] Package signed images, migrations, SBOM, vulnerability evidence, release notes, and rollback
+  instructions.
+- [ ] Complete one customer-style backup → update → migration → smoke-test → rollback drill.
+- [ ] Add self-hosted Langfuse behind OpenTelemetry or document the Jaeger-only profile. Verify
+  content-safe fields, retention, RBAC, backup, licensing, and telemetry settings.
+- [ ] Publish starter small-company capacity and diagnostic-concurrency policy.
+- [ ] Keep bounded task orchestration disabled until its separate evaluation and recovery gate passes.

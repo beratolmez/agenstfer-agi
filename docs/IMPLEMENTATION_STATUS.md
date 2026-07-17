@@ -1,6 +1,6 @@
 # Implementation Status
 
-Last verified: 15 July 2026
+Last verified: 17 July 2026
 
 This document is the authoritative statement of what the repository actually does. The source PRD
 and manager architecture are unchanged vision inputs; they are not completion claims.
@@ -164,6 +164,41 @@ and manager architecture are unchanged vision inputs; they are not completion cl
 
 The product is a production-candidate implementation, not a released MVP, until the first three
 release blockers above are closed. External write actions remain prohibited.
+
+## Commercial product architecture alignment — 17 July 2026
+
+The product is now treated as software sold and updated through isolated customer installations.
+This does not introduce shared SaaS tenancy. The manager's `NEW_ARCHITECTURE_PLAN.md` and
+`NEW_ARCHITECTURE.yaml` are the target platform family; this status file remains the truth about
+what is executable today.
+
+### Implemented or preserved
+
+- [x] Single-company boundary is preserved per customer installation.
+- [x] Local Docker Compose remains the executable reference deployment.
+- [x] Vendor-controlled agent, capability, and workflow catalogs remain allowlisted and versioned.
+- [x] Customer workflow customization is limited to draft/clone/edit/validate/dry-run/publish of
+  safe definitions; arbitrary code and unrestricted plugins are unavailable.
+- [x] OpenTelemetry/Jaeger content-safe tracing remains available as the current observability
+  baseline.
+- [x] Read-only external-system boundary remains enforced; MCP and write actions are not present.
+
+### Not yet implemented or release-qualified
+
+- [ ] A supported AWS runtime, IaC package, customer account/VPC ownership model, and TLS path are
+  selected and exercised on a clean release host.
+- [ ] The vendor-provided GPU server contract is defined: dedicated server versus isolated model
+  process/queue, private connectivity, capacity, patching, model provenance, and incident ownership.
+- [ ] Customer update, signed image promotion, migration, rollback, and support-telemetry package
+  is implemented.
+- [ ] Langfuse self-hosted integration and its content-safe retention/telemetry policy are not yet
+  part of the release acceptance evidence.
+- [ ] A first real CRM/ERP read-only connector has not been selected; MCP remains a future adapter
+  boundary.
+- [ ] Bounded task/round orchestration with dynamic workers is deliberately post-MVP and has no
+  product implementation or qualification evidence.
+- [ ] Diagnostic concurrency and starter capacity profiles for small companies are not yet a
+  published product contract.
 
 ## Current verification evidence
 

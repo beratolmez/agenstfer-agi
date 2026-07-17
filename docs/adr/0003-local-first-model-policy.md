@@ -48,3 +48,12 @@ JSON Schema path returned invalid JSON, while function-calling/ToolOutput was no
 returned malformed function-call XML with HTTP 500. These failures are diagnostic evidence, not
 reasons to relax schemas, claims, or citations. `qwen3.5:9b` stays development-only; no automatic
 switch to 27B or cloud is permitted.
+
+## Amendment — 17 July 2026
+
+The commercial product may use vendor-provided private GPU servers for inference. In this context,
+local-first means that the model request stays within the approved private customer/vendor
+deployment boundary and does not automatically leave for a public cloud provider. The Model Gateway
+must record the GPU server identity, private network path, classification, redaction, and retention
+policy. The first product release prefers a dedicated GPU server per customer or a dedicated isolated
+model process/queue; shared GPU execution across customers is not an MVP default.

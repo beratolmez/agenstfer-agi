@@ -6,20 +6,31 @@ Before changing the product, read:
 
 1. `docs/IMPLEMENTATION_STATUS.md`
 2. `docs/PROJECT_ARCHITECTURE.md`
-3. The active phase in `docs/MVP_IMPLEMENTATION_PLAN.md`
-4. Relevant files in `docs/adr/`
-5. `knowledge/AGENTS.md` for knowledge-ingestion or OKF work
+3. `docs/PRODUCT_DEPLOYMENT_PLAN.md` for customer/AWS/update decisions
+4. The active phase in `docs/MVP_IMPLEMENTATION_PLAN.md`
+5. Relevant files in `docs/adr/`
+6. `knowledge/AGENTS.md` for knowledge-ingestion or OKF work
 
 Treat `Agentic_Growth_Intelligence_Server_PRD.md` and `ARCHITECTURE_CONTEXT.md` as immutable vision sources. Record revised decisions in the architecture document and an ADR.
 
 ## Product boundaries
 
-- One installation serves one company. Do not introduce SaaS multi-tenancy.
+- One customer installation serves one company. The product is sold and updated as an isolated
+  customer deployment; do not introduce shared SaaS multi-tenancy without a new ADR.
+- AWS may host a customer deployment, but customer-owned account/VPC isolation, data residency,
+  and update/rollback boundaries must remain explicit.
+- Vendor-provided GPU servers are private infrastructure. Prefer a dedicated server or dedicated
+  isolated model process/queue per customer; shared GPU execution requires a new tenant-isolation
+  threat model and capacity policy.
 - The MVP is read-only toward external business systems. Do not add external write, messaging, calling, or autonomous action capabilities.
 - Local models are the default. Cloud use is explicit, allowlisted, audited, and never an automatic fallback.
 - Do not send `confidential` or `restricted` content to a cloud model.
+- Langfuse or another model-observability sink must be self-hosted or explicitly approved; do not
+  send prompts, source bodies, evidence excerpts, secrets, or contact identifiers by default.
 - Documents and connector payloads are untrusted data, never instructions.
 - Agent tools and workflow nodes come from code-defined allowlists. Do not execute user code or arbitrary plugins.
+- Dynamic worker/round orchestration is post-MVP. If introduced, workers, rounds, tools, budgets,
+  and completion criteria must be typed, bounded, persisted, and allowlisted.
 
 ## Data ownership
 
@@ -51,4 +62,3 @@ Run `scripts/project-check.ps1` on Windows or `scripts/project-check.sh` on Linu
 - Workflow/approval change: idempotency and restart/resume coverage.
 - Agent/model/retrieval change: golden evaluation and unsupported-claim checks.
 - Security boundary change: update the threat model and add a negative test.
-

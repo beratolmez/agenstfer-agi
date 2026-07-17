@@ -6,9 +6,12 @@ remaining release gates.
 ## Read in this order
 
 1. `IMPLEMENTATION_STATUS.md` — what is actually verified or blocked.
-2. `PROJECT_ARCHITECTURE.md` — boundaries and ownership.
-3. `EVALUATION_PLAN.md` and `RELEASE_CHECKLIST.md` — acceptance evidence.
-4. The relevant ADR and `THREAT_MODEL.md` before changing security, models, OKF, or workflows.
+2. `PROJECT_ARCHITECTURE.md` — current implementation and target product architecture.
+3. `PRODUCT_DEPLOYMENT_PLAN.md` — customer installation, AWS, inference network, Langfuse, and
+   update boundaries.
+4. `ENGINEERING_FOCUS_ROADMAP.md` — what to learn before extending the AI/runtime boundary.
+5. `EVALUATION_PLAN.md` and `RELEASE_CHECKLIST.md` — acceptance evidence.
+6. The relevant ADR and `THREAT_MODEL.md` before changing security, models, OKF, or workflows.
 
 ## What to do now
 
@@ -37,6 +40,12 @@ remaining release gates.
 - Keep connectors read-only; do not add a write method “for later.”
 - Add a new ADR for a boundary-changing decision and update status in the same change.
 - Do not copy provider keys, prompts, source text, or evidence excerpts into logs or tickets.
+- Treat Langfuse as a content-safe observability sink. Verify retention, access control, self-hosted
+  telemetry, and licensing before enabling it for a customer.
+- Keep the deterministic four-agent Growth Diagnostic as the supported MVP workflow. Do not replace
+  it with a dynamic worker loop before bounded-task evaluation and recovery gates pass.
+- A customer may configure safe workflow drafts, but new connectors, capabilities, MCP bridges, or
+  writes are vendor-delivered changes with a new ADR and security review.
 
 ## When a real company arrives
 
@@ -46,3 +55,14 @@ remaining release gates.
 - Update mappings, threat model, backup policy, golden fixtures, and evidence expectations.
 - Start with a read-only pilot and human comparison. Controlled writes require a separate ADR,
   capability, approval, consent, rollback, and security review.
+
+## When the product is deployed
+
+- Record the customer deployment profile: local private, managed AWS private, customer AWS private,
+  or split private.
+- Record who owns the AWS account/VPC, TLS, backups, updates, rollback, model runtime, and
+  observability retention.
+- Never expose Ollama/vLLM publicly. Use the approved same-VPC, private-VPN, or outbound-inference
+  gateway pattern.
+- Test one customer update from backup through migration, smoke test, and rollback before promising
+  a release.

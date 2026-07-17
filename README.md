@@ -1,15 +1,20 @@
 # Agentic Growth Intelligence
 
-Agentic Growth Intelligence; tek bir şirketin kendi altyapısında çalışan, dağınık şirket bilgisini
+Agentic Growth Intelligence; şirket başına izole kurulup satılan ve güncellemeleri vendor tarafından
+sağlanan, dağınık şirket bilgisini
 taşınabilir [Open Knowledge Format 0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
 bilgi tabanına dönüştüren ve kaynak satırına kadar izlenebilen bir **Growth Diagnostic + 30 günlük
-aksiyon planı** üreten local-first üründür.
+aksiyon planı** üreten local-first üründür. Bu ürün ortak SaaS tenancy varsaymaz; her kurulum tek bir
+şirkete hizmet eder.
 
 Kaynak [PRD](./Agentic_Growth_Intelligence_Server_PRD.md) ve
 [yönetici mimarisi](./ARCHITECTURE_CONTEXT.md) değiştirilmeden korunur. Güncel kararlar ve gerçek
 durum:
 
 - [Project Architecture](./docs/PROJECT_ARCHITECTURE.md)
+- [New Architecture Plan](./docs/NEW_ARCHITECTURE_PLAN.md)
+- [Product Deployment Plan](./docs/PRODUCT_DEPLOYMENT_PLAN.md)
+- [Engineering Focus Roadmap](./docs/ENGINEERING_FOCUS_ROADMAP.md)
 - [Implementation Plan](./docs/MVP_IMPLEMENTATION_PLAN.md)
 - [Implementation Status](./docs/IMPLEMENTATION_STATUS.md)
 - [Next Steps](./docs/NEXT_STEPS_GUIDE.md)
@@ -105,6 +110,14 @@ geçmelidir:
 Qualification, seçilen profili current published workflow'un immutable bir klonuna pinler ve aynı
 persistent runtime üzerinden çalışır. Üretilen rapor prompt metnini değil workflow/agent sürümlerini,
 policy revision'ını ve effective-prompt SHA-256 değerlerini taşır.
+
+## Product architecture
+
+The manager target architecture adds customer-isolated AWS deployments, private/local inference,
+OpenTelemetry with optional self-hosted Langfuse, and later bounded task orchestration. The current
+Compose deployment remains the reference implementation until one AWS runtime, customer update
+path, inference network pattern, and observability profile are release-qualified. See
+[Product Deployment Plan](./docs/PRODUCT_DEPLOYMENT_PLAN.md) and the ADRs 0009–0012.
 
 ## Geliştirme ve doğrulama
 
