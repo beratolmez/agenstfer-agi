@@ -9,6 +9,7 @@ import {
   Database,
   FileOutput,
   FileSearch,
+  FolderOpen,
   GitBranch,
   GripVertical,
   History,
@@ -207,6 +208,36 @@ function Inspector({
           <label>Agent<select value={String(config.agent_id ?? "company-analyst")} onChange={(event) => updateAgent(event.target.value)}>{agents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name} · v{agent.version}</option>)}</select></label>
           <label>Model profili<select value={String(config.model_profile ?? "local-balanced")} onChange={(event) => updateConfig("model_profile", event.target.value)}>{modelProfiles.map((profile) => <option disabled={!profile.enabled} key={profile.id} value={profile.id}>{profile.id}{profile.available ? " · erişilebilir" : " · erişilebilir değil"}</option>)}</select></label>
           <label>Çıktı tipi<select value={String(config.output_type ?? "CompanyAnalysis")} onChange={(event) => updateConfig("output_type", event.target.value)}><option>CompanyAnalysis</option><option>OpportunityHypotheses</option><option>EvidenceReview</option><option>OKFChangeSet</option></select></label>
+          <label style={{ display: "block", marginTop: "8px" }}>
+            Atanan Skill'ler (Capabilities)
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px" }}>
+              {["knowledge.search", "web.scrape", "crm.read", "erp.read", "metrics.calculate", "battlecard.generate"].map((cap) => {
+                const currentCaps = Array.isArray(config.capabilities) ? (config.capabilities as string[]) : ["knowledge.search"];
+                const active = currentCaps.includes(cap);
+                return (
+                  <button
+                    type="button"
+                    key={cap}
+                    onClick={() => {
+                      const next = active ? currentCaps.filter((c) => c !== cap) : [...currentCaps, cap];
+                      updateConfig("capabilities", next);
+                    }}
+                    style={{
+                      fontSize: "11px",
+                      padding: "3px 8px",
+                      borderRadius: "4px",
+                      border: active ? "1px solid #3b82f6" : "1px solid #cbd5e1",
+                      background: active ? "#eff6ff" : "#f8fafc",
+                      color: active ? "#1d4ed8" : "#475569",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {active ? "✓ " : "+ "}{cap}
+                  </button>
+                );
+              })}
+            </div>
+          </label>
         </section>
       ) : null}
       {node.data.kind === "condition" ? (
@@ -227,7 +258,19 @@ function EditorSurface({ userRoles }: { userRoles: string[] }) {
   const canEdit = userRoles.includes("analyst");
   const isAdmin = userRoles.includes("admin");
   const [workflow, setWorkflow] = useState<WorkflowDefinition | null>(null);
+  const [templates, setTemplates] = useState<WorkflowDefinition[]>([]);
+  const [templateOpen, setTemplateOpen] = useState(false);
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
+
+  useEffect(() => {
+    api.workflowTemplates().then((res) => setTemplates(res.items)).catch(() => {});
+  }, []);
+
+  function loadTemplate(tpl: WorkflowDefinition) {
+    loadDefinition(tpl);
+    setTemplateOpen(false);
+    setSaved(`Şablon yüklendi: ${tpl.name}`);
+  }
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [agents, setAgents] = useState<AgentDefinitionView[]>([]);
   const [modelProfiles, setModelProfiles] = useState<ModelProfileView[]>([]);
@@ -437,6 +480,20 @@ function EditorSurface({ userRoles }: { userRoles: string[] }) {
           <span>{workflow?.status === "published" ? `Published v${workflow.version}` : `Taslak v${workflow?.version ?? "–"}`}</span>
         </div>
         <div>
+          <div style={{ position: "relative", display: "inline-block" }}>
+            <button type="button" onClick={() => setTemplateOpen((current) => !current)}><FolderOpen size={17} /> Şablon Yükle</button>
+            {templateOpen ? (
+              <div style={{ position: "absolute", top: "100%", left: 0, zIndex: 100, background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", width: "280px", padding: "8px", marginTop: "4px" }}>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", padding: "4px 8px", textTransform: "uppercase" }}>Hazır Büyüme Şablonları</div>
+                {templates.map((tpl) => (
+                  <button key={tpl.id} type="button" onClick={() => loadTemplate(tpl)} style={{ display: "block", width: "100%", textAlign: "left", padding: "8px", background: "none", border: "none", cursor: "pointer", borderRadius: "6px", fontSize: "12px", color: "#1e293b" }}>
+                    <strong style={{ display: "block", color: "#0f172a" }}>{tpl.name}</strong>
+                    <span style={{ fontSize: "11px", color: "#64748b" }}>{tpl.nodes.length} node · {tpl.edges.length} edge</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
           <button aria-expanded={historyOpen} type="button" onClick={() => setHistoryOpen((current) => !current)}><History size={17} /> Sürümler</button>
           {workflow?.status === "published" ? <button type="button" onClick={cloneCurrent} disabled={busy || !canEdit}><Copy size={17} /> Klonla</button> : null}
           <button type="button" onClick={save} disabled={busy || readOnly}><Save size={17} /> Kaydet</button>

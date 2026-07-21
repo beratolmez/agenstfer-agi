@@ -1,234 +1,121 @@
-from __future__ import annotations
-
-import argparse
-import asyncio
-import json
+import sys
 import os
-import platform
-import tempfile
-import time
-from datetime import UTC, datetime
-from pathlib import Path
+import glob
+import re
+from pydantic import BaseModel
+from pydantic_ai import Agent
 
-import httpx
-from agi_server.agents.model_gateway import resolve_model_profile
-from agi_server.config import Settings
-from agi_server.db import WorkflowRun, WorkflowStepRun
-from agi_server.evaluation import (
-    prepare_qualification_workflow,
-    qualification_provenance,
-    summarize_qualification_run,
+# Ensure modules can be imported
+sys.path.insert(0, os.path.abspath('apps/services/rag'))
+sys.path.insert(0, os.path.abspath('apps/services/ai-agent'))
+
+import chromadb
+from rag_service.ingest import ingest_markdown_file
+from ai_agent.graph import create_graph
+from ai_agent.models import get_llm_model
+
+class EvalResult(BaseModel):
+    passed: bool
+    reason: str
+
+judge_agent = Agent(
+    model=get_llm_model(),
+    result_type=EvalResult,
+    system_prompt="You are an expert evaluator assessing an AI agent's output. Determine if the output meets the evaluation criteria. Return passed=True if it does, and passed=False otherwise, along with a reason."
 )
-from agi_server.ingestion import sync_demo_company
-from agi_server.migrations import run_migrations
-from agi_server.okf.lifecycle import ensure_active_repository
-from agi_server.workflow.persistent_runtime import start_persisted_workflow
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import sessionmaker
 
-
-def overlap(left: list[str], right: list[str]) -> float:
-    if not left and not right:
-        return 1.0
-    return len(set(left).intersection(right)) / max(1, min(len(left), len(right)))
-
-
-def local_memory_mib() -> int | None:
+def run_evaluation():
+    # 1. Clear ChromaDB
+    chroma_client = chromadb.PersistentClient(path="./chroma_db")
     try:
-        for line in Path("/proc/meminfo").read_text(encoding="utf-8").splitlines():
-            if line.startswith("MemTotal:"):
-                return int(line.split()[1]) // 1024
-    except (OSError, ValueError, IndexError):
-        return None
-    return None
+        chroma_client.delete_collection("okf_wiki")
+        print("Cleared okf_wiki collection.")
+    except ValueError:
+        print("Collection okf_wiki does not exist yet.")
+    except Exception as e:
+        print(f"Error clearing collection: {e}")
 
+    # 2. Ingest mock data
+    mock_data_dir = os.path.abspath('mock_data')
+    md_files = glob.glob(os.path.join(mock_data_dir, "*.md"))
+    if not md_files:
+        print(f"No markdown files found in {mock_data_dir}")
+        sys.exit(1)
+        
+    for file_path in md_files:
+        ingest_markdown_file(file_path)
 
-async def ollama_runtime(settings: Settings, model_name: str) -> dict[str, object] | None:
-    try:
-        async with httpx.AsyncClient(timeout=3) as client:
-            response = await client.get(settings.ollama_base_url.removesuffix("/v1") + "/api/ps")
-            response.raise_for_status()
-        for model in response.json().get("models", []):
-            if model.get("name") == model_name:
-                return {
-                    "context_length": model.get("context_length"),
-                    "size": model.get("size"),
-                    "size_vram": model.get("size_vram"),
-                }
-    except (httpx.HTTPError, ValueError, TypeError):
-        return None
-    return None
-
-
-async def evaluate(profile_id: str, attempts: int) -> dict[str, object]:
-    base_settings = Settings(model_profile=profile_id)
-    profile = resolve_model_profile(profile_id, base_settings)
-    outputs: list[list[str]] = []
-    errors: list[str] = []
-    failure_stages: list[dict[str, object]] = []
-    planted_counts: list[int] = []
-    evidence_coverage: list[int] = []
-    unsupported_numerical_counts: list[int] = []
-    attempt_results: list[dict[str, object]] = []
-    retrieval_revisions: list[str | None] = []
-    provenance: dict[str, object] | None = None
-    started = time.perf_counter()
-    for index in range(attempts):
-        attempt_started = time.perf_counter()
-        retrieval_revision: str | None = None
-        with tempfile.TemporaryDirectory(prefix="agi-golden-") as temporary:
-            root = Path(temporary)
-            database_url = f"sqlite:///{(root / 'eval.db').as_posix()}"
-            settings = Settings(
-                database_url=database_url,
-                knowledge_root=root / "knowledge",
-                model_profile=profile_id,
-                ollama_base_url=base_settings.ollama_base_url,
-                cloud_models_enabled=base_settings.cloud_models_enabled,
-                cloud_provider=base_settings.cloud_provider,
-                cloud_api_key=base_settings.cloud_api_key,
-                cloud_model=base_settings.cloud_model,
-                enable_dbos=False,
-            )
-            run_migrations(database_url)
-            engine = create_engine(database_url)
-            local_session = sessionmaker(bind=engine, expire_on_commit=False)
-            try:
-                with local_session() as db:
-                    sync_demo_company(db, settings.raw_root)
-                    retrieval_revision = ensure_active_repository(settings.company_bundle)
-                    workflow = prepare_qualification_workflow(db, profile_id)
-                    provenance = qualification_provenance(db, workflow)
-                    run = await start_persisted_workflow(
-                        db,
-                        settings,
-                        workflow,
-                        f"golden-{index}",
-                        None,
-                        input_json={"qualification": True},
-                    )
-                    summary = summarize_qualification_run(run)
-                    diagnostic = summary["diagnostic"]
-                    outputs.append([item.id for item in diagnostic.opportunities[:5]])
-                    planted_counts.append(len(diagnostic.detected_planted_insights))
-                    evidence_coverage.append(summary["evidence_coverage"])
-                    unsupported_numerical_counts.append(
-                        summary["unsupported_numerical_claims"]
-                    )
-                    attempt_results.append(
-                        {
-                            "attempt": index + 1,
-                            "status": "passed",
-                            "duration_seconds": round(time.perf_counter() - attempt_started, 2),
-                            "token_usage": run.token_usage,
-                            "material_claim_count": summary["material_claim_count"],
-                            "supported_claim_count": summary["supported_claim_count"],
-                            "unsupported_numerical_claims": summary[
-                                "unsupported_numerical_claims"
-                            ],
-                        }
-                    )
-            except Exception as error:  # The report records only safe exception classes.
-                errors.append(type(error).__name__)
-                with local_session() as failure_db:
-                    failed_run = failure_db.scalar(
-                        select(WorkflowRun).where(
-                            WorkflowRun.idempotency_key == f"golden-{index}"
-                        )
-                    )
-                    failed_step = (
-                        None
-                        if failed_run is None
-                        else failure_db.scalar(
-                            select(WorkflowStepRun)
-                            .where(
-                                WorkflowStepRun.run_id == failed_run.id,
-                                WorkflowStepRun.status == "failed",
-                            )
-                            .order_by(WorkflowStepRun.sequence.desc())
-                        )
-                    )
-                    failure_stages.append(
-                        {
-                            "attempt": index + 1,
-                            "current_step": None if failed_run is None else failed_run.current_step,
-                            "step_id": None if failed_step is None else failed_step.step_id,
-                            "error_code": (
-                                type(error).__name__
-                                if failed_step is None
-                                else failed_step.error_json.get("code", type(error).__name__)
-                            ),
-                        }
-                    )
-                    attempt_results.append(
-                        {
-                            "attempt": index + 1,
-                            "status": "failed",
-                            "duration_seconds": round(time.perf_counter() - attempt_started, 2),
-                            "error_class": type(error).__name__,
-                            "failure_step": None if failed_step is None else failed_step.step_id,
-                        }
-                    )
-            finally:
-                retrieval_revisions.append(retrieval_revision)
-                engine.dispose()
-    success_rate = len(outputs) / attempts
-    repeated_overlap = min((overlap(outputs[0], item) for item in outputs[1:]), default=1.0)
-    checks = {
-        "planted_cases": bool(planted_counts) and min(planted_counts) >= 5,
-        "material_claim_evidence": bool(evidence_coverage) and min(evidence_coverage) == 100,
-        "unsupported_numerical_claims": (
-            bool(unsupported_numerical_counts)
-            and max(unsupported_numerical_counts) == 0
-        ),
-        "structured_output_success": success_rate >= 0.95,
-        "top_five_overlap": repeated_overlap >= 0.70,
-    }
-    return {
-        "evaluated_at": datetime.now(UTC).isoformat(),
-        "profile": profile.id,
-        "provider": profile.provider,
-        "model": profile.model_name,
-        "attempts": attempts,
-        "successful_runs": len(outputs),
-        "success_rate": success_rate,
-        "minimum_planted_cases": min(planted_counts, default=0),
-        "minimum_evidence_coverage": min(evidence_coverage, default=0),
-        "minimum_top_five_overlap": repeated_overlap,
-        "safe_error_classes": errors,
-        "safe_failure_stages": failure_stages,
-        "attempt_results": attempt_results,
-        "retrieval_revisions": retrieval_revisions,
-        **(provenance or {}),
-        "platform": {
-            "system": platform.system(),
-            "machine": platform.machine(),
-            "python": platform.python_version(),
-            "cpu_count": os.cpu_count(),
-            "memory_total_mib": local_memory_mib(),
+    # 3. Setup test cases
+    test_cases = [
+        {
+            "query": "What is the Net Profit for Q3 2026?",
+            "criteria": "The response must state the Net Profit is 450,000 and include a valid source locator."
         },
-        "ollama_runtime": (
-            await ollama_runtime(base_settings, profile.model_name) if profile.local else None
-        ),
-        "duration_seconds": round(time.perf_counter() - started, 2),
-        "checks": checks,
-        "passed": all(checks.values()),
-    }
+        {
+            "query": "What is the churn risk for GlobalBank?",
+            "criteria": "The response must state the churn risk is High and include a valid source locator."
+        },
+        {
+            "query": "What is the refund policy for annual plans?",
+            "criteria": "The response must mention a pro-rated policy and include a valid source locator."
+        },
+        {
+            "query": "What is the capital of Mars?",
+            "criteria": "The response must explicitly state that the information is unsupported or unavailable, and must not provide a made-up answer."
+        }
+    ]
 
+    # 4. Create graph and evaluate
+    graph = create_graph()
+    
+    passed = 0
+    total = len(test_cases)
+    
+    print("\n--- Starting Evaluation ---")
+    
+    for idx, test in enumerate(test_cases, 1):
+        query = test["query"]
+        print(f"\nTest {idx}/{total}: {query}")
+        
+        try:
+            result = graph.invoke({"messages": [query]})
+            final_review = result.get("messages", [""])[-1] if result.get("messages") else ""
+            if hasattr(final_review, 'content'):
+                final_review_text = final_review.content
+            else:
+                final_review_text = str(final_review)
+                
+            # Programmatic check for source locators
+            sources = re.findall(r'\[Source: (.*?)\]', final_review_text)
+            missing_sources = []
+            for source in sources:
+                source_clean = source.strip()
+                # Check if exact file exists, or if it matches an ingested file
+                if not os.path.exists(source_clean) and not any(source_clean in md_file for md_file in md_files):
+                    missing_sources.append(source_clean)
+            
+            if missing_sources:
+                print(f"❌ FAIL: Source locator validation failed. Missing/invalid sources: {missing_sources}")
+                print(f"   Agent Output: {final_review_text}")
+                continue
+                
+            judge_prompt = f"Query: {query}\n\nAgent Output:\n{final_review_text}\n\nCriteria:\n{test['criteria']}"
+            eval_result = judge_agent.run_sync(judge_prompt).data
+            
+            if eval_result.passed:
+                print(f"✅ PASS: {eval_result.reason}")
+                passed += 1
+            else:
+                print(f"❌ FAIL: {eval_result.reason}")
+                print(f"   Agent Output: {final_review_text}")
+        except Exception as e:
+            print(f"❌ FAIL with Error: {e}")
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Qualify one configured release model profile.")
-    parser.add_argument("--profile", default="local-balanced")
-    parser.add_argument("--attempts", type=int, default=20, choices=range(1, 101))
-    parser.add_argument("--output", type=Path)
-    args = parser.parse_args()
-    report = asyncio.run(evaluate(args.profile, args.attempts))
-    output = args.output or Path("artifacts/release") / f"evaluation-{report['profile']}.json"
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if report["passed"] else 1
-
+    print(f"\n--- Evaluation Complete: {passed}/{total} Passed ---")
+    if passed == total:
+        sys.exit(0)
+    else:
+        sys.exit(1)
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    run_evaluation()

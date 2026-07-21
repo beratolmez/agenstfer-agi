@@ -2,7 +2,6 @@ services:
   app:
     environment:
       AGI_DEMO_NO_AUTH: "true"
-      AGI_ENABLE_DBOS: "false"
 
   web-proxy:
     ports: !override

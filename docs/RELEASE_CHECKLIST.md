@@ -9,10 +9,10 @@ profile must be recorded before a production claim.
 ## Build and migration
 
 - [x] Empty-volume Linux containers start and migrate through `20260713_0007`.
-- [x] Backend tests/lint, frontend tests/build, Alembic drift, and Compose validation pass.
+- [x] Backend tests/lint (FastAPI), frontend tests/build (React), Alembic drift, and Compose validation pass.
 - [x] Base, development, production, cloud, and observability configurations validate.
-- [x] Runtime/base images and qmd dependency are pinned.
-- [x] Local qmd reindex/search and loss-to-lexical-fallback drill passes.
+- [x] Runtime/base images and ChromaDB dependencies are pinned.
+- [x] Local ChromaDB reindex/search and loss-to-lexical-fallback drill passes.
 - [ ] Repeat on a separate clean Linux x86-64 host behind HTTPS.
 
 ## Functional journey
@@ -21,18 +21,18 @@ profile must be recorded before a production claim.
 - [x] Demo data uses connector, mapping, persistence, immutable snapshot, and evidence pipelines.
 - [x] Typed Pydantic AI test models produce evidence-reviewed reports/candidates/artifacts.
 - [x] Candidate approval merges and rejection leaves active knowledge unchanged in integration tests.
-- [x] Workflow edit/validate/dry-run/publish/run/history and DBOS missing-model failure path work.
+- [x] Workflow edit/validate/dry-run/publish/run/history and LangGraph missing-model failure path work.
 - [x] OKF export/import preserves unknown types and metadata.
-- [x] Isolated browser E2E verifies truthful no-result dashboard state, model-profile discovery,
+- [x] Isolated React browser E2E verifies truthful no-result dashboard state, model-profile discovery,
   persisted setup/demo sync, Sources UI, Agent Registry create/publish, and workflow
   dry-run/publish/version/schedule management.
 - [x] The qualification harness exercises a profile-pinned published persistent workflow and binds
   exact agent versions, effective-prompt hashes, and the running code's exact policy revision in
   independently validated content-safe evidence.
-- [ ] A real release model passes structured-output and 20-run golden qualification.
+- [ ] A real Gemini API model passes structured-output and 20-run golden qualification.
 - [ ] The opt-in real-model Browser E2E completes diagnostic, exact citation, durable approval,
   active merge, and export. The executable suite exists; no real provider has passed it yet.
-- [ ] Restart during a real agent step and approval resumes the same DBOS/run ID.
+- [ ] Restart during a real agent step and approval resumes the same LangGraph state/run ID.
   The Linux rehearsal now performs and independently validates both interruptions; execution evidence
   from the qualified external host is still required before checking this item.
 
@@ -48,26 +48,26 @@ profile must be recorded before a production claim.
   live smoke received the `agi-control-plane` service.
 - [x] CycloneDX SBOM exists; digest-pinned Trivy reports zero fixable HIGH/CRITICAL and image-secret
   findings for the audited image.
-- [ ] Every release-enabled model passes all `EVALUATION_PLAN.md` gates.
-- [ ] Run qmd loss/rebuild and final log-leak review on the release host.
+- [ ] Every release-enabled model profile passes all `EVALUATION_PLAN.md` gates.
+- [ ] Run ChromaDB loss/rebuild and final log-leak review on the release host.
 
 ## Recovery and handoff
 
-- [x] Checksummed application DB + DBOS DB + knowledge backup restores and restarts successfully.
+- [x] Checksummed application DB + LangGraph DB + knowledge backup restores and restarts successfully.
 - [x] PowerShell and Linux wrappers exist for checks, backup/restore, egress, scan, and secret setup.
 - [x] An external Linux x86-64 rehearsal command and fail-closed evidence manifest schema exist;
   it composes qualification, real-model E2E, same-run agent/approval restart, recovery, lexical
-  fallback, and qmd rebuild gates. Required evidence artifacts are independently validated and
+  fallback, and ChromaDB rebuild gates. Required evidence artifacts are independently validated and
   SHA-256-bound; the rehearsal itself has not yet passed on the required host.
 - [x] Architecture, operations, threat, status, and implementation documents match the candidate.
-- [ ] Verify restored diagnostic artifacts/citations after a real successful model run.
+- [ ] Verify restored diagnostic artifacts/citations after a real successful Gemini API run.
 - [ ] Tag/release only after all unchecked release requirements above are closed.
 
 ## Commercial deployment readiness
 
 - [ ] Select and document the first AWS runtime and IaC/image/secret contract.
 - [ ] Document customer account/VPC ownership, TLS termination, private subnets, and inference
-  network pattern; public Ollama/vLLM endpoints are prohibited.
+  network pattern; unauthenticated/public API access is prohibited.
 - [ ] Package signed images, migrations, SBOM, vulnerability evidence, release notes, and rollback
   instructions.
 - [ ] Complete one customer-style backup → update → migration → smoke-test → rollback drill.

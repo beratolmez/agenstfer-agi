@@ -44,7 +44,7 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
-    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(320), index=True)
     name: Mapped[str] = mapped_column(String(120))
     password_hash: Mapped[str] = mapped_column(Text)
     roles: Mapped[list[str]] = mapped_column(JSON, default=list)

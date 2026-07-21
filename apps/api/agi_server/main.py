@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import httpx
-from dbos import DBOS, DBOSConfig
 from fastapi import (
     Depends,
     FastAPI,
@@ -26,6 +25,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
@@ -100,7 +100,6 @@ from agi_server.workflow import build_default_workflow, validate_workflow
 from agi_server.workflow.models import WorkflowDefinition, WorkflowValidation
 from agi_server.workflow.persistent_runtime import (
     decide_persisted_approval,
-    expire_approval_state,
     start_persisted_workflow,
 )
 from agi_server.workflow.registry_service import (
@@ -118,6 +117,7 @@ from agi_server.workflow.registry_service import (
 )
 from agi_server.workflow.runtime import run_workflow_locally
 from agi_server.workflow.scheduler import scheduler_loop
+from agi_server.workflow.templates import list_workflow_templates
 
 
 @asynccontextmanager
@@ -128,14 +128,10 @@ async def lifespan(_: FastAPI):
     with Session(engine) as db:
         ensure_platform_registry(db)
     schedule_task = asyncio.create_task(scheduler_loop(settings))
-    if settings.enable_dbos:
-        DBOS.launch()
     yield
     schedule_task.cancel()
     with suppress(asyncio.CancelledError):
         await schedule_task
-    if settings.enable_dbos:
-        DBOS.destroy(workflow_completion_timeout_sec=5)
 
 
 app = FastAPI(
@@ -148,17 +144,6 @@ app = FastAPI(
 settings = get_settings()
 configure_observability(settings.otlp_endpoint)
 app.add_middleware(ObservabilityMiddleware)
-if settings.enable_dbos:
-    dbos_url = settings.database_url.replace("postgresql+psycopg://", "postgresql://")
-    DBOS(
-        config=DBOSConfig(
-            name="agi-control-plane",
-            database_url=dbos_url,
-            application_version=__version__,
-            run_admin_server=False,
-        ),
-        fastapi=app,
-    )
 app.add_middleware(RequestSecurityMiddleware)
 app.add_middleware(
     SessionMiddleware,
@@ -375,6 +360,52 @@ async def model_probe(
     )
     db.commit()
     return result
+
+
+class ModelConfigRequest(BaseModel):
+    provider: str
+    api_key: str
+    model: str | None = None
+    profile_id: str = "cloud-balanced"
+
+
+@app.post("/api/models/configure")
+def model_configure(
+    payload: ModelConfigRequest,
+    settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("admin"))],
+) -> dict[str, Any]:
+    from pydantic import SecretStr
+
+    from agi_server.agents.model_gateway import CLOUD_PROVIDERS
+
+    if payload.provider not in CLOUD_PROVIDERS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Desteklenmeyen cloud provider: {payload.provider}",
+        )
+    settings.cloud_models_enabled = True
+    settings.cloud_provider = payload.provider
+    settings.cloud_api_key = SecretStr(payload.api_key)
+    if payload.model:
+        settings.cloud_model = payload.model
+    settings.model_profile = payload.profile_id
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="model.configured",
+        target_type="model_config",
+        target_id=payload.provider,
+        metadata={"provider": payload.provider, "model": settings.cloud_model},
+    )
+    db.commit()
+    return {
+        "status": "success",
+        "provider": payload.provider,
+        "model": settings.cloud_model or CLOUD_PROVIDERS[payload.provider][1],
+        "profile": payload.profile_id,
+    }
 
 
 @app.post("/api/auth/bootstrap", response_model=AuthSessionView, status_code=201)
@@ -889,14 +920,7 @@ async def workflow_run_cancel(
         raise HTTPException(status_code=404, detail="Workflow run bulunamadı")
     if run.status not in {"running", "awaiting_approval"}:
         raise HTTPException(status_code=409, detail="Bu run iptal edilebilir durumda değil")
-    if settings.enable_dbos:
-        try:
-            await DBOS.cancel_workflow_async(run_id)
-        except Exception as error:
-            raise HTTPException(
-                status_code=409,
-                detail="Durable workflow iptal edilemedi; application state değiştirilmedi",
-            ) from error
+
     approvals = (
         db.query(ApprovalRequest)
         .filter(ApprovalRequest.run_id == run_id, ApprovalRequest.status == "pending")
@@ -1967,6 +1991,11 @@ def workflow_schedule_update(
     }
 
 
+@app.get("/api/workflows/templates")
+def workflow_templates_list() -> dict[str, Any]:
+    return {"items": list_workflow_templates()}
+
+
 @app.get("/api/approvals")
 def approval_list(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
     rows = db.query(ApprovalRequest).order_by(ApprovalRequest.expires_at.desc()).all()
@@ -2006,69 +2035,10 @@ async def approval_decision(
     if approval is None:
         raise HTTPException(status_code=404, detail="Approval bulunamadı")
     if settings.enable_dbos:
-        duplicate_key = db.scalar(
-            select(ApprovalRequest.id).where(
-                ApprovalRequest.decision_idempotency_key == idempotency_key,
-                ApprovalRequest.id != approval.id,
-            )
+        raise HTTPException(
+            status_code=501,
+            detail="DBOS engine is deprecated; use LangGraph persistent runtime",
         )
-        if duplicate_key is not None:
-            raise HTTPException(status_code=409, detail="Decision idempotency key was already used")
-        if approval.decision_idempotency_key == idempotency_key:
-            run = db.get(WorkflowRun, approval.run_id)
-            return {
-                "approval_id": approval_id,
-                "decision": decision,
-                "run_status": approval.status if run is None else run.status,
-                "qmd": "duplicate",
-            }
-        if approval.status != "pending":
-            raise HTTPException(status_code=409, detail="Approval decision is stale")
-        expires_at = approval.expires_at
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=UTC)
-        if expires_at <= datetime.now(UTC):
-            expire_approval_state(db, approval, datetime.now(UTC))
-            db.commit()
-            raise HTTPException(status_code=409, detail="Approval has expired")
-        payload = {
-            "approval_id": approval.id,
-            "decision": decision,
-            "reason": reason,
-            "actor_id": None if actor is None else actor.id,
-            "idempotency_key": idempotency_key,
-        }
-        try:
-            await DBOS.send_async(
-                approval.run_id,
-                payload,
-                topic=f"approval:{approval.id}",
-                idempotency_key=idempotency_key,
-            )
-        except Exception as error:
-            db.rollback()
-            raise HTTPException(
-                status_code=503, detail="Approval runtime is temporarily unavailable"
-            ) from error
-        approval.status = "decision_submitted"
-        approval.decision_by = None if actor is None else actor.id
-        approval.decision_reason = reason
-        approval.decision_idempotency_key = idempotency_key
-        record_audit(
-            db,
-            actor_id=None if actor is None else actor.id,
-            action="approval.decision_submitted",
-            target_type="approval_request",
-            target_id=approval_id,
-            metadata={"run_id": approval.run_id, "decision": decision, "reason": reason},
-        )
-        db.commit()
-        return {
-            "approval_id": approval_id,
-            "decision": decision,
-            "run_status": "decision_submitted",
-            "qmd": "pending",
-        }
     try:
         run, qmd = await decide_persisted_approval(
             db,

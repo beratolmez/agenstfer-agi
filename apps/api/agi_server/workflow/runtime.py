@@ -3,8 +3,6 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from dbos import DBOS
-
 from agi_server.domain.demo import build_demo_dataset, demo_counts
 from agi_server.domain.diagnostic import build_growth_diagnostic
 from agi_server.workflow.models import NodeKind, WorkflowDefinition
@@ -48,44 +46,6 @@ def execute_node_logic(node: dict[str, Any], state: dict[str, Any]) -> dict[str,
     result["last_step"] = node_id
     return result
 
-
-@DBOS.step(name="agi.execute_workflow_node", retries_allowed=True, max_attempts=3)
-def execute_node_step(node: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
-    return execute_node_logic(node, state)
-
-
-@DBOS.workflow(name="agi.versioned_workflow_interpreter")
-def durable_workflow_interpreter(
-    workflow_payload: dict[str, Any], initial_context: dict[str, Any]
-) -> dict[str, Any]:
-    workflow = WorkflowDefinition.model_validate(workflow_payload)
-    validation = validate_workflow(workflow)
-    if not validation.valid:
-        raise ValueError(f"Invalid workflow: {[issue.code for issue in validation.issues]}")
-    nodes = {node.id: node for node in workflow.nodes}
-    state = deepcopy(initial_context)
-    state.update({"workflow_id": workflow.id, "workflow_version": workflow.version})
-    for node_id in validation.topological_order:
-        node = nodes[node_id]
-        if node.kind == NodeKind.APPROVAL:
-            if state.get("dry_run"):
-                state["approval"] = {"status": "skipped-in-dry-run", "node_id": node_id}
-            else:
-                timeout_days = int(node.config.get("timeout_days", 7))
-                decision = DBOS.recv(
-                    topic=f"approval:{node_id}", timeout_seconds=timeout_days * 24 * 60 * 60
-                )
-                if not isinstance(decision, dict) or decision.get("decision") != "approved":
-                    return {
-                        **state,
-                        "approval": decision or {"decision": "expired"},
-                        "status": "rejected",
-                    }
-                state["approval"] = decision
-                state["last_step"] = node_id
-        else:
-            state = execute_node_step(node.model_dump(mode="json"), state)
-    return {**state, "status": "completed"}
 
 
 def run_workflow_locally(

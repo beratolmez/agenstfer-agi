@@ -1,133 +1,78 @@
 architecture:
-
   cloud:
-
     provider: AWS
-
     api_gateway: true
-
     vpc:
-
       private_subnet:
-
-        backend: true
-
-        database: RDS
-
+        backend: FastAPI
+        database: RDS_PostgreSQL
       public_subnet:
-
-        frontend: EC2
-
+        frontend: EC2_React_UI
       storage:
-
         - documents
-
         - uploads
-
         - embeddings
-
         - cache
 
   containers:
-
     runtime:
-
       - kubernetes
-
       - ecs
-
       - docker-swarm
-
       - eks
-
       - cloudflare-workers
-
     services:
-
       - ai-agent
-
       - rag
-
       - workflow
-
       - scheduler
-
       - auth
-
       - search
-
       - api
-
     private_tools: true
 
   llm:
-
-    server: ubuntu
-
+    model_gateway: provider_neutral
     providers:
-
+      - gemini_api
       - ollama
-
       - vllm
-
       - lmstudio
-
     models:
-
+      - gemini
       - glm-5.2
-
-      - qwen
+      - qwen-3.7-max
 
   management:
-
     - dashboard
-
     - erp
-
     - crm
 
   modules:
-
     - documents
-
     - reports
-
     - social-media
-
     - website
 
-  storage:
-
-    - uploads
-
-    - documents
-
-    - embeddings
-
-    - logs
+  active:
+    - langgraph
+    - pydantic-ai
+    - rag
+    - chromadb
+    - fastapi
+    - react-ui
+    - human-in-the-loop-approvals
 
   security:
-
     database_access: backend_only
-
     private_tools: internal
-
     llm: isolated
 
+  observability:
+    telemetry: langfuse
+
   future:
-
-    - rag
-
-    - vector-db
-
-    - langgraph
-
-    - langfuse
-
     - mcp
-
     - event-bus
-
     - queues
-
-    - autoscaling
+    - kubernetes-autoscaling

@@ -338,15 +338,20 @@ Dikey ölçeklenebilir servis
 
 ---
 
-# 14. Gelecek Planları
+# 14. Aktif Bileşenler ve Gelecek Planları
 
-- Multi Agent
-- MCP Servers
-- RAG Pipeline
-- Vector Database
-- Event Bus
-- Queue System
-- Monitoring
-- Langfuse
-- Observability
+## Aktif Bileşenler (Mevcut MVP Altyapısı)
+- **LangGraph**: State machine tabanlı orkestrasyon ve insan onaylı (Human-in-the-loop) akışlar
+- **Pydantic AI**: Tip güvenli agent çıktıları ve tool tanımları
+- **ChromaDB**: RAG vektör indeksleme ve sorgulama
+- **FastAPI Backend**: REST API ve orchestrator entegrasyonu
+- **React UI**: Enterprise Minimal tema, `@xyflow/react` Visual Node Editor ve onay bildirim panelleri
+- **Model Gateway**: Gemini API ve Lokal/Harici GPU sunucuları (Ollama/vLLM) için esnek model sağlayıcı katmanı
+- **Langfuse**: Self-hosted telemetri ve izleme (observability)
+
+## Gelecek Planları
+- MCP (Model Context Protocol) Sunucu Entegrasyonu
+- Event Bus & Kuyruk Sistemi (Celery/RabbitMQ/Kafka)
+- Gelişmiş Multi-Agent Otomasyonları
 - Kubernetes Auto Scaling
+

@@ -1,0 +1,19 @@
+[project]
+name = "ai-agent"
+version = "0.1.0"
+description = "Agentic system service using LangGraph and Pydantic AI"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "langgraph>=0.2.1",
+    "pydantic-ai>=0.0.12",
+    "langgraph-checkpoint-postgres>=2.0.1",
+    "psycopg[binary]>=3.2",
+    "python-dotenv>=1.0.1",
+    "beautifulsoup4>=4.15.0",
+    "requests>=2.34.2",
+]
+
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"

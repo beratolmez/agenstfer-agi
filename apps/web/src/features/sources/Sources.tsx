@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, Database, FileSpreadsheet, RefreshCw, Uplo
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "../../api";
 import type { DataSourceView, FilePreview, SourceSyncRunView } from "../../types";
+import { RagVisualizer } from "./RagVisualizer";
 
 function canonicalField(value: string, index: number): string {
   const normalized = value
@@ -143,6 +144,8 @@ export function Sources() {
           </section>
         ) : null}
       </section>
+
+      <RagVisualizer />
 
       <section className="source-inventory">
         <header><h2>Bağlı kaynaklar</h2><span>{sources.length} kaynak</span></header>

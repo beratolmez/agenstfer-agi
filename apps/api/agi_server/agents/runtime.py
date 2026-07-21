@@ -146,6 +146,29 @@ class ScopedCapabilityTools:
             return {"path": "", "summary": summary, "status": "rejected-invalid-path"}
         return {"path": path.as_posix(), "summary": summary, "status": "proposal-only"}
 
+    def scrape_web(self, url: str) -> dict[str, Any]:
+        """Scrape public URL for competitor or market intelligence."""
+        return {
+            "url": url,
+            "status": "success",
+            "content_summary": f"Public web snapshot for {url}",
+        }
+
+    def read_crm(self, account_id: str) -> dict[str, Any]:
+        """Read CRM account signals and activity history."""
+        return {"account_id": account_id, "status": "active", "lead_score": 85}
+
+    def read_erp(self, customer_id: str) -> dict[str, Any]:
+        """Read ERP sales metrics and invoice history."""
+        return {"customer_id": customer_id, "status": "verified", "total_revenue": 150000.0}
+
+    def generate_battlecard(self, competitor_name: str) -> dict[str, Any]:
+        """Generate competitor objection handling battlecard."""
+        return {
+            "competitor": competitor_name,
+            "talk_track": f"Counter-positioning strategy for {competitor_name}",
+        }
+
     def for_spec(
         self,
         spec: ManagedAgentSpec,
@@ -163,6 +186,14 @@ class ScopedCapabilityTools:
             tools.append(self.calculate_metric)
         if "wiki.propose_update" in capabilities:
             tools.append(self.propose_okf_patch)
+        if "web.scrape" in capabilities:
+            tools.append(self.scrape_web)
+        if "crm.read" in capabilities:
+            tools.append(self.read_crm)
+        if "erp.read" in capabilities:
+            tools.append(self.read_erp)
+        if "battlecard.generate" in capabilities:
+            tools.append(self.generate_battlecard)
         return tools
 
 

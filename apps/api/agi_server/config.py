@@ -1,6 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, Self
+from typing import Self
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     model_profile: str = "local-balanced"
     qmd_url: str | None = None
     cloud_models_enabled: bool = False
-    cloud_provider: Literal["groq", "mistral"] | None = None
+    cloud_provider: str | None = None
     cloud_api_key: SecretStr | None = None
     cloud_api_key_file: Path | None = None
     cloud_model: str | None = None

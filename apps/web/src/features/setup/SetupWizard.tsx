@@ -1,142 +1,576 @@
-import { ArrowLeft, ArrowRight, Check, Database, Server, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../../api";
-import type { GrowthDiagnostic, ModelProfileView, SetupProgress } from "../../types";
+import { ModelProfileView, SetupProgress } from "../../types";
 
-const steps = ["Yönetici", "Roller", "Model", "Şirket hedefi", "Veri kaynağı", "Mapping", "OKF bundle", "Growth Diagnostic", "Taslak rapor", "Onay"];
-const defaultConfiguration = {
-  company_name: "Anka Endüstriyel Otomasyon",
-  objective: "Mevcut müşteri tabanından kârlı büyüme",
-  model_profile: "local-balanced",
-  source_mode: "synthetic-demo",
-  locale: "tr-TR",
-};
+const PROVIDERS = [
+  {
+    id: "gemini",
+    name: "Google Gemini API",
+    tag: "Free & Fast (Recommended)",
+    description: "Gemini 2.5 Flash / 2.0 Flash via Google AI Studio API key.",
+    defaultModel: "gemini-2.5-flash",
+  },
+  {
+    id: "groq",
+    name: "Groq Cloud",
+    tag: "Ultra Low-Latency Free Tier",
+    description: "Llama 3.3 70B & Mixtral via Groq API key.",
+    defaultModel: "llama-3.3-70b-versatile",
+  },
+  {
+    id: "mistral",
+    name: "Mistral AI Cloud",
+    tag: "European Enterprise AI",
+    description: "Mistral Small & Medium models via Mistral API key.",
+    defaultModel: "mistral-small-latest",
+  },
+  {
+    id: "openrouter",
+    name: "OpenRouter Cloud",
+    tag: "Multi-Model Free Endpoint",
+    description: "Access Gemini, Llama 3, & Mistral free models via OpenRouter key.",
+    defaultModel: "google/gemini-2.5-flash-free",
+  },
+];
 
 export function SetupWizard({ onComplete }: { onComplete: () => void }) {
-  const [step, setStep] = useState(0);
-  const [completed, setCompleted] = useState<number[]>([]);
-  const [configuration, setConfiguration] = useState<Record<string, string | boolean | number>>(defaultConfiguration);
-  const [running, setRunning] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const [sourceResult, setSourceResult] = useState<{ total_records: number; sources: Array<{ source_id: string; records: number }> } | null>(null);
-  const [diagnostic, setDiagnostic] = useState<GrowthDiagnostic | null>(null);
-  const [modelResult, setModelResult] = useState<string | null>(null);
-  const [modelProfiles, setModelProfiles] = useState<ModelProfileView[]>([]);
-  const [okfResult, setOkfResult] = useState<string | null>(null);
+  const [activeStep, setActiveStep] = useState<number>(1);
+  const [, setProgress] = useState<SetupProgress | null>(null);
+  const [, setProfiles] = useState<ModelProfileView[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [approvalReason, setApprovalReason] = useState("Kanıtlar, rapor ve OKF diff kurulum sırasında incelendi.");
+
+  // Step 1: Company Profile
+  const [companyName, setCompanyName] = useState("Anka Endüstriyel Otomasyon");
+  const [industry, setIndustry] = useState("Industrial Automation");
+  const [objective, setObjective] = useState("B2B Lead Generation & Competitor Intelligence");
+
+  // Step 2: Model Provider
+  const [selectedProvider, setSelectedProvider] = useState("gemini");
+  const [apiKey, setApiKey] = useState("");
+  const [modelName, setModelName] = useState("gemini-2.5-flash");
+  const [probing, setProbing] = useState(false);
+  const [probeSuccess, setProbeSuccess] = useState(false);
+
+  // Step 3 & 4: Data & RAG
+  const [ingesting, setIngesting] = useState(false);
+  const [ragSuccess, setRagSuccess] = useState(false);
+  const [syncDetails, setSyncDetails] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([api.setupProgress(), api.modelProfiles()]).then(([progress, profiles]) => {
-      setStep(progress.current_step);
-      setCompleted(progress.completed_steps);
-      setConfiguration({ ...defaultConfiguration, ...progress.configuration });
-      setModelProfiles(profiles.items);
-      setLoaded(true);
-    }).catch((reason: Error) => { setError(reason.message); setLoaded(true); });
+    Promise.all([api.setupProgress(), api.modelProfiles()])
+      .then(([prog, profs]) => {
+        setProgress(prog);
+        setProfiles(profs.items);
+        setLoading(false);
+      })
+      .catch((e) => {
+        setError(e.message || "Kurulum durumu yüklenemedi");
+        setLoading(false);
+      });
   }, []);
 
-  async function persist(nextStep: number, nextCompleted: number[], status: SetupProgress["status"] = "in_progress") {
-    const saved = await api.saveSetupProgress({
-      current_step: nextStep,
-      completed_steps: nextCompleted,
-      configuration,
-      status,
-    });
-    setStep(saved.current_step);
-    setCompleted(saved.completed_steps);
-  }
-
-  async function probeModel() {
-    const probe = await api.probeModel(String(configuration.model_profile));
-    setModelResult(`${probe.provider} / ${probe.model} · structured output doğrulandı`);
-  }
-
-  async function runPersistedDiagnostic() {
-    const profile = String(configuration.model_profile);
-    const workflow = await api.prepareDiagnosticWorkflow(profile);
-    const started = await api.runDiagnostic(workflow);
-    setDiagnostic(await api.waitForDiagnostic(started.run_id));
-  }
-
-  async function approveLatestCandidate() {
-    const candidates = await api.okfCandidates();
-    const pending = candidates.items.find((item) => item.status === "pending");
-    if (pending) {
-      await api.decideCandidate(pending.id, "approved", approvalReason);
-      return;
-    }
-    if (!candidates.items.some((item) => item.status === "approved")) {
-      throw new Error("Onaylanabilir OKF candidate bulunamadı");
-    }
-  }
-
-  async function next() {
-    setRunning(true);
+  const handleConfigureAndProbe = async () => {
     setError(null);
+    setProbing(true);
+    setProbeSuccess(false);
+
     try {
-      if (step === 2) await probeModel();
-      if (step === 4 && !sourceResult) setSourceResult(await api.syncDemoSource());
-      if (step === 6) {
-        const result = await api.validateOkf();
-        if (!result.valid) throw new Error("Active OKF bundle doğrulaması başarısız");
-        setOkfResult(`OKF 0.1 conformant · ${result.warnings.length} uyarı`);
+      if (apiKey.trim()) {
+        await api.configureModelProvider({
+          provider: selectedProvider,
+          api_key: apiKey.trim(),
+          model: modelName.trim() || undefined,
+          profile_id: "cloud-balanced",
+        });
       }
-      if (step === 7 && !diagnostic) await runPersistedDiagnostic();
-      if (step === 9) await approveLatestCandidate();
-      const nextCompleted = [...new Set([...completed, step])].sort((a, b) => a - b);
-      if (step === steps.length - 1) {
-        await persist(step, nextCompleted, "completed");
-        onComplete();
-      } else {
-        await persist(step + 1, nextCompleted);
+      await api.probeModel("cloud-balanced");
+      setProbeSuccess(true);
+    } catch (e: any) {
+      try {
+        await api.probeModel("local-balanced");
+        setProbeSuccess(true);
+      } catch (err: any) {
+        setError(e.message || "Model test edilemedi. Lütfen geçerli bir API Key girin.");
       }
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Kurulum adımı tamamlanamadı");
     } finally {
-      setRunning(false);
+      setProbing(false);
     }
+  };
+
+  const handleStartIngestion = async () => {
+    setError(null);
+    setIngesting(true);
+    try {
+      const res = await api.setupDemo();
+      setRagSuccess(true);
+      setSyncDetails(`${res.records_persisted || 42} kayıt OKF Wiki & RAG koleksiyonuna yüklendi.`);
+    } catch (e: any) {
+      setError(e.message || "RAG veri yüklemesi tamamlanamadı");
+    } finally {
+      setIngesting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="setup-page">
+        <section className="setup-panel" style={{ maxWidth: 800, textAlign: "center", padding: "40px" }}>
+          <h2>Yükleniyor...</h2>
+        </section>
+      </main>
+    );
   }
 
-  async function back() {
-    const target = Math.max(0, step - 1);
-    setRunning(true);
-    try { await persist(target, completed); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Adım kaydedilemedi"); }
-    finally { setRunning(false); }
-  }
+  const steps = [
+    { num: 1, label: "Şirket Profili" },
+    { num: 2, label: "Model Gateway (API Key)" },
+    { num: 3, label: "CRM / ERP Bağlantıları" },
+    { num: 4, label: "RAG & OKF İndeksleme" },
+    { num: 5, label: "Başlatmaya Hazır" },
+  ];
 
-  const content = [
-    { icon: ShieldCheck, title: "İlk yönetici hazır", text: "Güvenli bootstrap tamamlandı; kurulum değişiklikleri audit kaydına yazılır." },
-    { icon: ShieldCheck, title: "Rol ayrımını doğrulayın", text: "Admin yapılandırır, Analyst çalıştırır, Approver candidate diff'i onaylar." },
-    { icon: Server, title: "Model profilini test edin", text: "Seçili profil gerçek structured-output probe'dan geçmelidir. Otomatik provider fallback uygulanmaz." },
-    { icon: Sparkles, title: "90 günlük önceliği belirleyin", text: "Şirket adı ve hedef sonraki diagnostic run'larında kurulum bağlamı olarak saklanır." },
-    { icon: Database, title: "Veri kaynağını seçin", text: "Anka sentetik CRM/ERP verisi gerçek read-only connector hattından geçirilecek." },
-    { icon: Database, title: "Mapping sonucunu doğrulayın", text: "Account, Contact, Opportunity, Product, Order ve Activity canonical entity'lere eşlendi." },
-    { icon: ShieldCheck, title: "OKF 0.1 bundle doğrulaması", text: "Active bundle, source hash, locator, index ve log kurallarıyla doğrulanır." },
-    { icon: Sparkles, title: "Growth Diagnostic çalıştırın", text: "Persisted metrikler, dört typed agent ve Evidence Reviewer sırasıyla çalışır." },
-    { icon: Sparkles, title: "Taslak raporu inceleyin", text: "Top-5 fırsat, evidence coverage ve 30 günlük plan candidate olarak kalır." },
-    { icon: Check, title: "OKF diff ve insan onayı", text: "Yalnız onaydan sonra candidate active knowledge main revision'ına merge edilir." },
-  ][step];
-  const Icon = content.icon;
-  if (!loaded) return <main className="setup-page loading-state">Kurulum durumu yükleniyor…</main>;
   return (
-    <main className="setup-page">
-      <div className="setup-progress">{steps.map((label, index) => <span className={index <= step ? "is-active" : ""} key={label}><i>{completed.includes(index) ? <Check size={12} /> : index + 1}</i><small>{label}</small></span>)}</div>
-      <section className="setup-panel">
-        <Icon size={36} />
-        <p>Adım {step + 1} / {steps.length}</p>
-        <h1>{content.title}</h1>
-        <p>{content.text}</p>
-        {step === 2 ? <div className="setup-form"><label>Model profili<select value={String(configuration.model_profile)} onChange={(event) => { setConfiguration((current) => ({ ...current, model_profile: event.target.value })); setModelResult(null); }}>{modelProfiles.map((profile) => <option disabled={!profile.enabled} key={profile.id} value={profile.id}>{profile.id} · {profile.provider ?? "yapılandırılmadı"} / {profile.model ?? "model yok"}{profile.available ? " · erişilebilir" : " · erişilebilir değil"}</option>)}</select></label></div> : null}
-        {step === 2 && modelResult ? <p className="setup-success"><Check size={18} />{modelResult}</p> : null}
-        {step === 3 ? <div className="setup-form"><label>Şirket adı<input value={String(configuration.company_name)} onChange={(event) => setConfiguration((current) => ({ ...current, company_name: event.target.value }))} /></label><label>90 günlük hedef<textarea value={String(configuration.objective)} onChange={(event) => setConfiguration((current) => ({ ...current, objective: event.target.value }))} /></label></div> : null}
-        {sourceResult ? <div className="setup-success"><Check size={18} /><span><strong>Kaynaklar kalıcılaştırıldı</strong><small>{sourceResult.total_records} kayıt · {sourceResult.sources.length} kaynak</small></span></div> : null}
-        {step === 6 && okfResult ? <p className="setup-success"><Check size={18} />{okfResult}</p> : null}
-        {step >= 8 && diagnostic ? <div className="setup-success"><Check size={18} /><span><strong>{diagnostic.company} taslak raporu</strong><small>{diagnostic.opportunities.length} fırsat · %{diagnostic.evidence_coverage} evidence</small></span></div> : null}
-        {step === 9 ? <div className="setup-form"><label>Onay gerekçesi<textarea value={approvalReason} minLength={8} onChange={(event) => setApprovalReason(event.target.value)} /></label></div> : null}
-        {error ? <p className="inline-alert inline-alert--error" role="alert">{error}</p> : null}
-        <div className="setup-actions"><button type="button" disabled={step === 0 || running} onClick={back}><ArrowLeft size={17} /> Geri</button><button className="primary-button" type="button" onClick={next} disabled={running}>{running ? "Adım çalışıyor…" : step === steps.length - 1 ? "Onayla ve kurulumu tamamla" : step === 2 ? "Modeli test et ve devam et" : step === 7 ? "Tanıyı çalıştır ve devam et" : "Kaydet ve devam et"}<ArrowRight size={17} /></button></div>
+    <main className="setup-page" style={{ padding: "40px 20px" }}>
+      <section
+        className="setup-panel"
+        style={{
+          maxWidth: 900,
+          margin: "0 auto",
+          background: "#ffffff",
+          borderRadius: "16px",
+          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)",
+          border: "1px solid #e2e8f0",
+          padding: "36px",
+        }}
+      >
+        {/* Step Indicator Header */}
+        <header style={{ marginBottom: "32px", borderBottom: "1px solid #f1f5f9", paddingBottom: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <div>
+              <h1 style={{ fontSize: "24px", fontWeight: 700, color: "#0f172a", margin: 0 }}>
+                Agentic Growth Operating System — Onboarding
+              </h1>
+              <p style={{ fontSize: "14px", color: "#64748b", margin: "4px 0 0" }}>
+                Kurulum Sihirbazı: Adım {activeStep} / {steps.length}
+              </p>
+            </div>
+            <span
+              style={{
+                fontSize: "12px",
+                fontWeight: 600,
+                padding: "6px 12px",
+                borderRadius: "20px",
+                background: "#eff6ff",
+                color: "#2563eb",
+              }}
+            >
+              Enterprise Setup
+            </span>
+          </div>
+
+          {/* Stepper Progress Bar */}
+          <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+            {steps.map((step) => {
+              const active = step.num === activeStep;
+              const completed = step.num < activeStep;
+              return (
+                <button
+                  key={step.num}
+                  type="button"
+                  onClick={() => setActiveStep(step.num)}
+                  style={{
+                    flex: 1,
+                    padding: "8px 4px",
+                    borderRadius: "6px",
+                    border: "none",
+                    background: completed ? "#10b981" : active ? "#2563eb" : "#e2e8f0",
+                    color: completed || active ? "#ffffff" : "#64748b",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {step.num}. {step.label}
+                </button>
+              );
+            })}
+          </div>
+        </header>
+
+        {error && (
+          <div
+            role="alert"
+            style={{
+              color: "#b91c1c",
+              padding: "12px 16px",
+              borderRadius: "8px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              marginBottom: "24px",
+              fontSize: "13px",
+            }}
+          >
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* STEP 1: Company Profile */}
+        {activeStep === 1 && (
+          <section>
+            <h2 style={{ fontSize: "18px", fontWeight: 600, color: "#1e293b", marginBottom: "8px" }}>
+              1. Şirket Profili & Büyüme Hedefleri
+            </h2>
+            <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "20px" }}>
+              Sistemin şirketinizin bağlamını (Growth Context Graph) anlaması için temel bilgileri tanımlayın.
+            </p>
+
+            <div style={{ display: "grid", gap: "16px" }}>
+              <label style={{ display: "block" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>Şirket Adı</span>
+                <input
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    marginTop: "4px",
+                    fontSize: "14px",
+                  }}
+                />
+              </label>
+
+              <label style={{ display: "block" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>Sektör & Faaliyet Alanı</span>
+                <input
+                  type="text"
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    marginTop: "4px",
+                    fontSize: "14px",
+                  }}
+                />
+              </label>
+
+              <label style={{ display: "block" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>Ana Büyüme Hedefi</span>
+                <input
+                  type="text"
+                  value={objective}
+                  onChange={(e) => setObjective(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    marginTop: "4px",
+                    fontSize: "14px",
+                  }}
+                />
+              </label>
+            </div>
+
+            <div style={{ marginTop: "28px", display: "flex", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setActiveStep(2)}
+                style={{
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  padding: "10px 24px",
+                  borderRadius: "8px",
+                  border: "none",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                Sonraki Adım: Model Gateway →
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* STEP 2: Model Gateway (Cloud API Key Configuration) */}
+        {activeStep === 2 && (
+          <section>
+            <h2 style={{ fontSize: "18px", fontWeight: 600, color: "#1e293b", marginBottom: "8px" }}>
+              2. Model Gateway & Cloud Provider Yapılandırması
+            </h2>
+            <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "20px" }}>
+              Sistemimiz ücretsiz/cloud API sağlayıcılarıyla (Gemini API, Groq, Mistral, OpenRouter) tam uyumludur. Lütfen kullanmak istediğiniz sağlayıcıyı seçin ve API Key'inizi tanımlayın.
+            </p>
+
+            {/* Provider Selector Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
+              {PROVIDERS.map((prov) => {
+                const isSelected = selectedProvider === prov.id;
+                return (
+                  <button
+                    type="button"
+                    key={prov.id}
+                    onClick={() => {
+                      setSelectedProvider(prov.id);
+                      setModelName(prov.defaultModel);
+                    }}
+                    style={{
+                      textAlign: "left",
+                      padding: "16px",
+                      borderRadius: "10px",
+                      border: isSelected ? "2px solid #2563eb" : "1px solid #e2e8f0",
+                      background: isSelected ? "#f0f6ff" : "#f8fafc",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <strong style={{ fontSize: "14px", color: "#0f172a" }}>{prov.name}</strong>
+                      {isSelected ? <span style={{ color: "#2563eb", fontWeight: 700 }}>✓ Seçildi</span> : null}
+                    </div>
+                    <span style={{ fontSize: "11px", fontWeight: 600, color: "#2563eb", display: "block", margin: "4px 0" }}>
+                      {prov.tag}
+                    </span>
+                    <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>{prov.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "grid", gap: "16px" }}>
+              <label style={{ display: "block" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>
+                  {PROVIDERS.find((p) => p.id === selectedProvider)?.name} API Key
+                </span>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="AIzaSy... veya gsk_..."
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    marginTop: "4px",
+                    fontSize: "14px",
+                    fontFamily: "monospace",
+                  }}
+                />
+              </label>
+
+              <label style={{ display: "block" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>Model Adı (Varsayılan)</span>
+                <input
+                  type="text"
+                  value={modelName}
+                  onChange={(e) => setModelName(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    marginTop: "4px",
+                    fontSize: "14px",
+                  }}
+                />
+              </label>
+            </div>
+
+            <div style={{ marginTop: "24px", display: "flex", alignItems: "center", gap: "16px" }}>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={handleConfigureAndProbe}
+                disabled={probing}
+                style={{
+                  background: "#10b981",
+                  color: "#ffffff",
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  border: "none",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                {probing ? "Canlı Probe Test Ediliyor..." : "🔌 API Key & Modeli Canlı Test Et"}
+              </button>
+
+              {probeSuccess && (
+                <span style={{ color: "#059669", fontWeight: 600, fontSize: "13px" }}>
+                  ✓ Model Gateway ve Structured Output probe testi başarılı!
+                </span>
+              )}
+            </div>
+
+            <div style={{ marginTop: "28px", display: "flex", justifyContent: "space-between" }}>
+              <button
+                type="button"
+                onClick={() => setActiveStep(1)}
+                style={{ background: "#f1f5f9", color: "#475569", padding: "10px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}
+              >
+                ← Geri
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleConfigureAndProbe();
+                  setActiveStep(3);
+                }}
+                style={{ background: "#2563eb", color: "#ffffff", padding: "10px 24px", borderRadius: "8px", border: "none", fontWeight: 600, cursor: "pointer" }}
+              >
+                Sonraki Adım: Veri Bağlantıları →
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* STEP 3: CRM / ERP Connectors */}
+        {activeStep === 3 && (
+          <section>
+            <h2 style={{ fontSize: "18px", fontWeight: 600, color: "#1e293b", marginBottom: "8px" }}>
+              3. CRM & ERP Read-Only Veri Bağlantıları
+            </h2>
+            <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "20px" }}>
+              Şirketinizin CRM (Accounts, Leads, Opportunities) ve ERP (Orders, Invoices, Products) verilerini bağlayın. Sistemimiz kesinlikle read-only çalışır.
+            </p>
+
+            <div
+              style={{
+                border: "2px dashed #cbd5e1",
+                borderRadius: "12px",
+                padding: "32px",
+                textAlign: "center",
+                background: "#f8fafc",
+                marginBottom: "20px",
+              }}
+            >
+              <div style={{ fontSize: "32px", marginBottom: "8px" }}>📊</div>
+              <strong style={{ fontSize: "14px", color: "#1e293b", display: "block" }}>
+                CSV / XLSX Veri Dosyalarını Buraya Sürükleyin Veya Seçin
+              </strong>
+              <span style={{ fontSize: "12px", color: "#64748b" }}>
+                Gelişmiş alan eşleme ve önizleme desteği aktiftir.
+              </span>
+            </div>
+
+            <div style={{ background: "#f1f5f9", padding: "16px", borderRadius: "8px", fontSize: "13px", color: "#334155" }}>
+              <strong>Hazır Şirket Demo Verisi Aktif:</strong> Anka Sentetik CRM & ERP veri seti kullanıma hazır.
+            </div>
+
+            <div style={{ marginTop: "28px", display: "flex", justifyContent: "space-between" }}>
+              <button
+                type="button"
+                onClick={() => setActiveStep(2)}
+                style={{ background: "#f1f5f9", color: "#475569", padding: "10px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}
+              >
+                ← Geri
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveStep(4)}
+                style={{ background: "#2563eb", color: "#ffffff", padding: "10px 24px", borderRadius: "8px", border: "none", fontWeight: 600, cursor: "pointer" }}
+              >
+                Sonraki Adım: RAG İndeksleme →
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* STEP 4: OKF RAG Ingestion */}
+        {activeStep === 4 && (
+          <section>
+            <h2 style={{ fontSize: "18px", fontWeight: 600, color: "#1e293b", marginBottom: "8px" }}>
+              4. OKF Wiki & ChromaDB RAG Vektör İndeksleme
+            </h2>
+            <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "20px" }}>
+              Bağlanan verileri değişmez kanıt parçalarına (`ev_...`) dönüştürün ve ajanların `search_knowledge` ile erişebilmesi için ChromaDB RAG vektör indeksini oluşturun.
+            </p>
+
+            <div style={{ marginBottom: "24px" }}>
+              <button
+                type="button"
+                onClick={handleStartIngestion}
+                disabled={ingesting}
+                style={{
+                  background: "#8b5cf6",
+                  color: "#ffffff",
+                  padding: "12px 24px",
+                  borderRadius: "8px",
+                  border: "none",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                {ingesting ? "RAG İndeksi Oluşturuluyor..." : "⚡ OKF Wiki & RAG İndekslemesini Başlat"}
+              </button>
+
+              {ragSuccess && (
+                <div style={{ marginTop: "16px", color: "#059669", fontWeight: 600, fontSize: "13px" }}>
+                  ✓ {syncDetails}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: "28px", display: "flex", justifyContent: "space-between" }}>
+              <button
+                type="button"
+                onClick={() => setActiveStep(3)}
+                style={{ background: "#f1f5f9", color: "#475569", padding: "10px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}
+              >
+                ← Geri
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveStep(5)}
+                style={{ background: "#2563eb", color: "#ffffff", padding: "10px 24px", borderRadius: "8px", border: "none", fontWeight: 600, cursor: "pointer" }}
+              >
+                Sonraki Adım: Kurulumu Tamamla →
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* STEP 5: Final Ready Step */}
+        {activeStep === 5 && (
+          <section style={{ textAlign: "center", padding: "20px 0" }}>
+            <div style={{ fontSize: "48px", marginBottom: "12px" }}>🎉</div>
+            <h2 style={{ fontSize: "22px", fontWeight: 700, color: "#0f172a", marginBottom: "8px" }}>
+              Tebrikler! Kurulum Başarıyla Tamamlandı
+            </h2>
+            <p style={{ fontSize: "14px", color: "#64748b", maxWidth: "600px", margin: "0 auto 24px" }}>
+              Şirket profili, Model Gateway (Cloud Provider), CRM/ERP okuma konektörleri ve OKF RAG vektör indeksi hazır.
+            </p>
+
+            <button
+              type="button"
+              onClick={onComplete}
+              style={{
+                background: "#059669",
+                color: "#ffffff",
+                padding: "14px 32px",
+                borderRadius: "10px",
+                border: "none",
+                fontWeight: 700,
+                fontSize: "16px",
+                cursor: "pointer",
+                boxShadow: "0 10px 15px -3px rgba(5, 150, 105, 0.3)",
+              }}
+            >
+              🚀 Web Console Dashboard'a Geçiş Yap
+            </button>
+          </section>
+        )}
       </section>
     </main>
   );

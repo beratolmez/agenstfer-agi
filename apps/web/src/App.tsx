@@ -10,13 +10,14 @@ import { ApprovalCenter } from "./features/approvals/ApprovalCenter";
 import { SetupWizard } from "./features/setup/SetupWizard";
 import { Settings } from "./features/settings/Settings";
 import { Sources } from "./features/sources/Sources";
+import WebScrapingPanel from "./features/scraping/WebScrapingPanel";
 import type { SetupStatus, UserView } from "./types";
 
 const WorkflowEditor = lazy(() => import("./features/workflow/WorkflowEditor"));
 
 function initialView(): ViewId {
   const hash = window.location.hash.replace("#", "") as ViewId;
-  return ["dashboard", "knowledge", "opportunities", "workflow", "approvals", "sources", "settings", "setup"].includes(hash)
+  return ["dashboard", "scraping", "knowledge", "opportunities", "workflow", "approvals", "sources", "settings", "setup"].includes(hash)
     ? hash
     : "dashboard";
 }
@@ -114,6 +115,7 @@ export default function App() {
       <div className="app-main">
         {showTopbar && user ? <Topbar user={user} onLogout={async () => { await api.logout(); setUser(null); }} /> : null}
         {view === "dashboard" ? <Dashboard onNavigate={navigate} /> : null}
+        {view === "scraping" ? <WebScrapingPanel /> : null}
         {view === "opportunities" ? <Opportunities /> : null}
         {view === "knowledge" ? <Knowledge /> : null}
         {view === "workflow" ? (

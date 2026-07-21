@@ -22,3 +22,4 @@ knowledge/.qmd/
 knowledge/bundles/company/.git/
 .DS_Store
 Thumbs.db
+chroma_db/

@@ -6,12 +6,11 @@ from types import SimpleNamespace
 
 import pytest
 from agi_server.config import Settings
-from agi_server.db import AuditEvent, Base, WorkflowDefinitionRow, WorkflowRun
+from agi_server.db import AuditEvent, Base, WorkflowDefinitionRow
 from agi_server.main import (
     agent_version_detail,
     run_diagnostic,
     setup_progress_update,
-    workflow_run_cancel,
     workflow_schedule_update,
 )
 from agi_server.schemas import SetupProgressUpdate
@@ -116,48 +115,7 @@ def test_diagnostic_compatibility_view_rejects_a_draft_version(tmp_path: Path) -
     engine.dispose()
 
 
-def test_durable_cancel_failure_leaves_application_state_unchanged(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    engine, local_session = _database(tmp_path)
-    settings = Settings(enable_dbos=True, knowledge_root=tmp_path / "knowledge")
 
-    async def failed_cancel(_: str) -> None:
-        raise RuntimeError("DBOS unavailable")
-
-    monkeypatch.setattr(
-        "agi_server.main.DBOS.cancel_workflow_async",
-        staticmethod(failed_cancel),
-    )
-    with local_session() as db:
-        run = WorkflowRun(
-            id="22222222-2222-4222-8222-222222222222",
-            idempotency_key="cancel-failure-001",
-            workflow_id="builtin-growth-diagnostic",
-            workflow_version=2,
-            status="running",
-        )
-        db.add(run)
-        db.commit()
-
-        with pytest.raises(HTTPException) as rejected:
-            asyncio.run(
-                workflow_run_cancel(
-                    run.id,
-                    settings,
-                    db,
-                    None,
-                    "Operator requested a safe cancellation.",
-                )
-            )
-        assert rejected.value.status_code == 409
-        db.refresh(run)
-        assert run.status == "running"
-        assert run.completed_at is None
-        assert db.scalar(
-            select(AuditEvent).where(AuditEvent.action == "workflow.run_cancelled")
-        ) is None
-    engine.dispose()
 
 
 @pytest.mark.parametrize("profile", ["unknown-provider", "cloud-balanced"])

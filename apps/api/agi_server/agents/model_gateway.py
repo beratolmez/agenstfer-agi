@@ -20,8 +20,10 @@ PROFILES = {
 }
 
 CLOUD_PROVIDERS = {
-    "groq": ("https://api.groq.com/openai/v1", "openai/gpt-oss-20b"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.5-flash"),
+    "groq": ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
     "mistral": ("https://api.mistral.ai/v1", "mistral-small-latest"),
+    "openrouter": ("https://openrouter.ai/api/v1", "google/gemini-2.5-flash-free"),
 }
 
 CONTROL_PLANE_SYSTEM_POLICY = """You operate inside a read-only, evidence-gated control plane.

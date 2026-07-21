@@ -20,6 +20,7 @@ class MaterialClaim(BaseModel):
     material: bool = True
 
 
+# 1. Şirketi Tanı (Company Analysis)
 class CompanyAnalysis(BaseModel):
     summary: str = Field(min_length=10, max_length=1200)
     segments: list[str] = Field(min_length=1, max_length=8)
@@ -28,6 +29,7 @@ class CompanyAnalysis(BaseModel):
     data_gaps: list[str] = Field(max_length=12)
 
 
+# 2. Potansiyel Müşteriler (Opportunity / Lead Analysis)
 class OpportunityHypothesis(BaseModel):
     signal_id: SignalId
     title: str = Field(min_length=3, max_length=180)
@@ -44,6 +46,53 @@ class OpportunityHypotheses(BaseModel):
         if len(set(ids)) != 5:
             raise ValueError("Each deterministic opportunity signal must appear exactly once")
         return self
+
+
+# 3. Rakipler Kimler (Competitor Intelligence)
+class CompetitorItem(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    location: str = Field(min_length=2, max_length=120)
+    key_strategy: str = Field(min_length=5, max_length=300)
+    weaknesses: list[MaterialClaim] = Field(min_length=1, max_length=5)
+
+
+class CompetitorIntelligenceAnalysis(BaseModel):
+    summary: str = Field(min_length=10, max_length=1000)
+    competitors: list[CompetitorItem] = Field(min_length=1, max_length=10)
+    market_threats: list[str] = Field(max_length=10)
+
+
+# 4. Siber Güvenlik (Security Audit)
+class SecurityAuditAnalysis(BaseModel):
+    overall_risk_level: Literal["low", "medium", "high", "critical"]
+    vulnerabilities: list[MaterialClaim] = Field(min_length=1, max_length=10)
+    compliance_status: list[str] = Field(max_length=8)
+    recommendations: list[str] = Field(min_length=1, max_length=10)
+
+
+# 5. Finansal Modüller (Financial Diagnostics)
+class FinancialDiagnosticsAnalysis(BaseModel):
+    revenue_growth_rate: float = Field(ge=-1.0, le=10.0)
+    gross_margin_percentage: float = Field(ge=0.0, le=100.0)
+    ebitda_margin_percentage: float = Field(ge=-100.0, le=100.0)
+    highlights: list[MaterialClaim] = Field(min_length=1, max_length=8)
+    risk_factors: list[str] = Field(max_length=10)
+
+
+# 6. SEO & Sosyal Medya (SEO & Brand Intelligence)
+class SEOBrandIntelligenceAnalysis(BaseModel):
+    search_visibility_score: int = Field(ge=0, le=100)
+    brand_sentiment: Literal["positive", "neutral", "negative"]
+    top_keywords: list[str] = Field(min_length=1, max_length=20)
+    insights: list[MaterialClaim] = Field(min_length=1, max_length=8)
+
+
+# 7. Müşteri Memnuniyeti (Customer Satisfaction Analysis)
+class CustomerSatisfactionAnalysis(BaseModel):
+    nps_score: int = Field(ge=-100, le=100)
+    csat_percentage: float = Field(ge=0.0, le=100.0)
+    key_pain_points: list[MaterialClaim] = Field(min_length=1, max_length=8)
+    retention_recommendations: list[str] = Field(min_length=1, max_length=10)
 
 
 class EvidenceDecision(BaseModel):

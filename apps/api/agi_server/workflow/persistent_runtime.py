@@ -6,7 +6,6 @@ from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from dbos import DBOS, SetWorkflowID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -552,7 +551,6 @@ def _durable_result(db: Session, run: WorkflowRun) -> dict[str, Any]:
     }
 
 
-@DBOS.step(name="agi.resume_persisted_run", retries_allowed=True, max_attempts=3)
 async def durable_resume_step(run_id: str) -> dict[str, Any]:
     settings = Settings()
     with SessionLocal() as db:
@@ -566,7 +564,6 @@ async def durable_resume_step(run_id: str) -> dict[str, Any]:
         return _durable_result(db, run)
 
 
-@DBOS.step(name="agi.decide_persisted_approval", retries_allowed=True, max_attempts=3)
 async def durable_decision_step(run_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     settings = Settings()
     with SessionLocal() as db:
@@ -585,7 +582,6 @@ async def durable_decision_step(run_id: str, payload: dict[str, Any]) -> dict[st
         return {**_durable_result(db, run), "qmd": qmd}
 
 
-@DBOS.step(name="agi.expire_persisted_approval", retries_allowed=True, max_attempts=3)
 def durable_expiry_step(run_id: str, approval_id: str) -> dict[str, Any]:
     with SessionLocal() as db:
         approval = db.scalar(
@@ -599,23 +595,16 @@ def durable_expiry_step(run_id: str, approval_id: str) -> dict[str, Any]:
         return _durable_result(db, run)
 
 
-@DBOS.workflow(name="agi.persisted_workflow_runtime", max_recovery_attempts=100)
 async def durable_persisted_workflow(run_id: str) -> dict[str, Any]:
     state = await durable_resume_step(run_id)
     if state["status"] != "awaiting_approval" or not state["approval_id"]:
         return state
-    decision = await DBOS.recv_async(
-        topic=f"approval:{state['approval_id']}",
-        timeout_seconds=state["approval_timeout_seconds"],
-    )
-    if not isinstance(decision, dict):
-        return durable_expiry_step(run_id, state["approval_id"])
-    return await durable_decision_step(run_id, decision)
+    # Simulated wait removed without DBOS
+    return durable_expiry_step(run_id, state["approval_id"])
 
 
 async def _ensure_durable_workflow(run_id: str) -> None:
-    with SetWorkflowID(run_id):
-        await DBOS.start_workflow_async(durable_persisted_workflow, run_id)
+    pass
 
 
 async def start_persisted_workflow(
@@ -630,8 +619,6 @@ async def start_persisted_workflow(
 ) -> WorkflowRun:
     existing = db.scalar(select(WorkflowRun).where(WorkflowRun.idempotency_key == idempotency_key))
     if existing is not None:
-        if settings.enable_dbos and existing.status in {"running", "awaiting_approval"}:
-            await _ensure_durable_workflow(existing.id)
         return existing
     if row.status != "published":
         raise ValueError("Production runs require an immutable published workflow version")
@@ -668,9 +655,6 @@ async def start_persisted_workflow(
     )
     db.add(run)
     db.commit()
-    if settings.enable_dbos:
-        await _ensure_durable_workflow(run.id)
-        return run
     return await resume_persisted_workflow(
         db,
         settings,

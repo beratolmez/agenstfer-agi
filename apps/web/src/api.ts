@@ -92,6 +92,11 @@ export const api = {
   },
   modelStatus: () => request<{ ready: boolean; profile: string; provider: string; model?: string; local?: boolean; message: string }>("/api/model/status"),
   modelProfiles: () => request<{ items: ModelProfileView[] }>("/api/models/profiles"),
+  configureModelProvider: (payload: { provider: string; api_key: string; model?: string; profile_id?: string }) =>
+    request<{ status: string; provider: string; model: string; profile: string }>("/api/models/configure", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   probeModel: (profile?: string) => request<{
     ready: boolean;
     profile: string;
@@ -112,6 +117,7 @@ export const api = {
   ),
   workflow: () => request<WorkflowDefinition>("/api/workflows/default"),
   workflows: () => request<{ items: WorkflowSummary[] }>("/api/workflows"),
+  workflowTemplates: () => request<{ items: WorkflowDefinition[] }>("/api/workflows/templates"),
   cloneWorkflow: (workflow: WorkflowDefinition, targetId?: string) => {
     const target = targetId ?? (workflow.id.startsWith("builtin-") ? "growth-diagnostic" : null);
     const query = target ? `?target_id=${encodeURIComponent(target)}` : "";

@@ -15,10 +15,10 @@ RUN apt-get update \
 COPY --from=ghcr.io/astral-sh/uv:0.11.17@sha256:03bdc89bb9798628846e60c3a9ad19006c8c3c724ccd2985a33145c039a0577b /uv /uvx /bin/
 COPY pyproject.toml uv.lock README.md alembic.ini ./
 COPY apps/api/ ./apps/api/
-COPY scripts/run-golden-eval.py ./scripts/run-golden-eval.py
+COPY apps/services/ ./apps/services/
+COPY mock_data/ ./mock_data/
 RUN uv sync --frozen --no-dev --no-install-project && uv pip install --no-deps .
 COPY --from=web /build/apps/web/dist ./apps/web/dist
-COPY knowledge/ ./knowledge/
 RUN mkdir -p /data/knowledge && chown -R agi:agi /data
 USER agi
 EXPOSE 8080

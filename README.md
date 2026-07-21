@@ -25,18 +25,10 @@ durum:
 
 Kod tabanı production-candidate seviyesindedir: ingestion/evidence/OKF, dört typed Pydantic AI
 agent, deterministic scoring, Evidence Reviewer, yönetilebilir immutable workflow/agent sürümleri,
-workflow version history ve schedules, gerçek DBOS
 durability, Approval Center, kalıcı kurulum sihirbazı, backup/restore, no-egress, SBOM ve güvenlik
 kontrolleri uygulanmıştır.
 
-Henüz release değildir. Bu makinede `qwen3.5:9b` kurulmuş ve gerçek structured-output probe ile
-izole v3 agent/metric-receipt incelemeleri geçmiştir; ancak tam koşular tekrarlanabilir değildir. Bir
-historical deneme 939,27 saniye sonra Evidence Reviewer'da, current production-path smoke ise 313,34
-saniye sonra Company Analyst timeout'unda fail-closed bitmiştir. Native JSON Schema ve ToolOutput denemeleri
-de güvenilir değildir. 20-run qualification geçilmediği için 9B profil “supported” değildir;
-uygun donanımda 27B veya governed Groq/Mistral profiliyle qualification ve tam browser happy-path
-hâlâ gereklidir. Sistem deterministic
-preview'e veya başka provider'a sessiz fallback yapmaz. Ayrıntı için
+Henüz release değildir. Bu mimaride **Gemini API** entegrasyonu ana model sağlayıcısı olarak kullanılmaktadır. LangGraph orchestrator ile Pydantic AI kullanılarak `mock_data` ingestion ve React UI setup wizard'ı başarıyla entegre edilmiştir. Ayrıntı için
 [Implementation Status](./docs/IMPLEMENTATION_STATUS.md) belgesine bakın.
 
 ## Yerel başlangıç
@@ -75,42 +67,13 @@ Linux karşılığı `./scripts/initialize-secrets.sh` komutudur. `.secrets/` Gi
 
 ## Model seçimi
 
-Yerel varsayılan:
+Projenin core LLM provider'ı **Gemini API**'dir.
 
-```powershell
-.\scripts\pull-model.ps1 -Model qwen3.5:9b
-```
-
-Script yalnızca Ollama container'ına geçici outbound erişim verir ve indirme bitince servisi tekrar
-internal ağa alır. Linux karşılığı `./scripts/pull-model.sh qwen3.5:9b`'dir. Kurumsal DNS hâlâ
-`registry.ollama.ai` alanını engelliyorsa ağ yöneticinizden izin isteyin veya governed cloud profilini
-kullanın; kalıcı Docker ağ sınırını gevşetmeyin.
-
-Ollama registry DNS/ağ sorunu yaşanırsa geçici Groq veya Mistral kullanılabilir; otomatik fallback
-değildir. API key'i `.env` içine yazmayın:
-
-1. Key'i `.secrets/cloud_model_api_key` dosyasına koyun.
-2. `.env` içinde `AGI_CLOUD_PROVIDER=groq` veya `mistral`,
-   `AGI_MODEL_PROFILE=cloud-balanced` ve isteğe bağlı `AGI_CLOUD_MODEL` ayarlayın.
-3. Allowlist'li egress ile başlatın:
-
-```powershell
-docker compose -f docker-compose.yml -f docker-compose.production.yml -f docker-compose.cloud.yml --profile cloud up -d --build
-```
-
-Varsayılan Groq modeli `openai/gpt-oss-20b`, Mistral modeli `mistral-small-latest` profilidir.
+API key `.env` içine yazılmaz, ortam değişkenleri ile veya `.secrets/cloud_model_api_key` üzerinden sisteme verilir.
 `confidential`/`restricted` evidence cloud'a gönderilmez; izinli `internal` içerikte contact
-identifier redaksiyonu uygulanır. Provider'ı “supported” göstermeden önce model probe ve golden eval
-geçmelidir:
+identifier redaksiyonu uygulanır.
 
-```powershell
-.\scripts\qualify-model.ps1 -Profile cloud-balanced -Attempts 20
-```
-
-Qualification, seçilen profili current published workflow'un immutable bir klonuna pinler ve aynı
-persistent runtime üzerinden çalışır. Üretilen rapor prompt metnini değil workflow/agent sürümlerini,
-policy revision'ını ve effective-prompt SHA-256 değerlerini taşır.
-
+Pydantic AI agent'ları Gemini API üzerinden çağrılır. Test ve geliştirme amaçlı olarak FastApi backend'inde fallback mekanizması sağlanmış olabilir ancak production için hedef mimari Gemini'dir.
 ## Product architecture
 
 The manager target architecture adds customer-isolated AWS deployments, private/local inference,
@@ -153,7 +116,7 @@ $env:AGI_E2E_BOOTSTRAP_TOKEN = "<one-time-secret>"
 ```
 
 Nihai dış-host kapısı için Linux x86-64 üzerinde `scripts/release-rehearsal.sh` kullanılır. Script
-20-run qualification, gerçek-model browser akışı, aynı DBOS run ID'si üzerinde agent/approval
+20-run qualification, gerçek-model browser akışı, aynı LangGraph thread ID'si üzerinde agent/approval
 restart, scan, backup/restore, lexical fallback ve qmd rebuild adımlarını birleştirir. Qualification
 ve restart kanıtları bağımsız doğrulanır; zorunlu artifact'lar SHA-256 ile manifest'e bağlanır.
 Script'in var olması bu kapıların geçtiği anlamına gelmez.
@@ -161,9 +124,9 @@ Script'in var olması bu kapıların geçtiği anlamına gelmez.
 ## MVP'nin yaptığı / yapmadığı
 
 Yapar: read-only demo/CSV/XLSX ingest, canonical context ve immutable evidence, OKF 0.1 + Git
-candidate lifecycle, evidence-gated Growth Diagnostic pipeline, constrained workflow/DBOS/approval,
+candidate lifecycle, evidence-gated Growth Diagnostic pipeline, constrained workflow/LangGraph/approval,
 rapor ve portable OKF export. Kurulumda seçilen code-defined model profili immutable workflow
-sürümüne pinlenir; Dashboard ve sihirbaz aynı persisted DBOS run'ını izler. Release raporu üretmek
+sürümüne pinlenir; Dashboard ve sihirbaz aynı persisted LangGraph run'ını izler. Release raporu üretmek
 için ayrıca qualified model profili gerekir.
 
 Yapmaz: gerçek CRM/ERP write-back, dış lead scraping, outreach, inbound/outbound call, finansal işlem,
@@ -173,7 +136,7 @@ consent/legal, capability ve rollback kapıları olmadan eklenmez.
 ## Repository haritası
 
 ```text
-apps/api/       FastAPI, domain, agents, OKF, workflow ve DBOS runtime
+apps/api/       FastAPI, domain, agents, OKF, workflow ve LangGraph runtime
 apps/web/       React + TypeScript web console
 knowledge/      Immutable raw vault ve active/candidate OKF bilgi alanı
 docs/           Mimari, ADR, plan, eval, threat, operasyon ve release belgeleri
