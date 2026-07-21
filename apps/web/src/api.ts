@@ -19,6 +19,8 @@ import type {
   WorkflowRunDetail,
   WorkflowRunStart,
   WorkflowRunView,
+  TriggerRuleView,
+  TriggerEventView,
 } from "./types";
 
 let csrfToken: string | null = null;
@@ -285,6 +287,14 @@ export const api = {
       { method: "POST", body },
     );
   },
+  filePreview: (sourceId: string) => request<FilePreview>(`/api/sources/${sourceId}/preview`),
+  triggerRules: () => request<{ items: TriggerRuleView[] }>("/api/triggers/rules"),
+  triggerEvents: (limit = 50) => request<{ items: TriggerEventView[] }>(`/api/triggers/events?limit=${limit}`),
+  sendWebhookPayload: (sourceId: string, payload: { event_type: string; data?: Record<string, unknown> }) =>
+    request<{ event_id: string; status: string; matched_rules_count: number; triggered_workflows: string[] }>(
+      `/api/webhooks/${sourceId}`,
+      { method: "POST", body: JSON.stringify(payload) }
+    ),
   mapSource: (
     sourceId: string,
     payload: { entity_type: string; field_mapping: Record<string, string>; classification: string },

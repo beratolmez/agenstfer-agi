@@ -25,7 +25,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
@@ -405,6 +405,60 @@ def model_configure(
         "provider": payload.provider,
         "model": settings.cloud_model or CLOUD_PROVIDERS[payload.provider][1],
         "profile": payload.profile_id,
+    }
+
+
+class WebhookPayloadRequest(BaseModel):
+    event_type: str
+    data: dict[str, Any] = Field(default_factory=dict)
+
+
+@app.get("/api/triggers/rules")
+def list_trigger_rules() -> dict[str, Any]:
+    from agi_server.workflow.triggers import trigger_engine
+
+    return {"items": trigger_engine.get_rules()}
+
+
+@app.get("/api/triggers/events")
+def list_trigger_events(limit: int = 50) -> dict[str, Any]:
+    from agi_server.workflow.triggers import trigger_engine
+
+    return {"items": trigger_engine.get_events(limit=limit)}
+
+
+@app.post("/api/webhooks/{source_id}", status_code=202)
+def receive_webhook(
+    source_id: str,
+    payload: WebhookPayloadRequest,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[User | None, Depends(require_role("analyst"))],
+) -> dict[str, Any]:
+    from agi_server.workflow.triggers import trigger_engine
+
+    matched_rules = trigger_engine.match_rules(payload.event_type)
+    status = "triggered" if matched_rules else "no_match"
+    evt = trigger_engine.record_event(source_id, payload.event_type, payload.data, status=status)
+
+    record_audit(
+        db,
+        actor_id=None if actor is None else actor.id,
+        action="webhook.received",
+        target_type="webhook",
+        target_id=evt["id"],
+        metadata={
+            "source_id": source_id,
+            "event_type": payload.event_type,
+            "matched_rules": [r.id for r in matched_rules],
+        },
+    )
+    db.commit()
+
+    return {
+        "event_id": evt["id"],
+        "status": status,
+        "matched_rules_count": len(matched_rules),
+        "triggered_workflows": [r.target_workflow_id for r in matched_rules],
     }
 
 

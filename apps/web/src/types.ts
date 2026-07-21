@@ -245,3 +245,21 @@ export interface FilePreview {
   }>;
   warnings: string[];
 }
+
+export interface TriggerRuleView {
+  id: string;
+  name: string;
+  event_type: string;
+  target_workflow_id: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface TriggerEventView {
+  id: string;
+  source_id: string;
+  event_type: string;
+  payload: Record<string, unknown>;
+  status: string;
+  timestamp: string;
+}

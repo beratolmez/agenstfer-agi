@@ -10,7 +10,7 @@ import {
 import type { ComponentType } from "react";
 import { Brand } from "./Brand";
 
-export type ViewId = "dashboard" | "scraping" | "knowledge" | "opportunities" | "workflow" | "approvals" | "sources" | "settings" | "setup";
+export type ViewId = "dashboard" | "scraping" | "knowledge" | "opportunities" | "workflow" | "approvals" | "sources" | "events" | "settings" | "setup";
 
 const items: Array<{ id: ViewId; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
   { id: "dashboard", label: "Genel Bakış", icon: CircleGauge },
@@ -20,6 +20,7 @@ const items: Array<{ id: ViewId; label: string; icon: ComponentType<{ size?: num
   { id: "workflow", label: "İş Akışları", icon: GitBranch },
   { id: "approvals", label: "Onay Merkezi", icon: CheckSquare },
   { id: "sources", label: "Veri Kaynakları", icon: Database },
+  { id: "events", label: "Olaylar & Webhook", icon: GitBranch },
   { id: "settings", label: "Ayarlar", icon: Settings },
 ];
 

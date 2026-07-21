@@ -10,6 +10,7 @@ import { ApprovalCenter } from "./features/approvals/ApprovalCenter";
 import { SetupWizard } from "./features/setup/SetupWizard";
 import { Settings } from "./features/settings/Settings";
 import { Sources } from "./features/sources/Sources";
+import { EventPanel } from "./features/events/EventPanel";
 import WebScrapingPanel from "./features/scraping/WebScrapingPanel";
 import type { SetupStatus, UserView } from "./types";
 
@@ -17,7 +18,7 @@ const WorkflowEditor = lazy(() => import("./features/workflow/WorkflowEditor"));
 
 function initialView(): ViewId {
   const hash = window.location.hash.replace("#", "") as ViewId;
-  return ["dashboard", "scraping", "knowledge", "opportunities", "workflow", "approvals", "sources", "settings", "setup"].includes(hash)
+  return ["dashboard", "scraping", "knowledge", "opportunities", "workflow", "approvals", "sources", "events", "settings", "setup"].includes(hash)
     ? hash
     : "dashboard";
 }
@@ -125,6 +126,7 @@ export default function App() {
         ) : null}
         {view === "setup" ? <SetupWizard onComplete={() => navigate("dashboard")} /> : null}
         {view === "sources" ? <Sources /> : null}
+        {view === "events" ? <EventPanel /> : null}
         {view === "approvals" ? <ApprovalCenter /> : null}
         {view === "settings" ? <Settings onSetup={() => navigate("setup")} userRoles={user?.roles ?? []} /> : null}
       </div>
