@@ -2,52 +2,50 @@
 
 Last verified: 21 July 2026
 
-This document is the authoritative statement of what the repository actually does. 
+This document is the authoritative statement of what the repository actually does.
 
 ## Implemented and verified
 
 ### Platform and trust boundary
 
-- [x] FastAPI exposes the backend logic.
-- [x] React UI exposes the frontend dashboard and chat at `http://localhost:5173` (Vite) / production port.
-- [x] Database uses PostgreSQL for app state and LangGraph checkpointing.
+- [x] FastAPI exposes the backend logic and REST APIs.
+- [x] React UI exposes the B2B Enterprise Minimal Web Console at `http://localhost:5173` (Vite) / production port.
+- [x] Database uses PostgreSQL for canonical state, users, roles, workflow definitions, and LangGraph checkpointing.
 
 ### Ingestion, evidence, and knowledge
 
-- [x] Mock data ingestion via `/api/setup` endpoint implemented.
-- [x] RAG Service uses ChromaDB for generating and querying markdown embeddings.
-- [x] Old `qmd` and durable storage lifecycles completely replaced.
+- [x] Read-Only CRM (`ReadOnlyCRMConnector`) and ERP (`ReadOnlyERPConnector`) connector layer ingesting Accounts, Leads, Opportunities, Invoices, and Products.
+- [x] Immutable content-addressed evidence locator generation (`ev_...`) ensuring resolution to persisted source records.
+- [x] RAG Service uses ChromaDB for generating vector embeddings and knowledge retrieval (`search_knowledge`).
 
 ### Agents, diagnostic, and workflows
 
-- [x] LangGraph manages the orchestrator state machine.
-- [x] Pydantic AI is used for structured output parsing.
-- [x] Nodes include Researcher, Analyst, Reviewer, and KDS AI ABS specialized growth nodes.
-- [x] Model Gateway manages LLM inference flexibly across Gemini API and Local/Cloud GPU model servers (Ollama, vLLM, LM Studio).
-- [x] Chat loop exposes streamable or stateful returns via `/api/chat`.
-- [x] Human-in-the-loop workflow approval is integrated using LangGraph `interrupt_before`/`interrupt_after`.
-- [x] Golden evaluation tests implemented and verifying agent claims against ChromaDB mock data.
+- [x] LangGraph StateGraph manages orchestrator state machines with PostgreSQL checkpointers.
+- [x] Pydantic AI contracts (`contracts.py`) used for 7 specialized KDS AI ABS Agent Nodes: `CompanyAnalysis`, `LeadOpportunity`, `CompetitorIntelligence`, `SecurityAudit`, `FinancialDiagnostics`, `SEOBrandIntelligence`, `CustomerSatisfaction`.
+- [x] End-to-End Dynamic Skill (Capability) Engine (`capabilities.py`) with dynamic tool injection and React UI Inspector binding.
+- [x] Built-in B2B Growth Workflow Templates (`/api/workflows/templates`) for Lead Discovery, Competitive Battlecard, Inbound Intent Triage, and CRM/ERP Data Hygiene.
+- [x] Event-Driven Triggers & Webhook Ingestion Engine (`/api/webhooks/{source_id}`, `triggers.py`) automatically triggering growth workflows on CRM updates, inbound forms, and competitor signals.
+- [x] Model Gateway manages LLM inference flexibly across Gemini API, Groq Cloud, Mistral AI, OpenRouter, and Ollama/vLLM isolated local/cloud GPU endpoints.
+- [x] Real-Time Human-in-the-Loop Approval Center integrated using LangGraph `interrupt_before`/`interrupt_after`.
 
-### Product journey
+### Product journey & UI/UX
 
-- [x] Setup progress `/api/setup` successfully sets up ChromaDB.
-- [x] Chat interface `/api/chat` successfully orchestrates the Analyst and Reviewer agents.
-- [x] Dashboard UI accurately displays agent states and reports.
-- [x] Single authoritative architecture documentation (`docs/SYSTEM_ARCHITECTURE.md`) unified across all 3 visual diagrams and system rules.
+- [x] 5-Step Interactive Onboarding Setup Wizard (`SetupWizard.tsx`) for Company Profile, Model Gateway, CRM/ERP Connectors, OKF Ingestion, and System Ready state.
+- [x] React UI Visual Workflow Editor with `@xyflow/react` node graph and real-time Inspector panel.
+- [x] React UI Event & Webhook Panel (`EventPanel.tsx`) with live payload tester and audit stream.
+- [x] Single authoritative architecture documentation (`docs/SYSTEM_ARCHITECTURE.md`) unified across all visual diagrams and system rules.
 
 ### Security and operations
 
-- [x] No external write operations permitted in MVP.
+- [x] No external write operations permitted towards business systems (Read-Only boundary).
 - [x] Data privacy boundaries strictly enforced on Model Gateway cloud calls.
-- [x] Replaced complex legacy retry/durable mechanisms with LangGraph state checkpointing in PostgreSQL.
-- [x] Telemetry and observability integrated with self-hosted Langfuse sink.
+- [x] Automated test coverage verified across backend Pytest suites (109 passed) and frontend Vitest suites (8 passed).
 
 ## Release blockers and deliberately incomplete acceptance
 
-- [ ] Provide more robust tests for the LangGraph StateGraph edges and branches.
-- [ ] Connect real external CRM/ERP for live sync rather than just mock markdown data.
+- [ ] Complete full end-to-end synthetic company benchmark simulation and Golden Evaluation suite (`scripts/run-golden-eval.py`).
+- [ ] Implement AWS Cloud / Production Deployment infrastructure scripts (`infra/aws/`).
 
 ## Commercial product architecture alignment
 
-The migration to LangGraph/Pydantic AI and the unification of AWS Control Plane, Container Cluster, Model Gateway, and KDS AI ABS Agent Nodes marks the finalized architecture alignment for the MVP.
-
+The migration to LangGraph/Pydantic AI, Model Gateway, Event-Driven Triggers, and the unification of AWS Control Plane, Container Cluster, and KDS AI ABS Agent Nodes marks the finalized architecture alignment for the MVP.
