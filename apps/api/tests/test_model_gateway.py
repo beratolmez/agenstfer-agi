@@ -22,7 +22,7 @@ def test_explicit_cloud_groq_profile_is_resolved_and_pinned() -> None:
 
     assert profile.id == "cloud-groq"
     assert profile.base_url == "https://api.groq.com/openai/v1"
-    assert profile.model_name == "openai/gpt-oss-20b"
+    assert profile.model_name == "llama-3.3-70b-versatile"
     assert not profile.local
 
 
@@ -102,7 +102,7 @@ def test_profile_catalog_is_allowlisted_and_never_exposes_cloud_secret() -> None
     assert cloud == {
         "id": "cloud-balanced",
         "provider": "groq",
-        "model": "openai/gpt-oss-20b",
+        "model": "llama-3.3-70b-versatile",
         "local": False,
         "enabled": True,
         "configured": True,
