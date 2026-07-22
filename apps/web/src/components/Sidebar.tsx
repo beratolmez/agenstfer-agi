@@ -4,8 +4,11 @@ import {
   CircleGauge,
   Database,
   GitBranch,
+  Globe,
+  Radio,
   Settings,
-  Target,
+  TrendingUp,
+  Wrench,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { Brand } from "./Brand";
@@ -14,14 +17,15 @@ export type ViewId = "dashboard" | "scraping" | "knowledge" | "opportunities" | 
 
 const items: Array<{ id: ViewId; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> }> = [
   { id: "dashboard", label: "Genel Bakış", icon: CircleGauge },
-  { id: "scraping", label: "Veri Kazıma", icon: Target },
+  { id: "scraping", label: "Veri Kazıma", icon: Globe },
   { id: "knowledge", label: "Bilgi Bankası", icon: BookOpen },
-  { id: "opportunities", label: "Fırsatlar", icon: Target },
+  { id: "opportunities", label: "Fırsatlar", icon: TrendingUp },
   { id: "workflow", label: "İş Akışları", icon: GitBranch },
   { id: "approvals", label: "Onay Merkezi", icon: CheckSquare },
   { id: "sources", label: "Veri Kaynakları", icon: Database },
-  { id: "events", label: "Olaylar & Webhook", icon: GitBranch },
+  { id: "events", label: "Olaylar & Webhook", icon: Radio },
   { id: "settings", label: "Ayarlar", icon: Settings },
+  { id: "setup", label: "Kurulum Sihirbazı", icon: Wrench },
 ];
 
 interface SidebarProps {

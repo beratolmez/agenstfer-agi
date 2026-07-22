@@ -17,8 +17,12 @@ export function Topbar({ user, onLogout }: { user: UserView; onLogout: () => Pro
       </button>
       <div className="topbar__right">
         <div className="model-status">
-          <span className={`status-dot ${model?.ready ? "status-dot--green" : ""}`} />
-          <span><strong>{label}: {model?.ready ? "Hazır" : "Kontrol bekliyor"}</strong><small>{model?.ready ? `${model.profile} · ${model.provider}` : (model?.message ?? "Bağlanıyor…")}</small></span>
+          <span>
+            <strong>{label}: {model?.ready ? "Hazır" : "Kontrol bekliyor"}</strong>
+            <small style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "220px", display: "block" }} title={model?.ready ? `${model.profile} · ${model.provider}` : (model?.message ?? "Bağlanıyor…")}>
+              {model?.ready ? `${model.profile} · ${model.provider}` : (model?.message ?? "Bağlanıyor…")}
+            </small>
+          </span>
         </div>
         <Server size={19} className="topbar__server" />
         <button className="user-menu" type="button" onClick={onLogout} title="Oturumu kapat">

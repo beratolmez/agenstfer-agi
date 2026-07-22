@@ -192,7 +192,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                     transition: "all 0.2s",
                   }}
                 >
-                  {step.num}. {step.label}
+                  {completed ? "✓ " : `${step.num}. `}{step.label}
                 </button>
               );
             })}
@@ -348,7 +348,10 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             <div style={{ display: "grid", gap: "16px" }}>
               <label style={{ display: "block" }}>
                 <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>
-                  {PROVIDERS.find((p) => p.id === selectedProvider)?.name} API Key
+                  {(() => {
+                    const name = PROVIDERS.find((p) => p.id === selectedProvider)?.name || "";
+                    return name.endsWith("API") ? `${name} Key` : `${name} API Key`;
+                  })()}
                 </span>
                 <input
                   type="password"
