@@ -136,28 +136,23 @@ def _mock_model_outputs(db):
 
 def test_step_1_webhook_event_simulation_for_anka():
     """Step 1: Simulate webhook event POST /api/webhooks/src-crm-001 for Anka Endüstriyel Otomasyon A.Ş."""
-    from agi_server.security import require_role
-    app.dependency_overrides[require_role("analyst")] = lambda: None
-    try:
-        client = TestClient(app)
-        payload = {
-            "event_type": "inbound.form_submitted",
-            "data": {
-                "company_name": "Anka Endüstriyel Otomasyon A.Ş.",
-                "contact_email": "info@anka-otomasyon.com.tr",
-                "intent_score": 95,
-                "region": "Kocaeli",
-            },
-        }
-        response = client.post("/api/webhooks/src-crm-001", json=payload)
-        assert response.status_code == 202
-        res_data = response.json()
-        assert res_data["status"] == "triggered"
-        assert res_data["matched_rules_count"] >= 1
-        assert "builtin-inbound-triage" in res_data["triggered_workflows"]
-        assert res_data["event_id"].startswith("evt-")
-    finally:
-        app.dependency_overrides.clear()
+    client = TestClient(app)
+    payload = {
+        "event_type": "inbound.form_submitted",
+        "data": {
+            "company_name": "Anka Endüstriyel Otomasyon A.Ş.",
+            "contact_email": "info@anka-otomasyon.com.tr",
+            "intent_score": 95,
+            "region": "Kocaeli",
+        },
+    }
+    response = client.post("/api/webhooks/src-crm-001", json=payload)
+    assert response.status_code == 202
+    res_data = response.json()
+    assert res_data["status"] == "triggered"
+    assert res_data["matched_rules_count"] >= 1
+    assert "builtin-inbound-triage" in res_data["triggered_workflows"]
+    assert res_data["event_id"].startswith("evt-")
 
 
 def test_step_2_trigger_rule_matching():

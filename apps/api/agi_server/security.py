@@ -154,6 +154,18 @@ def current_user(
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Oturum gerekli")
 
 
+def current_user_optional(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> User | None:
+    user_id = request.session.get("user_id")
+    if user_id:
+        user = db.get(User, user_id)
+        if user and user.active:
+            return user
+    return None
+
+
 def require_role(role: str):
     def dependency(
         user: Annotated[User | None, Depends(current_user)],

@@ -92,6 +92,7 @@ from agi_server.security import (
     bootstrap_admin,
     create_user,
     current_user,
+    current_user_optional,
     record_audit,
     require_role,
     start_session,
@@ -432,7 +433,7 @@ def receive_webhook(
     source_id: str,
     payload: WebhookPayloadRequest,
     db: Annotated[Session, Depends(get_db)],
-    actor: Annotated[User | None, Depends(require_role("analyst"))],
+    actor: Annotated[User | None, Depends(current_user_optional)] = None,
 ) -> dict[str, Any]:
     from agi_server.workflow.triggers import trigger_engine
 

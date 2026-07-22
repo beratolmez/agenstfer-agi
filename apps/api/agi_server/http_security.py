@@ -49,7 +49,7 @@ class RequestSecurityMiddleware(BaseHTTPMiddleware):
         path = request.url.path
 
         if path.startswith("/api") and request.method != "OPTIONS" and not settings.demo_no_auth:
-            is_public = path in PUBLIC_API_PATHS or path.startswith("/api/docs")
+            is_public = path in PUBLIC_API_PATHS or path.startswith("/api/docs") or path.startswith("/api/webhooks")
             if not is_public:
                 user_id = request.session.get("user_id")
                 with SessionLocal() as db:
@@ -59,7 +59,8 @@ class RequestSecurityMiddleware(BaseHTTPMiddleware):
                     return error_response(request, 401, "auth.required", "Oturum gerekli")
                 request.state.user_id = user.id
 
-            if request.method not in SAFE_METHODS and path not in CSRF_EXEMPT_PATHS:
+            is_csrf_exempt = path in CSRF_EXEMPT_PATHS or path.startswith("/api/webhooks")
+            if request.method not in SAFE_METHODS and not is_csrf_exempt:
                 expected = request.session.get("csrf_token")
                 supplied = request.headers.get("X-CSRF-Token")
                 if not expected or not supplied or not hmac.compare_digest(expected, supplied):
