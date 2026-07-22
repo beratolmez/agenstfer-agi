@@ -14,9 +14,9 @@ services:
       AGI_OLLAMA_BASE_URL: http://ollama:11434/v1
       AGI_MODEL_PROFILE: ${AGI_MODEL_PROFILE:-local-balanced}
       AGI_QMD_URL: http://qmd:8181
-      AGI_CLOUD_MODELS_ENABLED: "false"
+      AGI_CLOUD_MODELS_ENABLED: ${AGI_CLOUD_MODELS_ENABLED:-true}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_MODEL_NAME: ${GEMINI_MODEL_NAME:-gemini-2.5-flash}
+      GEMINI_MODEL_NAME: ${GEMINI_MODEL_NAME:-gemini-2.0-flash}
     volumes:
       - knowledge_data:/data/knowledge
     depends_on:
@@ -44,6 +44,8 @@ services:
 
   postgres:
     image: postgres:16-alpine@sha256:16bc17c64a573ef34162af9298258d1aec548232985b33ed7b1eac33ba35c229
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-agi}
       POSTGRES_USER: ${POSTGRES_USER:-agi}
