@@ -63,7 +63,7 @@ def researcher_node(state: AgentState):
 
     try:
         result = researcher_agent.run_sync(prompt)
-        research_data = result.data
+        research_data = getattr(result, "output", getattr(result, "data", str(result)))
     except Exception as e:
         research_data = f"LLM Error (Researcher): {str(e)}"
 
@@ -79,7 +79,7 @@ def analyst_node(state: AgentState):
 
     try:
         result = analyst_agent.run_sync(prompt)
-        analysis_data = result.data
+        analysis_data = getattr(result, "output", getattr(result, "data", str(result)))
     except Exception as e:
         analysis_data = f"LLM Error (Analyst): {str(e)}"
 
@@ -160,7 +160,7 @@ def reviewer_node(state: AgentState):
 
     try:
         result = reviewer_agent.run_sync(prompt)
-        final_review = result.data
+        final_review = getattr(result, "output", getattr(result, "data", str(result)))
     except Exception as e:
         final_review = f"LLM Error (Reviewer): {str(e)}"
 

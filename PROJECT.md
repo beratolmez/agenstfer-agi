@@ -7,10 +7,9 @@ The application consists of a FastAPI backend (with LangGraph and Pydantic AI fo
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| 1 | Unit Tests | FastAPI backend API/utilities and React UI components | none | DONE |
-| 2 | E2E Scenarios | LangGraph workflows, mock_data ingestion/retrieval via Playwright/pytest | M1 | DONE |
-| 3 | Golden Evaluation | Automated evaluation script for RAG and AI checking ChromaDB | none | DONE |
-| 4 | Architecture & Doc Alignment | Unify architecture diagrams, docs, and agentic business nodes | M1-M3 | IN_PROGRESS |
+| 1 | Synthetic Dataset & Knowledge Indexing | R1: Complete synthetic dataset for "Anka Endüstriyel Otomasyon A.Ş." in `mock_data/` | none | DONE |
+| 2 | End-to-End Workflow Execution | R2: Webhook event (`POST /api/webhooks/src-crm-001`), trigger matching, StateGraph execution, 7 agent nodes, evidence grounding (`ev_...`), human approval candidate, OKF patch proposal | M1 | IN_PROGRESS |
+| 3 | Golden Evaluation & Verification | R3: Golden evaluation suite execution (`scripts/run-golden-eval.py`), pytest suite, project checks (`scripts/project-check.ps1`) | M1-M2 | PLANNED |
 
 ## Interface Contracts
 ### E2E ↔ Backend

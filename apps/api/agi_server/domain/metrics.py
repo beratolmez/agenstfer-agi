@@ -188,11 +188,26 @@ def calculate_growth_metrics(db: Session) -> MetricSnapshot:
         account_purchase_counts[str(row.attributes.get("account_id"))] += 1
     repeat_accounts = sum(1 for count in account_purchase_counts.values() if count >= 3)
 
-    energy_transactions = transactions_by_product["Enerji İzleme"]
-    maintenance_transactions = transactions_by_product["Bakım Paketi"]
-    export_transactions = transactions_by_product["OEM Export Kit"]
-    parts_transactions = transactions_by_product["Yedek Parça"]
-    twin_transactions = transactions_by_product["Dijital İkiz"]
+    energy_transactions = (
+        transactions_by_product["Energy Retrofit Power Quality & Metering Kit"]
+        + transactions_by_product["Enerji İzleme"]
+    )
+    maintenance_transactions = (
+        transactions_by_product["24/7 Priority Field Service & Maintenance SLA"]
+        + transactions_by_product["Bakım Paketi"]
+    )
+    export_transactions = (
+        transactions_by_product["OEM Export Compliance Cabinet Kit"]
+        + transactions_by_product["OEM Export Kit"]
+    )
+    parts_transactions = (
+        transactions_by_product["PLC Modernization & Conversion Kit"]
+        + transactions_by_product["Yedek Parça"]
+    )
+    twin_transactions = (
+        transactions_by_product["Digital Twin 3D Visual Commissioning"]
+        + transactions_by_product["Dijital İkiz"]
+    )
     proposal_activities = [row for row in activities if row.attributes.get("kind") == "proposal"]
 
     metrics = {

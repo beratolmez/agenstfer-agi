@@ -15,12 +15,26 @@ def build_demo_dataset() -> dict[str, list[dict[str, Any]]]:
     rng = random.Random(SEED)
     sectors = ["Otomotiv", "Gıda", "Kimya", "Makine", "Metal", "Ambalaj"]
     cities = ["Bursa", "Kocaeli", "İstanbul", "İzmir", "Konya", "Ankara"]
+    key_account_names = [
+        "Arçelik A.Ş.",
+        "Tofaş Türk Otomobil Fabrikası",
+        "Ford Otosan",
+        "Vestel Elektronik",
+        "GlobalBank",
+        "Acme Corp",
+        "StartUpXYZ",
+    ]
     accounts = []
     for index in range(150):
+        name = (
+            key_account_names[index]
+            if index < len(key_account_names)
+            else f"{sectors[index % len(sectors)]} Sanayi {index + 1:03d}"
+        )
         accounts.append(
             {
                 "id": f"acc-{index + 1:03d}",
-                "name": f"{sectors[index % len(sectors)]} Sanayi {index + 1:03d}",
+                "name": name,
                 "sector": sectors[index % len(sectors)],
                 "city": cities[index % len(cities)],
                 "annual_revenue_try": rng.randrange(25, 800) * 1_000_000,
@@ -54,18 +68,18 @@ def build_demo_dataset() -> dict[str, list[dict[str, Any]]]:
         {
             "id": f"prd-{index + 1:02d}",
             "name": [
-                "Enerji İzleme",
-                "Predictive Maintenance",
-                "PLC Modernizasyon",
-                "Robot Hücresi",
-                "Dijital İkiz",
-                "SCADA",
-                "Yedek Parça",
-                "Devreye Alma",
-                "Bakım Paketi",
-                "OEM Export Kit",
-                "Sensör Paketi",
-                "Eğitim",
+                "Anka-PLC-5000 Modular Automation Controller",
+                "AnkaDrive-X High-Precision Servo Drive",
+                "AnkaTouch-10 IP66 Industrial HMI",
+                "AnkaSCADA v4.2 Enterprise Server License",
+                "AnkaSense Vibration & Thermal IoT Sensor Node",
+                "24/7 Priority Field Service & Maintenance SLA",
+                "Robotic Palletizing & Assembly Cell Kit",
+                "Energy Retrofit Power Quality & Metering Kit",
+                "PLC Modernization & Conversion Kit",
+                "OEM Export Compliance Cabinet Kit",
+                "Digital Twin 3D Visual Commissioning",
+                "Automation Training & Engineering Package",
             ][index],
         }
         for index in range(12)

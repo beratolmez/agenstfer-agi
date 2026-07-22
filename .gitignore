@@ -23,3 +23,6 @@ knowledge/bundles/company/.git/
 .DS_Store
 Thumbs.db
 chroma_db/
+.agents/
+ORIGINAL_REQUEST.md
+prompt_draft.md
