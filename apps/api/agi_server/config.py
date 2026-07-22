@@ -2,8 +2,11 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Self
 
+from dotenv import load_dotenv
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+load_dotenv(".env")
 
 
 class Settings(BaseSettings):
@@ -55,6 +58,12 @@ class Settings(BaseSettings):
             if not secret:
                 raise ValueError("Cloud API key secret file is empty")
             self.cloud_api_key = SecretStr(secret)
+        import os
+        gemini_env = os.getenv("GEMINI_API_KEY")
+        if gemini_env and not self.cloud_api_key:
+            self.cloud_api_key = SecretStr(gemini_env.strip())
+            if not self.cloud_provider:
+                self.cloud_provider = "gemini"
         if self.cloud_models_enabled and (
             self.cloud_provider is None or self.cloud_api_key is None
         ):

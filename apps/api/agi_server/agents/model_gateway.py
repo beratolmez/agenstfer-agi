@@ -20,7 +20,7 @@ PROFILES = {
 }
 
 CLOUD_PROVIDERS = {
-    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.5-flash"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.0-flash"),
     "groq": ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
     "mistral": ("https://api.mistral.ai/v1", "mistral-small-latest"),
     "openrouter": ("https://openrouter.ai/api/v1", "google/gemini-2.5-flash-free"),
@@ -102,6 +102,7 @@ def resolve_model_profile(profile_id: str, settings: Settings) -> ModelProfile:
 
 
 def build_pydantic_ai_model(profile_id: str, settings: Settings):
+    import httpx
     from pydantic_ai.models.openai import OpenAIChatModel
     from pydantic_ai.providers.ollama import OllamaProvider
     from pydantic_ai.providers.openai import OpenAIProvider
@@ -111,9 +112,15 @@ def build_pydantic_ai_model(profile_id: str, settings: Settings):
         provider = OllamaProvider(base_url=settings.ollama_base_url)
     else:
         assert profile.base_url is not None and settings.cloud_api_key is not None
+        key_val = settings.cloud_api_key.get_secret_value()
+        headers = {}
+        if profile.provider == "gemini":
+            headers["x-goog-api-key"] = key_val
+        client = httpx.AsyncClient(headers=headers) if headers else None
         provider = OpenAIProvider(
             base_url=profile.base_url,
-            api_key=settings.cloud_api_key.get_secret_value(),
+            api_key=key_val,
+            http_client=client,
         )
     return OpenAIChatModel(profile.model_name, provider=provider)
 

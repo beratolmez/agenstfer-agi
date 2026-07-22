@@ -48,7 +48,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   // Step 2: Model Provider
   const [selectedProvider, setSelectedProvider] = useState("gemini");
   const [apiKey, setApiKey] = useState("");
-  const [modelName, setModelName] = useState("gemini-2.5-flash");
+  const [modelName, setModelName] = useState("gemini-2.0-flash");
   const [probing, setProbing] = useState(false);
   const [probeSuccess, setProbeSuccess] = useState(false);
 
@@ -62,6 +62,10 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
       .then(([prog, profs]) => {
         setProgress(prog);
         setProfiles(profs.items);
+        const cloudProf = profs.items.find((p) => p.id === "cloud-balanced" || p.id.startsWith("cloud-"));
+        if (cloudProf && cloudProf.configured) {
+          setProbeSuccess(true);
+        }
         setLoading(false);
       })
       .catch((e) => {

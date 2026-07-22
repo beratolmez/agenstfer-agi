@@ -13,7 +13,7 @@ def test_cloud_providers_registry():
 
     gemini_base_url, gemini_model = CLOUD_PROVIDERS["gemini"]
     assert "googleapis" in gemini_base_url
-    assert gemini_model == "gemini-2.5-flash"
+    assert gemini_model == "gemini-2.0-flash"
 
 
 def test_resolve_cloud_model_profile():
@@ -21,9 +21,9 @@ def test_resolve_cloud_model_profile():
         cloud_models_enabled=True,
         cloud_provider="gemini",
         cloud_api_key="AIzaSyTestFakeKey",
-        cloud_model="gemini-2.5-flash",
+        cloud_model="gemini-2.0-flash",
     )
     profile = resolve_model_profile("cloud-balanced", settings)
     assert profile.provider == "gemini"
-    assert profile.model_name == "gemini-2.5-flash"
+    assert profile.model_name == "gemini-2.0-flash"
     assert profile.local is False
