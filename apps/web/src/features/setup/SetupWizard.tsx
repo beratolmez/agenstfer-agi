@@ -53,9 +53,54 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [probeSuccess, setProbeSuccess] = useState(false);
 
   // Step 3 & 4: Data & RAG
+  const [connectorTab, setConnectorTab] = useState<"mcp" | "db" | "demo">("mcp");
+  const [mcpUrl, setMcpUrl] = useState("http://localhost:8000/mcp");
+  const [mcpTesting, setMcpTesting] = useState(false);
+  const [mcpResult, setMcpResult] = useState<{ status: string; mcp_url: string; protocol_version: string; tools_discovered: Array<{ name: string; description: string }>; message: string } | null>(null);
+
+  const [dbType, setDbType] = useState("postgresql");
+  const [dbHost, setDbHost] = useState("localhost");
+  const [dbPort, setDbPort] = useState(5432);
+  const [dbName, setDbName] = useState("agi");
+  const [dbUser, setDbUser] = useState("agi");
+  const [dbTesting, setDbTesting] = useState(false);
+  const [dbResult, setDbResult] = useState<{ status: string; tables_found: string[]; connection_time_ms: number; message: string } | null>(null);
+
   const [ingesting, setIngesting] = useState(false);
   const [ragSuccess, setRagSuccess] = useState(false);
   const [syncDetails, setSyncDetails] = useState<string | null>(null);
+
+  const handleTestMcp = async () => {
+    setMcpTesting(true);
+    setMcpResult(null);
+    try {
+      const res = await api.testMcpConnection({ mcp_url: mcpUrl });
+      setMcpResult(res);
+    } catch (e: any) {
+      setError(e.message || "MCP bağlantısı başarısız");
+    } finally {
+      setMcpTesting(false);
+    }
+  };
+
+  const handleTestDb = async () => {
+    setDbTesting(true);
+    setDbResult(null);
+    try {
+      const res = await api.testDbConnection({
+        db_type: dbType,
+        host: dbHost,
+        port: Number(dbPort),
+        database_name: dbName,
+        username: dbUser,
+      });
+      setDbResult(res);
+    } catch (e: any) {
+      setError(e.message || "Veritabanı bağlantısı başarısız");
+    } finally {
+      setDbTesting(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([api.setupProgress(), api.modelProfiles()])
@@ -441,38 +486,250 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
           </section>
         )}
 
-        {/* STEP 3: CRM / ERP Connectors */}
+        {/* STEP 3: CRM / ERP & MCP / DB Connectors */}
         {activeStep === 3 && (
           <section>
             <h2 style={{ fontSize: "18px", fontWeight: 600, color: "#1e293b", marginBottom: "8px" }}>
-              3. CRM & ERP Read-Only Veri Bağlantıları
+              3. CRM, ERP & Veri Kaynağı Bağlantıları
             </h2>
             <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "20px" }}>
-              Şirketinizin CRM (Accounts, Leads, Opportunities) ve ERP (Orders, Invoices, Products) verilerini bağlayın. Sistemimiz kesinlikle read-only çalışır.
+              Sistemimiz kurumsal Model Context Protocol (MCP) sunucularını, canlı veritabanlarını (PostgreSQL/MySQL) ve dosya kaynaklarını destekler. Tüm erişimler kesinlikle **read-only** (salt okunur) olarak yürütülür.
             </p>
 
-            <div
-              style={{
-                border: "2px dashed #cbd5e1",
-                borderRadius: "12px",
-                padding: "32px",
-                textAlign: "center",
-                background: "#f8fafc",
-                marginBottom: "20px",
-              }}
-            >
-              <div style={{ fontSize: "32px", marginBottom: "8px" }}>📊</div>
-              <strong style={{ fontSize: "14px", color: "#1e293b", display: "block" }}>
-                CSV / XLSX Veri Dosyalarını Buraya Sürükleyin Veya Seçin
-              </strong>
-              <span style={{ fontSize: "12px", color: "#64748b" }}>
-                Gelişmiş alan eşleme ve önizleme desteği aktiftir.
-              </span>
+            {/* Connector Type Tabs */}
+            <div style={{ display: "flex", gap: "8px", borderBottom: "1px solid #e2e8f0", marginBottom: "20px" }}>
+              <button
+                type="button"
+                onClick={() => setConnectorTab("mcp")}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: "8px 8px 0 0",
+                  border: "none",
+                  borderBottom: connectorTab === "mcp" ? "2px solid #2563eb" : "2px solid transparent",
+                  background: connectorTab === "mcp" ? "#eff6ff" : "transparent",
+                  color: connectorTab === "mcp" ? "#2563eb" : "#64748b",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                }}
+              >
+                ⚡ Model Context Protocol (MCP)
+              </button>
+              <button
+                type="button"
+                onClick={() => setConnectorTab("db")}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: "8px 8px 0 0",
+                  border: "none",
+                  borderBottom: connectorTab === "db" ? "2px solid #2563eb" : "2px solid transparent",
+                  background: connectorTab === "db" ? "#eff6ff" : "transparent",
+                  color: connectorTab === "db" ? "#2563eb" : "#64748b",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                }}
+              >
+                🐘 Canlı Veritabanı (PostgreSQL / MySQL)
+              </button>
+              <button
+                type="button"
+                onClick={() => setConnectorTab("demo")}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: "8px 8px 0 0",
+                  border: "none",
+                  borderBottom: connectorTab === "demo" ? "2px solid #2563eb" : "2px solid transparent",
+                  background: connectorTab === "demo" ? "#eff6ff" : "transparent",
+                  color: connectorTab === "demo" ? "#2563eb" : "#64748b",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  cursor: "pointer",
+                }}
+              >
+                📁 Demo Şirket & CSV Yükleme
+              </button>
             </div>
 
-            <div style={{ background: "#f1f5f9", padding: "16px", borderRadius: "8px", fontSize: "13px", color: "#334155" }}>
-              <strong>Hazır Şirket Demo Verisi Aktif:</strong> Anka Sentetik CRM & ERP veri seti kullanıma hazır.
-            </div>
+            {/* MCP TAB CONTENT */}
+            {connectorTab === "mcp" && (
+              <div style={{ background: "#f8fafc", padding: "20px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#0f172a", marginBottom: "8px" }}>
+                  Model Context Protocol (MCP) Sunucu Bağlantısı
+                </h3>
+                <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "16px" }}>
+                  MCP sunucunuzun HTTP/SSE uç noktasını tanımlayın. Agent'lar otomatik olarak CRM, ERP ve DWH tool'larını keşfedecektir.
+                </p>
+                <label style={{ display: "block", marginBottom: "16px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>MCP Server URL / Uç Nokta</span>
+                  <input
+                    type="text"
+                    value={mcpUrl}
+                    onChange={(e) => setMcpUrl(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      border: "1px solid #cbd5e1",
+                      marginTop: "4px",
+                      fontSize: "13px",
+                      fontFamily: "monospace",
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={handleTestMcp}
+                  disabled={mcpTesting}
+                  style={{
+                    background: "#0d9488",
+                    color: "#ffffff",
+                    padding: "8px 18px",
+                    borderRadius: "6px",
+                    border: "none",
+                    fontWeight: 600,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {mcpTesting ? "Bağlantı Kuruluyor..." : "🔌 MCP Sunucusunu & Tool'ları Canlı Test Et"}
+                </button>
+
+                {mcpResult && (
+                  <div style={{ marginTop: "16px", padding: "12px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px" }}>
+                    <strong style={{ color: "#166534", fontSize: "13px", display: "block", marginBottom: "4px" }}>
+                      ✓ {mcpResult.message} (Protokol: {mcpResult.protocol_version})
+                    </strong>
+                    <span style={{ fontSize: "12px", color: "#15803d", fontWeight: 600 }}>Algılanan Read-Only Tool'lar:</span>
+                    <ul style={{ margin: "4px 0 0 16px", fontSize: "12px", color: "#166534" }}>
+                      {mcpResult.tools_discovered.map((t) => (
+                        <li key={t.name}>
+                          <code>{t.name}</code>: {t.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* LIVE DB TAB CONTENT */}
+            {connectorTab === "db" && (
+              <div style={{ background: "#f8fafc", padding: "20px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#0f172a", marginBottom: "8px" }}>
+                  Canlı SQL Veritabanı Bağlantısı (PostgreSQL / MySQL)
+                </h3>
+                <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "16px" }}>
+                  CRM / ERP veritabanınızın read-only erişim bilgilerini girin. Bağlantı sadece okunabilir modda açılır.
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+                  <label style={{ display: "block" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>Veritabanı Tipi</span>
+                    <select
+                      value={dbType}
+                      onChange={(e) => setDbType(e.target.value)}
+                      style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", marginTop: "4px", fontSize: "13px" }}
+                    >
+                      <option value="postgresql">PostgreSQL</option>
+                      <option value="mysql">MySQL</option>
+                      <option value="sqlite">SQLite / Embedded</option>
+                    </select>
+                  </label>
+                  <label style={{ display: "block" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>Host / Sunucu</span>
+                    <input
+                      type="text"
+                      value={dbHost}
+                      onChange={(e) => setDbHost(e.target.value)}
+                      style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", marginTop: "4px", fontSize: "13px" }}
+                    />
+                  </label>
+                  <label style={{ display: "block" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>Port</span>
+                    <input
+                      type="number"
+                      value={dbPort}
+                      onChange={(e) => setDbPort(Number(e.target.value))}
+                      style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", marginTop: "4px", fontSize: "13px" }}
+                    />
+                  </label>
+                  <label style={{ display: "block" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>Veritabanı Adı</span>
+                    <input
+                      type="text"
+                      value={dbName}
+                      onChange={(e) => setDbName(e.target.value)}
+                      style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", marginTop: "4px", fontSize: "13px" }}
+                    />
+                  </label>
+                  <label style={{ display: "block" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>Kullanıcı (Read-Only)</span>
+                    <input
+                      type="text"
+                      value={dbUser}
+                      onChange={(e) => setDbUser(e.target.value)}
+                      style={{ width: "100%", padding: "8px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", marginTop: "4px", fontSize: "13px" }}
+                    />
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleTestDb}
+                  disabled={dbTesting}
+                  style={{
+                    background: "#0284c7",
+                    color: "#ffffff",
+                    padding: "8px 18px",
+                    borderRadius: "6px",
+                    border: "none",
+                    fontWeight: 600,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {dbTesting ? "Bağlanılıyor..." : "🔌 Veritabanı Bağlantısını Canlı Test Et"}
+                </button>
+
+                {dbResult && (
+                  <div style={{ marginTop: "16px", padding: "12px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px" }}>
+                    <strong style={{ color: "#166534", fontSize: "13px", display: "block", marginBottom: "4px" }}>
+                      ✓ {dbResult.message} ({dbResult.connection_time_ms} ms)
+                    </strong>
+                    <span style={{ fontSize: "12px", color: "#15803d" }}>
+                      Şema Taranan Tablolar: <code>{dbResult.tables_found.join(", ")}</code>
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* DEMO / CSV TAB CONTENT */}
+            {connectorTab === "demo" && (
+              <div style={{ background: "#f8fafc", padding: "20px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                <div
+                  style={{
+                    border: "2px dashed #cbd5e1",
+                    borderRadius: "10px",
+                    padding: "24px",
+                    textAlign: "center",
+                    background: "#ffffff",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <div style={{ fontSize: "28px", marginBottom: "4px" }}>📊</div>
+                  <strong style={{ fontSize: "13px", color: "#1e293b", display: "block" }}>
+                    CSV / XLSX Veri Dosyalarını Buraya Sürükleyin Veya Seçin
+                  </strong>
+                  <span style={{ fontSize: "12px", color: "#64748b" }}>
+                    Gelişmiş alan eşleme ve önizleme desteği aktiftir.
+                  </span>
+                </div>
+
+                <div style={{ background: "#e0f2fe", border: "1px solid #bae6fd", padding: "12px 16px", borderRadius: "8px", fontSize: "13px", color: "#0369a1" }}>
+                  <strong>✓ Hazır Şirket Demo Verisi Aktif:</strong> Anka Sentetik CRM & ERP veri seti kullanıma hazır.
+                </div>
+              </div>
+            )}
 
             <div style={{ marginTop: "28px", display: "flex", justifyContent: "space-between" }}>
               <button

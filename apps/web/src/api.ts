@@ -306,4 +306,14 @@ export const api = {
     request<{ total_records: number }>(`/api/sources/${encodeURIComponent(sourceId)}/sync`, {
       method: "POST",
     }),
+  testDbConnection: (payload: { db_type: string; host: string; port: number; database_name: string; username: string; password?: string }) =>
+    request<{ status: string; db_type: string; host: string; database: string; tables_found: string[]; connection_time_ms: number; message: string }>("/api/sources/test-db", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  testMcpConnection: (payload: { mcp_url: string; auth_token?: string }) =>
+    request<{ status: string; mcp_url: string; protocol_version: string; tools_discovered: Array<{ name: string; description: string }>; message: string }>("/api/sources/test-mcp", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };
