@@ -250,7 +250,39 @@ export function Settings({
           {model?.ready ? "ready" : "not ready"}
         </span>
         <small>{model?.message}</small>
-        <p>Cloud key UI veya veritabanında saklanmaz; host/Docker secret ile sağlanır.</p>
+        <button
+          type="button"
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await api.probeModel(model?.profile || "cloud-balanced");
+              const updatedStatus = await api.modelStatus();
+              setModel(updatedStatus);
+              setNotice("Model Gateway probe testi başarıyla tamamlandı!");
+            } catch (err: any) {
+              setError(err.message || "Model probe testi başarısız");
+            } finally {
+              setBusy(false);
+            }
+          }}
+          disabled={busy}
+          style={{
+            marginTop: "12px",
+            padding: "6px 12px",
+            borderRadius: "6px",
+            border: "1px solid #cbd5e1",
+            background: "#ffffff",
+            fontSize: "12px",
+            fontWeight: 600,
+            color: "#0f172a",
+            cursor: "pointer",
+          }}
+        >
+          🔌 Model Gateway Test Et
+        </button>
+        <p style={{ marginTop: "8px", fontSize: "11px", color: "#64748b" }}>
+          Cloud key host/Docker secret ile sağlanır.
+        </p>
       </section>
       <section className="settings-card">
         <Braces size={24} />

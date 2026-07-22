@@ -365,7 +365,7 @@ async def model_probe(
 
 class ModelConfigRequest(BaseModel):
     provider: str
-    api_key: str
+    api_key: str | None = None
     model: str | None = None
     profile_id: str = "cloud-balanced"
 
@@ -386,9 +386,15 @@ def model_configure(
             status_code=422,
             detail=f"Desteklenmeyen cloud provider: {payload.provider}",
         )
+    if payload.api_key:
+        settings.cloud_api_key = SecretStr(payload.api_key)
+    elif settings.cloud_api_key is None:
+        raise HTTPException(
+            status_code=422,
+            detail="API Key gereklidir. Lütfen API Key girin veya .env dosyasına tanımlayın.",
+        )
     settings.cloud_models_enabled = True
     settings.cloud_provider = payload.provider
-    settings.cloud_api_key = SecretStr(payload.api_key)
     if payload.model:
         settings.cloud_model = payload.model
     settings.model_profile = payload.profile_id

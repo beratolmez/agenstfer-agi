@@ -65,9 +65,41 @@ export function Opportunities() {
       </div>
       {evidence ? (
         <div className="diff-review evidence-review">
-          <header><h2>Exact source locator</h2><button type="button" aria-label="Evidence kapat" onClick={() => setEvidence(null)}><X size={18} /></button></header>
-          <pre>{JSON.stringify(evidence, null, 2)}</pre>
-          <a href={`/api/evidence/${String(evidence.id ?? "")}`} target="_blank" rel="noreferrer"><ExternalLink size={15} /> API kaydını aç</a>
+          <header>
+            <h2 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "16px" }}>
+              <ShieldCheck size={18} style={{ color: "#0d9488" }} /> Doğrulanmış Kaynak Kanıtı (Locator)
+            </h2>
+            <button type="button" aria-label="Evidence kapat" onClick={() => setEvidence(null)}>
+              <X size={18} />
+            </button>
+          </header>
+          <div style={{ padding: "16px", display: "grid", gap: "12px", background: "#f8fafc", borderRadius: "8px", margin: "12px 0" }}>
+            <div>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Kanıt Kimliği (ID)</span>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: "#0f172a", fontFamily: "monospace" }}>{String(evidence.id ?? "-")}</div>
+            </div>
+            <div>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Kaynak Bağlantısı (Source ID)</span>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: "#0284c7" }}>{String(evidence.source_id ?? "-")}</div>
+            </div>
+            {Boolean(evidence.excerpt) && (
+              <div>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Kanıt Metni / Alıntı (Excerpt)</span>
+                <p style={{ fontSize: "13px", color: "#334155", background: "#ffffff", padding: "10px 12px", borderRadius: "6px", border: "1px solid #e2e8f0", margin: "4px 0 0 0" }}>
+                  "{String(evidence.excerpt)}"
+                </p>
+              </div>
+            )}
+            {Boolean(evidence.created_at) && (
+              <div>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Oluşturulma Tarihi</span>
+                <div style={{ fontSize: "12px", color: "#475569" }}>{new Date(String(evidence.created_at)).toLocaleString("tr-TR")}</div>
+              </div>
+            )}
+          </div>
+          <a href={`/api/evidence/${String(evidence.id ?? "")}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 600, color: "#2563eb" }}>
+            <ExternalLink size={15} /> Ham JSON Uç Noktasını Aç
+          </a>
         </div>
       ) : null}
     </main>

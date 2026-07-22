@@ -1,3 +1,4 @@
+import { CheckCircle2, Loader2, Sparkles, UploadCloud } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../../api";
 import { ModelProfileView, SetupProgress } from "../../types";
@@ -7,8 +8,9 @@ const PROVIDERS = [
     id: "gemini",
     name: "Google Gemini API",
     tag: "Free & Fast (Recommended)",
-    description: "Gemini 2.5 Flash / 2.0 Flash via Google AI Studio API key.",
-    defaultModel: "gemini-2.5-flash",
+    description: "Gemini 2.0 Flash / 1.5 Flash via Google AI Studio API key.",
+    defaultModel: "gemini-2.0-flash",
+    modelOptions: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"],
   },
   {
     id: "groq",
@@ -16,6 +18,7 @@ const PROVIDERS = [
     tag: "Ultra Low-Latency Free Tier",
     description: "Llama 3.3 70B & Mixtral via Groq API key.",
     defaultModel: "llama-3.3-70b-versatile",
+    modelOptions: ["llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"],
   },
   {
     id: "mistral",
@@ -23,6 +26,7 @@ const PROVIDERS = [
     tag: "European Enterprise AI",
     description: "Mistral Small & Medium models via Mistral API key.",
     defaultModel: "mistral-small-latest",
+    modelOptions: ["mistral-small-latest", "mistral-medium-latest"],
   },
   {
     id: "openrouter",
@@ -30,6 +34,7 @@ const PROVIDERS = [
     tag: "Multi-Model Free Endpoint",
     description: "Access Gemini, Llama 3, & Mistral free models via OpenRouter key.",
     defaultModel: "google/gemini-2.5-flash-free",
+    modelOptions: ["google/gemini-2.5-flash-free", "meta-llama/llama-3.3-70b-instruct:free", "mistralai/mistral-7b-instruct:free"],
   },
 ];
 
@@ -420,20 +425,32 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
               </label>
 
               <label style={{ display: "block" }}>
-                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>Model Adı (Varsayılan)</span>
-                <input
-                  type="text"
-                  value={modelName}
-                  onChange={(e) => setModelName(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "8px",
-                    border: "1px solid #cbd5e1",
-                    marginTop: "4px",
-                    fontSize: "14px",
-                  }}
-                />
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>Model Adı (Önerilenler)</span>
+                {(() => {
+                  const currentProv = PROVIDERS.find((p) => p.id === selectedProvider);
+                  const options = currentProv?.modelOptions || [modelName];
+                  return (
+                    <select
+                      value={modelName}
+                      onChange={(e) => setModelName(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        marginTop: "4px",
+                        fontSize: "14px",
+                        background: "#ffffff",
+                      }}
+                    >
+                      {options.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  );
+                })()}
               </label>
             </div>
 
@@ -451,15 +468,19 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                   border: "none",
                   fontWeight: 600,
                   fontSize: "14px",
-                  cursor: "pointer",
+                  cursor: probing ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
                 }}
               >
+                {probing ? <Loader2 size={16} className="spinner" /> : <Sparkles size={16} />}
                 {probing ? "Canlı Probe Test Ediliyor..." : "🔌 API Key & Modeli Canlı Test Et"}
               </button>
 
               {probeSuccess && (
-                <span style={{ color: "#059669", fontWeight: 600, fontSize: "13px" }}>
-                  ✓ Model Gateway ve Structured Output probe testi başarılı!
+                <span style={{ color: "#059669", fontWeight: 600, fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                  <CheckCircle2 size={16} /> Model Gateway ve Structured Output probe testi başarılı!
                 </span>
               )}
             </div>
@@ -706,24 +727,42 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             {/* DEMO / CSV TAB CONTENT */}
             {connectorTab === "demo" && (
               <div style={{ background: "#f8fafc", padding: "20px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-                <div
+                <label
                   style={{
-                    border: "2px dashed #cbd5e1",
+                    border: "2px dashed #93c5fd",
                     borderRadius: "10px",
                     padding: "24px",
                     textAlign: "center",
                     background: "#ffffff",
                     marginBottom: "16px",
+                    display: "block",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
                   }}
                 >
-                  <div style={{ fontSize: "28px", marginBottom: "4px" }}>📊</div>
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx"
+                    style={{ display: "none" }}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const preview = await api.previewSourceFile(file, "accounts");
+                        setSyncDetails(`✓ ${file.name} başarıyla önizlendi (${preview.preview.length} satır algılandı).`);
+                      } catch (err: any) {
+                        setError(err.message || "Dosya yüklenemedi");
+                      }
+                    }}
+                  />
+                  <UploadCloud size={32} style={{ color: "#2563eb", marginBottom: "4px" }} />
                   <strong style={{ fontSize: "13px", color: "#1e293b", display: "block" }}>
-                    CSV / XLSX Veri Dosyalarını Buraya Sürükleyin Veya Seçin
+                    CSV / XLSX Veri Dosyasını Seçmek Veya Sürüklemek İçin Tıklayın
                   </strong>
                   <span style={{ fontSize: "12px", color: "#64748b" }}>
-                    Gelişmiş alan eşleme ve önizleme desteği aktiftir.
+                    Otomatik alan eşleme ve önizleme desteği aktiftir.
                   </span>
-                </div>
+                </label>
 
                 <div style={{ background: "#e0f2fe", border: "1px solid #bae6fd", padding: "12px 16px", borderRadius: "8px", fontSize: "13px", color: "#0369a1" }}>
                   <strong>✓ Hazır Şirket Demo Verisi Aktif:</strong> Anka Sentetik CRM & ERP veri seti kullanıma hazır.

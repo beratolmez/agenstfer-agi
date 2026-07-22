@@ -26,7 +26,7 @@ describe("ApprovalCenter", () => {
     expect(await screen.findByText("+ evidence-reviewed report")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Onayla" }));
     await waitFor(() => expect(decide).toHaveBeenCalledWith(
-      "approval-1", "approved", "Kanıtlar ve OKF diff insan tarafından incelendi.",
+      "approval-1", "approved", "",
     ));
   });
 });

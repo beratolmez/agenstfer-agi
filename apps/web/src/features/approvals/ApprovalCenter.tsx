@@ -1,4 +1,4 @@
-import { Check, Download, GitCompare, RefreshCw, X, Bell } from "lucide-react";
+import { Check, Download, GitCompare, RefreshCw, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
 import type { ApprovalView, OKFCandidateView } from "../../types";
@@ -8,10 +8,9 @@ export function ApprovalCenter() {
   const [candidates, setCandidates] = useState<OKFCandidateView[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [diff, setDiff] = useState("");
-  const [reason, setReason] = useState("Kanıtlar ve OKF diff insan tarafından incelendi.");
+  const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{message: string, show: boolean}>({message: "", show: false});
 
   const load = useCallback(async () => {
     try {
@@ -22,15 +21,6 @@ export function ApprovalCenter() {
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Onaylar yüklenemedi"); }
   }, []);
   useEffect(() => { void load(); }, [load]);
-
-  // Mock real-time push notification
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setToast({message: "Yeni bir ajan işlemi onay bekliyor: 'Rapor oluşturma'...", show: true});
-      setTimeout(() => setToast(t => ({...t, show: false})), 5000);
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, []);
 
   const linked = useMemo(() => new Set(approvals.map((item) => item.candidate_id).filter(Boolean)), [approvals]);
   const standalone = candidates.filter((item) => !linked.has(item.id));
@@ -55,12 +45,6 @@ export function ApprovalCenter() {
   }
   return (
     <main className="page approvals-page" style={{ position: "relative" }}>
-      {toast.show && (
-        <div style={{ position: "absolute", top: 20, right: 38, background: "#10b981", color: "white", padding: "12px 16px", borderRadius: 6, display: "flex", alignItems: "center", gap: 10, zIndex: 100, boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)" }}>
-          <Bell size={16} />
-          <span style={{ fontSize: 13, fontWeight: 500 }}>{toast.message}</span>
-        </div>
-      )}
       <header className="page-heading">
         <div><p className="eyebrow">TRUST & POLICY</p><h1>Onay Merkezi</h1><p>Candidate knowledge değişiklikleri yalnız doğrulanmış insan kararıyla active olur.</p></div>
         <div><a className="secondary-button" href="/api/okf/export"><Download size={17} /> Active OKF export</a><button type="button" onClick={load} className="secondary-button"><RefreshCw size={17} /> Yenile</button></div>
@@ -124,7 +108,7 @@ export function ApprovalCenter() {
           ))}
         </div>
       </section>
-      {selected ? <div className="diff-review"><header><div><h2>Candidate diff</h2><p>{selected}</p></div><button type="button" aria-label="Diff kapat" onClick={() => setSelected(null)}><X size={18} /></button></header><label>Karar gerekçesi<textarea value={reason} minLength={8} onChange={(event) => setReason(event.target.value)} /></label><pre>{diff || "Bu candidate dosya farkı içermiyor."}</pre></div> : null}
+      {selected ? <div className="diff-review"><header><div><h2>Candidate diff</h2><p>{selected}</p></div><button type="button" aria-label="Diff kapat" onClick={() => setSelected(null)}><X size={18} /></button></header><label>Karar gerekçesi<textarea value={reason} minLength={8} placeholder="İnceleme ve onay gerekçenizi buraya yazınız (En az 8 karakter)..." onChange={(event) => setReason(event.target.value)} /></label><pre>{diff || "Bu candidate dosya farkı içermiyor."}</pre></div> : null}
     </main>
   );
 }
