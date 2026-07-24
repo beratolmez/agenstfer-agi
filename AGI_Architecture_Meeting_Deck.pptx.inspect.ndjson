@@ -1,223 +1,223 @@
-{"kind":"deck","id":"pr/34x5nr","name":"Deck"}
-{"kind":"layout","layoutId":"09fd83bc-644f-422c-acaa-f1afbcba58ec","name":"Master","type":"master"}
-{"kind":"layout","layoutId":"8d3e3a14-8039-49bf-b501-7dc9a3adbf94","name":"Title Slide","type":"title"}
-{"kind":"slide","id":"sl/5w0ru7","slide":1,"title":"ARCHITECTURE BRIEFING · 2026","textShapes":6}
-{"kind":"shape","id":"sh/wn61grm9","slide":1,"bbox":[0,0,1280,720]}
-{"kind":"shape","id":"sh/vmx07mlo","slide":1,"bbox":[870,0,410,720]}
-{"kind":"shape","id":"sh/ulojeh43","slide":1,"bbox":[910,110,260,260]}
-{"kind":"shape","id":"sh/9kfi5c3i","slide":1,"bbox":[960,160,160,160]}
-{"kind":"shape","id":"sh/8jm1c7mx","slide":1,"bbox":[1008,208,64,64]}
-{"kind":"textbox","id":"sh/7id032lc","slide":1,"text":"ARCHITECTURE BRIEFING · 2026","textPreview":"ARCHITECTURE BRIEFING · 2026","textChars":28,"textLines":1,"bbox":[72,92,255,30]}
-{"kind":"textbox","id":"sh/mh4jah4r","slide":1,"text":"Agentic Growth\nIntelligence","textPreview":"Agentic Growth | Intelligence","textChars":27,"textLines":2,"bbox":[72,164,745,150]}
-{"kind":"textbox","id":"sh/lgvi1c3m","slide":1,"text":"Mevcut Mimari → Hedef Agent-First Runtime","textPreview":"Mevcut Mimari → Hedef Agent-First Runtime","textChars":41,"textLines":1,"bbox":[72,332,700,76]}
-{"kind":"textbox","id":"sh/kfm187m1","slide":1,"text":"Toplantı için kısa anlatı: ürün konumu, çalışan yapı, hedef çalışma modeli ve geçiş yaklaşımı.","textPreview":"Toplantı için kısa anlatı: ürün konumu, çalışan yapı, hedef çalışma modeli ve geçiş yaklaşımı.","textChars":94,"textLines":1,"bbox":[72,448,650,72]}
-{"kind":"textbox","id":"sh/290jm5gr","slide":1,"text":"24 Temmuz 2026  |  Internal discussion","textPreview":"24 Temmuz 2026  |  Internal discussion","textChars":38,"textLines":1,"bbox":[72,620,600,26]}
-{"kind":"textbox","id":"sh/3atkvahc","slide":1,"text":"INTELLIGENCE\nIS THE RUNTIME","textPreview":"INTELLIGENCE | IS THE RUNTIME","textChars":27,"textLines":2,"bbox":[910,445,250,64]}
-{"kind":"notes","id":"nt/5w0ru7","slide":1,"text":"Konuşma notu: Ürünü bir dashboard değil, şirket bilgisini kanıta dayalı kararlara dönüştüren yönetilebilir agent runtime olarak konumlandırın.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
-{"kind":"slide","id":"sl/slqrkl","slide":2,"title":"ÜRÜN KONUMU","textShapes":18}
-{"kind":"textbox","id":"sh/z6t4fyxg","slide":2,"text":"ÜRÜN KONUMU","textPreview":"ÜRÜN KONUMU","textChars":11,"textLines":1,"bbox":[72,46,160,30]}
-{"kind":"textbox","id":"sh/0725ojy1","slide":2,"text":"Bu ürün klasik bir web uygulaması değil","textPreview":"Bu ürün klasik bir web uygulaması değil","textChars":39,"textLines":1,"bbox":[72,94,1090,60]}
-{"kind":"textbox","id":"sh/lsbmhofm","slide":2,"text":"Web UI, intelligence engine’in kendisi değil; runtime için kontrol panelidir.","textPreview":"Web UI, intelligence engine’in kendisi değil; runtime için kontrol panelidir.","textChars":77,"textLines":1,"bbox":[72,154,1080,36]}
-{"kind":"textbox","id":"sh/mtknqtgr","slide":2,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
-{"kind":"textbox","id":"sh/nut4jyxc","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
-{"kind":"shape","id":"sh/8v25s3yx","slide":2,"bbox":[72,270,250,220]}
-{"kind":"shape","id":"sh/9wb6l8fi","slide":2,"bbox":[96,294,42,42]}
-{"kind":"textbox","id":"sh/ax4nudg3","slide":2,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[109,303,20,20]}
-{"kind":"textbox","id":"sh/vydonixo","slide":2,"text":"Context","textPreview":"Context","textChars":7,"textLines":1,"bbox":[96,360,200,30]}
-{"kind":"textbox","id":"sh/7ux4jmp0","slide":2,"text":"Şirket, kaynak, rol ve görev bağlamı","textPreview":"Şirket, kaynak, rol ve görev bağlamı","textChars":36,"textLines":1,"bbox":[96,404,198,58]}
-{"kind":"shape","id":"sh/mto3ahof","slide":2,"bbox":[354,270,250,220]}
-{"kind":"shape","id":"sh/9wfmlw76","slide":2,"bbox":[378,294,42,42]}
-{"kind":"textbox","id":"sh/8v6lcr6l","slide":2,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[391,303,20,20]}
-{"kind":"textbox","id":"sh/z6xkfmp4","slide":2,"text":"Evidence","textPreview":"Evidence","textChars":8,"textLines":1,"bbox":[378,360,200,30]}
-{"kind":"textbox","id":"sh/y5436hoj","slide":2,"text":"İddialar ve sayılar için izlenebilir dayanak","textPreview":"İddialar ve sayılar için izlenebilir dayanak","textChars":44,"textLines":1,"bbox":[378,404,198,58]}
-{"kind":"shape","id":"sh/l8fmhc7u","slide":2,"bbox":[636,270,250,220]}
-{"kind":"shape","id":"sh/k76l8r6p","slide":2,"bbox":[660,294,42,42]}
-{"kind":"textbox","id":"sh/j2h4r6p8","slide":2,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[673,303,20,20]}
-{"kind":"textbox","id":"sh/i183i1on","slide":2,"text":"Policy","textPreview":"Policy","textChars":6,"textLines":1,"bbox":[660,360,200,30]}
-{"kind":"textbox","id":"sh/e9cf69c7","slide":2,"text":"Yetki, tool sınırı ve güvenlik kuralları","textPreview":"Yetki, tool sınırı ve güvenlik kuralları","textChars":40,"textLines":1,"bbox":[660,404,198,58]}
-{"kind":"shape","id":"sh/zu5gzeds","slide":2,"bbox":[918,270,250,220]}
-{"kind":"shape","id":"sh/0vex8jud","slide":2,"bbox":[942,294,42,42]}
-{"kind":"textbox","id":"sh/1wny14vi","slide":2,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[955,303,20,20]}
-{"kind":"textbox","id":"sh/mxwfa9c3","slide":2,"text":"Approval","textPreview":"Approval","textChars":8,"textLines":1,"bbox":[942,360,200,30]}
-{"kind":"textbox","id":"sh/ny5g3edo","slide":2,"text":"Aday bilgi değişiklikleri için insan onayı","textPreview":"Aday bilgi değişiklikleri için insan onayı","textChars":42,"textLines":1,"bbox":[942,404,198,58]}
-{"kind":"textbox","id":"sh/ozexcju9","slide":2,"text":"Temel ilke: her değerli çıktının kaynağı, bağlamı ve onay durumu görünür olmalı.","textPreview":"Temel ilke: her değerli çıktının kaynağı, bağlamı ve onay durumu görünür olmalı.","textChars":80,"textLines":1,"bbox":[72,552,1080,32]}
-{"kind":"notes","id":"nt/slqrkl","slide":2,"text":"Konuşma notu: Bu dört unsur ürünün web yüzeyinden bağımsız çekirdeğidir. UI bunları işletmek ve gözlemlemek için vardır.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
-{"kind":"slide","id":"sl/hi7wku","slide":3,"title":"BUGÜN","textShapes":13}
-{"kind":"textbox","id":"sh/1ovyh8ne","slide":3,"text":"BUGÜN","textPreview":"BUGÜN","textChars":5,"textLines":1,"bbox":[72,46,160,30]}
-{"kind":"textbox","id":"sh/elkf6to3","slide":3,"text":"Mevcut çalışma yolu: sağlam veri temeli, iki ayrı execution izi","textPreview":"Mevcut çalışma yolu: sağlam veri temeli, iki ayrı execution izi","textChars":63,"textLines":1,"bbox":[72,94,1090,60]}
-{"kind":"textbox","id":"sh/zmtgfy5o","slide":3,"text":"Aktif API yolu custom persistent runtime kullanıyor; LangGraph ve Chroma ayrı servislerde bulunuyor.","textPreview":"Aktif API yolu custom persistent runtime kullanıyor; LangGraph ve Chroma ayrı servislerde bulunuyor.","textChars":100,"textLines":1,"bbox":[72,154,1080,36]}
-{"kind":"textbox","id":"sh/cj2x4j6x","slide":3,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
-{"kind":"textbox","id":"sh/dkbydoni","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
-{"kind":"textbox","id":"sh/qhkf2tor","slide":3,"text":"Web UI\nKontrol paneli","textPreview":"Web UI | Kontrol paneli","textChars":21,"textLines":2,"bbox":[72,258,165,78]}
-{"kind":"textbox","id":"sh/ritgbe5c","slide":3,"text":"FastAPI\nControl surface","textPreview":"FastAPI | Control surface","textChars":23,"textLines":2,"bbox":[292,258,185,78]}
-{"kind":"textbox","id":"sh/4fix0j61","slide":3,"text":"Custom persistent\nworkflow runtime","textPreview":"Custom persistent | workflow runtime","textChars":34,"textLines":2,"bbox":[532,238,218,118]}
-{"kind":"textbox","id":"sh/pgry9onm","slide":3,"text":"Pydantic AI\n4 specialist agents","textPreview":"Pydantic AI | 4 specialist agents","textChars":31,"textLines":2,"bbox":[805,238,188,118]}
-{"kind":"textbox","id":"sh/xcz65gb2","slide":3,"text":"PostgreSQL\nOKF / evidence\nartifacts","textPreview":"PostgreSQL | OKF / evidence | artifacts","textChars":35,"textLines":3,"bbox":[1048,236,160,120]}
-{"kind":"shape","id":"sh/wbq5cvax","slide":3,"bbox":[237,297,55,0]}
-{"kind":"shape","id":"sh/baxo3qtc","slide":3,"bbox":[477,297,55,0]}
-{"kind":"shape","id":"sh/a9onalsr","slide":3,"bbox":[750,297,55,0]}
-{"kind":"shape","id":"sh/98f61gb6","slide":3,"bbox":[993,296,55,1]}
-{"kind":"textbox","id":"sh/o7658bal","slide":3,"text":"Separate LangGraph service\n(deployed path değil)","textPreview":"Separate LangGraph service | (deployed path değil)","textChars":48,"textLines":2,"bbox":[520,480,250,82]}
-{"kind":"textbox","id":"sh/n6x4z6t0","slide":3,"text":"Separate Chroma RAG service\n(aktif API yolunda değil)","textPreview":"Separate Chroma RAG service | (aktif API yolunda değil)","textChars":53,"textLines":2,"bbox":[838,480,250,82]}
-{"kind":"shape","id":"sh/m5on61sf","slide":3,"bbox":[641,356,4,124]}
-{"kind":"shape","id":"sh/1kfmxwba","slide":3,"bbox":[899,356,64,124]}
-{"kind":"textbox","id":"sh/0j654bap","slide":3,"text":"Ana gözlem: evidence / OKF hattı güçlü; orkestrasyon, retrieval ve event davranışı tek bir aktif runtime altında birleşmiş değil.","textPreview":"Ana gözlem: evidence / OKF hattı güçlü; orkestrasyon, retrieval ve event davranışı tek bir aktif runtime altında birleşmiş değil.","textChars":129,"textLines":1,"bbox":[72,606,1100,36]}
-{"kind":"notes","id":"nt/hi7wku","slide":3,"text":"Konuşma notu: Bu bir kalite yargısı değil, çalışma yolu gözlemidir. Aktif API custom runtime’a gider; LangGraph ve Chroma kod tabanında ayrı konumdadır.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
-{"kind":"slide","id":"sl/2c4hxx","slide":4,"title":"MEVCUT AGENT SİSTEMİ","textShapes":24}
-{"kind":"textbox","id":"sh/jmp0fa58","slide":4,"text":"MEVCUT AGENT SİSTEMİ","textPreview":"MEVCUT AGENT SİSTEMİ","textChars":20,"textLines":1,"bbox":[72,46,164,30]}
-{"kind":"textbox","id":"sh/knyhofmt","slide":4,"text":"Pydantic AI bugün specialist agent katmanı olarak çalışıyor","textPreview":"Pydantic AI bugün specialist agent katmanı olarak çalışıyor","textChars":59,"textLines":1,"bbox":[72,94,1090,60]}
-{"kind":"textbox","id":"sh/5o7ih0ne","slide":4,"text":"Typed giriş/çıkış ve kanıta bağlı görevler, agent üretimini daha denetlenebilir kılıyor.","textPreview":"Typed giriş/çıkış ve kanıta bağlı görevler, agent üretimini daha denetlenebilir kılıyor.","textChars":88,"textLines":1,"bbox":[72,154,1080,36]}
-{"kind":"textbox","id":"sh/ahwzil4r","slide":4,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
-{"kind":"textbox","id":"sh/vi50bq5c","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
-{"kind":"shape","id":"sh/wjehkvmx","slide":4,"bbox":[72,296,150,154]}
-{"kind":"textbox","id":"sh/xknid0ni","slide":4,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[90,318,105,20]}
-{"kind":"textbox","id":"sh/ed0zup4v","slide":4,"text":"Ingest","textPreview":"Ingest","textChars":6,"textLines":1,"bbox":[90,355,115,30]}
-{"kind":"textbox","id":"sh/fe90nu5g","slide":4,"text":"Raw source snapshot","textPreview":"Raw source snapshot","textChars":19,"textLines":1,"bbox":[90,397,112,42]}
-{"kind":"shape","id":"sh/76lo7e1c","slide":4,"bbox":[262,296,150,154]}
-{"kind":"textbox","id":"sh/6lcny9kr","slide":4,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[280,318,105,20]}
-{"kind":"textbox","id":"sh/t8n694j2","slide":4,"text":"Evidence","textPreview":"Evidence","textChars":8,"textLines":1,"bbox":[280,355,115,30]}
-{"kind":"textbox","id":"sh/s7u50z2x","slide":4,"text":"Locator + metric receipt","textPreview":"Locator + metric receipt","textChars":24,"textLines":1,"bbox":[280,397,112,42]}
-{"kind":"shape","id":"sh/fa5obe18","slide":4,"bbox":[452,296,150,154]}
-{"kind":"textbox","id":"sh/u9w729kn","slide":4,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[470,318,105,20]}
-{"kind":"textbox","id":"sh/hcn6doje","slide":4,"text":"Agents","textPreview":"Agents","textChars":6,"textLines":1,"bbox":[470,355,115,30]}
-{"kind":"textbox","id":"sh/gbep4j2t","slide":4,"text":"4 Pydantic specialists","textPreview":"4 Pydantic specialists","textChars":22,"textLines":1,"bbox":[470,397,112,42]}
-{"kind":"shape","id":"sh/3e5ofy1k","slide":4,"bbox":[642,296,150,154]}
-{"kind":"textbox","id":"sh/2dw76tkz","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[660,318,105,20]}
-{"kind":"textbox","id":"sh/e90ryx47","slide":4,"text":"Review","textPreview":"Review","textChars":6,"textLines":1,"bbox":[660,355,115,30]}
-{"kind":"textbox","id":"sh/za987ils","slide":4,"text":"Evidence review","textPreview":"Evidence review","textChars":15,"textLines":1,"bbox":[660,397,112,42]}
-{"kind":"shape","id":"sh/0vi90nmx","slide":4,"bbox":[832,296,150,154]}
-{"kind":"textbox","id":"sh/1wra9s3i","slide":4,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[850,318,105,20]}
-{"kind":"textbox","id":"sh/q5grud4v","slide":4,"text":"Artifact","textPreview":"Artifact","textChars":8,"textLines":1,"bbox":[850,355,115,30]}
-{"kind":"textbox","id":"sh/r6p83ilg","slide":4,"text":"Candidate OKF / report","textPreview":"Candidate OKF / report","textChars":22,"textLines":1,"bbox":[850,397,112,42]}
-{"kind":"shape","id":"sh/c7i9wnm1","slide":4,"bbox":[1022,296,150,154]}
-{"kind":"textbox","id":"sh/d8rq5s3m","slide":4,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1040,318,105,20]}
-{"kind":"textbox","id":"sh/a1kr6h4f","slide":4,"text":"Approval","textPreview":"Approval","textChars":8,"textLines":1,"bbox":[1040,355,115,30]}
-{"kind":"textbox","id":"sh/b2tsf2lk","slide":4,"text":"Human decision","textPreview":"Human decision","textChars":14,"textLines":1,"bbox":[1040,397,112,42]}
-{"kind":"shape","id":"sh/lwvu5gn2","slide":4,"bbox":[222,373,40,0]}
-{"kind":"shape","id":"sh/kvmtwb6h","slide":4,"bbox":[412,373,40,0]}
-{"kind":"shape","id":"sh/judc365w","slide":4,"bbox":[602,373,40,0]}
-{"kind":"shape","id":"sh/yt4bu1ob","slide":4,"bbox":[792,373,40,0]}
-{"kind":"shape","id":"sh/xsvu1wnq","slide":4,"bbox":[982,373,40,0]}
-{"kind":"shape","id":"sh/wrmtsr65","slide":4,"bbox":[72,535,1136,72]}
-{"kind":"textbox","id":"sh/bqdczm50","slide":4,"text":"Pydantic AI’nin rolü: specialist agent sözleşmelerini typed tutmak; bu, orkestrasyon motorunun rolü değildir.","textPreview":"Pydantic AI’nin rolü: specialist agent sözleşmelerini typed tutmak; bu, orkestrasyon motorunun rolü değildir.","textChars":109,"textLines":1,"bbox":[98,554,1060,34]}
-{"kind":"notes","id":"nt/2c4hxx","slide":4,"text":"Konuşma notu: Pydantic AI agentların şemalı giriş/çıkış ve tool sınırlarını tanımlar. Mevcut sıralama custom runtime tarafından yönetilir.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
-{"kind":"slide","id":"sl/xdfk6a","slide":5,"title":"KIYAS","textShapes":14}
-{"kind":"textbox","id":"sh/8n6d8fm5","slide":5,"text":"KIYAS","textPreview":"KIYAS","textChars":5,"textLines":1,"bbox":[72,46,160,30]}
-{"kind":"textbox","id":"sh/nmxcfa5k","slide":5,"text":"Mevcut yapı → Unified target architecture","textPreview":"Mevcut yapı → Unified target architecture","textChars":41,"textLines":1,"bbox":[72,94,1090,60]}
-{"kind":"textbox","id":"sh/mlov654z","slide":5,"text":"Hedef, her şeyi yeniden yazmak değil; çalışan kanıt katmanını tek bir agent-first runtime altında birleştirmek.","textPreview":"Hedef, her şeyi yeniden yazmak değil; çalışan kanıt katmanını tek bir agent-first runtime altında birleştirmek.","textChars":111,"textLines":1,"bbox":[72,154,1080,36]}
-{"kind":"textbox","id":"sh/xczulknm","slide":5,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
-{"kind":"textbox","id":"sh/wbqdcfm1","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
-{"kind":"shape","id":"sh/vqhcja5g","slide":5,"bbox":[72,226,520,350]}
-{"kind":"shape","id":"sh/ap8va54b","slide":5,"bbox":[688,226,520,350]}
-{"kind":"textbox","id":"sh/5gzepkny","slide":5,"text":"MEVCUT","textPreview":"MEVCUT","textChars":6,"textLines":1,"bbox":[106,256,410,34]}
-{"kind":"textbox","id":"sh/kfqdgzmd","slide":5,"text":"HEDEF","textPreview":"HEDEF","textChars":5,"textLines":1,"bbox":[722,256,410,34]}
-{"kind":"shape","id":"sh/m90nu54n","slide":5,"bbox":[106,320,430,54]}
-{"kind":"textbox","id":"sh/na94na58","slide":5,"text":"Custom sequential runtime","textPreview":"Custom sequential runtime","textChars":25,"textLines":1,"bbox":[126,336,388,28]}
-{"kind":"shape","id":"sh/8bi5wfmt","slide":5,"bbox":[106,394,430,54]}
-{"kind":"textbox","id":"sh/9crmpkne","slide":5,"text":"Lexical / optional QMD retrieval","textPreview":"Lexical / optional QMD retrieval","textChars":32,"textLines":1,"bbox":[126,410,388,28]}
-{"kind":"shape","id":"sh/ad0nyp4j","slide":5,"bbox":[106,468,430,54]}
-{"kind":"textbox","id":"sh/ve94ru54","slide":5,"text":"Event, MCP ve tool davranışı parçalı","textPreview":"Event, MCP ve tool davranışı parçalı","textChars":36,"textLines":1,"bbox":[126,484,388,28]}
-{"kind":"shape","id":"sh/wfi50zmp","slide":5,"bbox":[722,320,430,54]}
-{"kind":"textbox","id":"sh/xgrmtkna","slide":5,"text":"LangGraph durable orchestration","textPreview":"LangGraph durable orchestration","textChars":31,"textLines":1,"bbox":[742,336,388,28]}
-{"kind":"shape","id":"sh/qhw3mlof","slide":5,"bbox":[722,394,430,54]}
-{"kind":"textbox","id":"sh/bip4fq50","slide":5,"text":"PostgreSQL state + Chroma derived RAG","textPreview":"PostgreSQL state + Chroma derived RAG","textChars":37,"textLines":1,"bbox":[742,410,388,28]}
-{"kind":"shape","id":"sh/fmlknmls","slide":5,"bbox":[722,468,430,54]}
-{"kind":"textbox","id":"sh/elcjuh47","slide":5,"text":"Bounded MCP + durable event / worker path","textPreview":"Bounded MCP + durable event / worker path","textChars":41,"textLines":1,"bbox":[742,484,388,28]}
-{"kind":"textbox","id":"sh/1o32pw3y","slide":5,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[608,358,64,34]}
-{"kind":"notes","id":"nt/xdfk6a","slide":5,"text":"Konuşma notu: Unified hedef, kanıt / OKF / approval modelini korur. Değişen temel konu runtime merkezinin LangGraph’a taşınmasıdır.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
-{"kind":"slide","id":"sl/jqhqje","slide":6,"title":"HEDEF ÇALIŞMA MODELİ","textShapes":14}
-{"kind":"textbox","id":"sh/futs36ps","slide":6,"text":"HEDEF ÇALIŞMA MODELİ","textPreview":"HEDEF ÇALIŞMA MODELİ","textChars":20,"textLines":1,"bbox":[72,46,164,30]}
-{"kind":"textbox","id":"sh/gv29wrqd","slide":6,"text":"Agent Runtime merkezde; API ve UI onun çevresinde","textPreview":"Agent Runtime merkezde; API ve UI onun çevresinde","textChars":49,"textLines":1,"bbox":[72,94,1090,60]}
-{"kind":"textbox","id":"sh/1wba5w7y","slide":6,"text":"FastAPI kontrol ve policy yüzeyi olur. LangGraph run lifecycle’ını yönetir. Pydantic AI graph node’larında uzmanlık sağlar.","textPreview":"FastAPI kontrol ve policy yüzeyi olur. LangGraph run lifecycle’ını yönetir. Pydantic AI graph node’larında uzmanlık sağlar.","textChars":123,"textLines":1,"bbox":[72,154,1080,36]}
-{"kind":"textbox","id":"sh/2xkry18j","slide":6,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
-{"kind":"textbox","id":"sh/3yts76p4","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
-{"kind":"textbox","id":"sh/oz290bq9","slide":6,"text":"UI · webhook\nschedule · API","textPreview":"UI · webhook | schedule · API","textChars":27,"textLines":2,"bbox":[72,238,180,100]}
-{"kind":"textbox","id":"sh/p0ba9g7u","slide":6,"text":"FastAPI control plane\npolicy · auth · runs","textPreview":"FastAPI control plane | policy · auth · runs","textChars":42,"textLines":2,"bbox":[315,238,195,100]}
-{"kind":"textbox","id":"sh/i1grmh8z","slide":6,"text":"Durable queue\nrun request","textPreview":"Durable queue | run request","textChars":25,"textLines":2,"bbox":[573,238,175,100]}
-{"kind":"textbox","id":"sh/j2p8v29k","slide":6,"text":"LangGraph runtime\nstate · retry · pause\ncheckpoint","textPreview":"LangGraph runtime | state · retry · pause | checkpoint","textChars":50,"textLines":3,"bbox":[811,218,215,140]}
-{"kind":"textbox","id":"sh/721czuho","slide":6,"text":"Pydantic\nAI nodes\n\nTools","textPreview":"Pydantic | AI nodes |  | Tools","textChars":24,"textLines":4,"bbox":[1089,218,119,140]}
-{"kind":"shape","id":"sh/61svqp03","slide":6,"bbox":[252,288,63,0]}
-{"kind":"shape","id":"sh/t4je1kzu","slide":6,"bbox":[510,288,63,0]}
-{"kind":"shape","id":"sh/s3adszi9","slide":6,"bbox":[748,288,63,0]}
-{"kind":"shape","id":"sh/jy1cvahs","slide":6,"bbox":[1026,288,63,0]}
-{"kind":"textbox","id":"sh/ix8vm507","slide":6,"text":"PostgreSQL\nstate · audit · evidence","textPreview":"PostgreSQL | state · audit · evidence","textChars":35,"textLines":2,"bbox":[168,500,205,84]}
-{"kind":"textbox","id":"sh/50juxkzi","slide":6,"text":"OKF / Git\nactive company knowledge","textPreview":"OKF / Git | active company knowledge","textChars":34,"textLines":2,"bbox":[455,500,205,84]}
-{"kind":"textbox","id":"sh/kzadofid","slide":6,"text":"Chroma\nderived retrieval index","textPreview":"Chroma | derived retrieval index","textChars":30,"textLines":2,"bbox":[742,500,205,84]}
-{"kind":"textbox","id":"sh/vahcrahg","slide":6,"text":"Approved MCP\nproviders / tools","textPreview":"Approved MCP | providers / tools","textChars":30,"textLines":2,"bbox":[1029,500,179,84]}
-{"kind":"shape","id":"sh/a98vi50v","slide":6,"bbox":[270.5,358,648,142]}
-{"kind":"shape","id":"sh/e5ovu5k3","slide":6,"bbox":[557.5,358,361,142]}
-{"kind":"shape","id":"sh/z6xw3a1o","slide":6,"bbox":[844.5,358,304,142]}
-{"kind":"shape","id":"sh/07qdwv2t","slide":6,"bbox":[1118.5,358,30,142]}
-{"kind":"notes","id":"nt/jqhqje","slide":6,"text":"Konuşma notu: Katmanların sorumluluğu netleşir. LangGraph stateful workflow omurgasıdır; Pydantic AI yalnızca agent node davranışını taşır; kalıcı gerçeklik PostgreSQL/OKF’dedir.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
-{"kind":"slide","id":"sl/zpsd86","slide":7,"title":"NEDEN BU FRAMEWORKLER?","textShapes":15}
-{"kind":"textbox","id":"sh/ne1oruhw","slide":7,"text":"NEDEN BU FRAMEWORKLER?","textPreview":"NEDEN BU FRAMEWORKLER?","textChars":22,"textLines":1,"bbox":[72,46,180.4,30]}
-{"kind":"textbox","id":"sh/8fu50zih","slide":7,"text":"Teknoloji seçimi, agent lifecycle sorumluluklarını ayırmak için","textPreview":"Teknoloji seçimi, agent lifecycle sorumluluklarını ayırmak için","textChars":63,"textLines":1,"bbox":[72,94,1090,60]}
-{"kind":"textbox","id":"sh/9g36tkz2","slide":7,"text":"Her bileşen tek bir işi iyi yapar; bunlar birbirinin alternatifi değildir.","textPreview":"Her bileşen tek bir işi iyi yapar; bunlar birbirinin alternatifi değildir.","textChars":74,"textLines":1,"bbox":[72,154,1080,36]}
-{"kind":"textbox","id":"sh/ypsnu50f","slide":7,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
-{"kind":"textbox","id":"sh/zq14nah0","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
-{"kind":"shape","id":"sh/0ra5wfil","slide":7,"bbox":[72,260,348,246]}
-{"kind":"textbox","id":"sh/lcj6pkz6","slide":7,"text":"FastAPI","textPreview":"FastAPI","textChars":7,"textLines":1,"bbox":[102,293,270,40]}
-{"kind":"textbox","id":"sh/ilcn690j","slide":7,"text":"Control plane","textPreview":"Control plane","textChars":13,"textLines":1,"bbox":[102,350,270,26]}
-{"kind":"textbox","id":"sh/jm5ozeh4","slide":7,"text":"API, kimlik, policy, run yönetimi","textPreview":"API, kimlik, policy, run yönetimi","textChars":33,"textLines":1,"bbox":[102,402,270,50]}
-{"kind":"shape","id":"sh/3m5gn694","slide":7,"bbox":[462,260,348,246]}
-{"kind":"textbox","id":"sh/2lwfu18j","slide":7,"text":"LangGraph","textPreview":"LangGraph","textChars":9,"textLines":1,"bbox":[492,293,270,40]}
-{"kind":"textbox","id":"sh/ponypwru","slide":7,"text":"Orchestration","textPreview":"Orchestration","textChars":13,"textLines":1,"bbox":[492,350,270,26]}
-{"kind":"textbox","id":"sh/onexwrq9","slide":7,"text":"State, checkpoint, pause/resume, retry","textPreview":"State, checkpoint, pause/resume, retry","textChars":38,"textLines":1,"bbox":[492,402,270,50]}
-{"kind":"shape","id":"sh/bqpgr690","slide":7,"bbox":[852,260,348,246]}
-{"kind":"textbox","id":"sh/apwfy18f","slide":7,"text":"Pydantic AI","textPreview":"Pydantic AI","textChars":11,"textLines":1,"bbox":[882,293,270,40]}
-{"kind":"textbox","id":"sh/xs7ytgr6","slide":7,"text":"Agent contract","textPreview":"Agent contract","textChars":14,"textLines":1,"bbox":[882,350,270,26]}
-{"kind":"textbox","id":"sh/cryx0bql","slide":7,"text":"Typed outputs, dependency ve tool scoping","textPreview":"Typed outputs, dependency ve tool scoping","textChars":41,"textLines":1,"bbox":[882,402,270,50]}
-{"kind":"shape","id":"sh/zupgvq9c","slide":7,"bbox":[72,555,1136,56]}
-{"kind":"textbox","id":"sh/ytgf2l8r","slide":7,"text":"Memory & knowledge: PostgreSQL (operational truth) + OKF (portable knowledge) + Chroma (disposable derived retrieval).","textPreview":"Memory & knowledge: PostgreSQL (operational truth) + OKF (portable knowledge) + Chroma (disposable derived retrieval).","textChars":118,"textLines":1,"bbox":[100,571,1080,28]}
-{"kind":"notes","id":"nt/zpsd86","slide":7,"text":"Konuşma notu: Özellikle LangGraph ve Pydantic AI’ı karşılaştırmak yerine tamamlayıcı sorumluluklar olarak anlatın: birincisi workflow, ikincisi agent sözleşmesi.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
-{"kind":"slide","id":"sl/gsjxuz","slide":8,"title":"GEÇİŞ YAKLAŞIMI","textShapes":21}
-{"kind":"textbox","id":"sh/vqtsjy9w","slide":8,"text":"GEÇİŞ YAKLAŞIMI","textPreview":"GEÇİŞ YAKLAŞIMI","textChars":15,"textLines":1,"bbox":[72,46,160,30]}
-{"kind":"textbox","id":"sh/gr29c3qh","slide":8,"text":"Küçük, geri alınabilir ve çalışan PR’larla ilerleme","textPreview":"Küçük, geri alınabilir ve çalışan PR’larla ilerleme","textChars":51,"textLines":1,"bbox":[72,94,1090,60]}
-{"kind":"textbox","id":"sh/hsbal872","slide":8,"text":"UI en sona gelir; önce runtime davranışı ve doğrulanabilirlik stabil hale getirilir.","textPreview":"UI en sona gelir; önce runtime davranışı ve doğrulanabilirlik stabil hale getirilir.","textChars":84,"textLines":1,"bbox":[72,154,1080,36]}
-{"kind":"textbox","id":"sh/it4red8n","slide":8,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
-{"kind":"textbox","id":"sh/3udsnip8","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
-{"kind":"shape","id":"sh/4vm9gnqd","slide":8,"bbox":[72,300,178,174]}
-{"kind":"shape","id":"sh/5wvaps7y","slide":8,"bbox":[92,322,42,30]}
-{"kind":"textbox","id":"sh/qx4rid8j","slide":8,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[104,329,20,16]}
-{"kind":"textbox","id":"sh/rydsrip4","slide":8,"text":"Foundation","textPreview":"Foundation","textChars":10,"textLines":1,"bbox":[92,373,140,45]}
-{"kind":"textbox","id":"sh/f2xwred0","slide":8,"text":"Contracts & run model","textPreview":"Contracts & run model","textChars":21,"textLines":1,"bbox":[92,428,138,30]}
-{"kind":"shape","id":"sh/u1ovy9cv","slide":8,"bbox":[298,300,178,174]}
-{"kind":"shape","id":"sh/h4fetov6","slide":8,"bbox":[318,322,42,30]}
-{"kind":"textbox","id":"sh/g36d0jul","slide":8,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[330,329,20,16]}
-{"kind":"textbox","id":"sh/7yxcned4","slide":8,"text":"Active runtime","textPreview":"Active runtime","textChars":14,"textLines":1,"bbox":[318,373,140,45]}
-{"kind":"textbox","id":"sh/6x4vu9cj","slide":8,"text":"LangGraph parity path","textPreview":"LangGraph parity path","textChars":21,"textLines":1,"bbox":[318,428,138,30]}
-{"kind":"shape","id":"sh/t0fep4va","slide":8,"bbox":[524,300,178,174]}
-{"kind":"shape","id":"sh/sz6dwzup","slide":8,"bbox":[544,322,42,30]}
-{"kind":"textbox","id":"sh/ruhwzyt8","slide":8,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[556,329,20,16]}
-{"kind":"textbox","id":"sh/qt8v6tcn","slide":8,"text":"Context / RAG","textPreview":"Context / RAG","textChars":13,"textLines":1,"bbox":[544,373,140,45]}
-{"kind":"textbox","id":"sh/mpczyxwv","slide":8,"text":"Evidence-aware retrieval","textPreview":"Evidence-aware retrieval","textChars":24,"textLines":1,"bbox":[544,428,138,30]}
-{"kind":"shape","id":"sh/nqlg72xg","slide":8,"bbox":[750,300,178,174]}
-{"kind":"shape","id":"sh/oruh07e1","slide":8,"bbox":[770,322,42,30]}
-{"kind":"textbox","id":"sh/9s3y9cvm","slide":8,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[782,329,20,16]}
-{"kind":"textbox","id":"sh/atcz2hw7","slide":8,"text":"MCP / Events","textPreview":"MCP / Events","textChars":12,"textLines":1,"bbox":[770,373,140,45]}
-{"kind":"textbox","id":"sh/bulgbmds","slide":8,"text":"Bounded async execution","textPreview":"Bounded async execution","textChars":23,"textLines":1,"bbox":[770,428,138,30]}
-{"kind":"shape","id":"sh/wfuh47ed","slide":8,"bbox":[976,300,178,174]}
-{"kind":"shape","id":"sh/xgnydcvi","slide":8,"bbox":[996,322,42,30]}
-{"kind":"textbox","id":"sh/qxsfqdw3","slide":8,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1008,329,20,16]}
-{"kind":"textbox","id":"sh/ry1gzix8","slide":8,"text":"UI / Release","textPreview":"UI / Release","textChars":12,"textLines":1,"bbox":[996,373,140,45]}
-{"kind":"textbox","id":"sh/toralkj2","slide":8,"text":"Control panel integration","textPreview":"Control panel integration","textChars":25,"textLines":1,"bbox":[996,428,138,30]}
-{"kind":"shape","id":"sh/snitsf2h","slide":8,"bbox":[250,387,48,0]}
-{"kind":"shape","id":"sh/rm9sjalc","slide":8,"bbox":[476,387,48,0]}
-{"kind":"shape","id":"sh/6l0rq5kr","slide":8,"bbox":[702,387,48,0]}
-{"kind":"shape","id":"sh/1srapkje","slide":8,"bbox":[928,387,48,0]}
-{"kind":"textbox","id":"sh/gritwf2t","slide":8,"text":"Her faz: 2–6 saat · tek PR · working state · bağımsız doğrulama · kolay rollback","textPreview":"Her faz: 2–6 saat · tek PR · working state · bağımsız doğrulama · kolay rollback","textChars":80,"textLines":1,"bbox":[72,550,1120,28]}
-{"kind":"notes","id":"nt/gsjxuz","slide":8,"text":"Konuşma notu: Roadmap’ın koruyucu kuralı: hiçbir faz broken state bırakmaz. İlk hedefi davranış eşitliği, sonra fonksiyon genişletme olarak anlatın.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
-{"kind":"slide","id":"sl/pan4z6","slide":9,"title":"MEETING TAKEAWAY","textShapes":9}
-{"kind":"textbox","id":"sh/pgnql0z2","slide":9,"text":"MEETING TAKEAWAY","textPreview":"MEETING TAKEAWAY","textChars":16,"textLines":1,"bbox":[72,64,196,30]}
-{"kind":"textbox","id":"sh/2dw7al0b","slide":9,"text":"Web UI bir kontrol yüzeyidir.\nIntelligence engine, agent runtime’dır.","textPreview":"Web UI bir kontrol yüzeyidir. | Intelligence engine, agent runtime’dır.","textChars":69,"textLines":2,"bbox":[72,140,1060,110]}
-{"kind":"shape","id":"sh/3e58jqhw","slide":9,"bbox":[72,390,340,150]}
-{"kind":"textbox","id":"sh/c3e9gfid","slide":9,"text":"Protect","textPreview":"Protect","textChars":7,"textLines":1,"bbox":[96,420,250,28]}
-{"kind":"textbox","id":"sh/d4nqp0zy","slide":9,"text":"Evidence + approval + company knowledge","textPreview":"Evidence + approval + company knowledge","textChars":39,"textLines":1,"bbox":[96,466,280,48]}
-{"kind":"shape","id":"sh/qhw7e50n","slide":9,"bbox":[456,390,340,150]}
-{"kind":"textbox","id":"sh/bi58nah8","slide":9,"text":"Unify","textPreview":"Unify","textChars":5,"textLines":1,"bbox":[480,420,250,28]}
-{"kind":"textbox","id":"sh/07y9kfip","slide":9,"text":"Runtime + memory + tools + events","textPreview":"Runtime + memory + tools + events","textChars":33,"textLines":1,"bbox":[480,466,280,48]}
-{"kind":"shape","id":"sh/l87qtkza","slide":9,"bbox":[840,390,340,150]}
-{"kind":"textbox","id":"sh/dszydojm","slide":9,"text":"Operate","textPreview":"Operate","textChars":7,"textLines":1,"bbox":[864,420,250,28]}
-{"kind":"textbox","id":"sh/s7qhkj21","slide":9,"text":"Visible runs, checkpoints and governed change","textPreview":"Visible runs, checkpoints and governed change","textChars":45,"textLines":1,"bbox":[864,466,280,48]}
-{"kind":"textbox","id":"sh/r6hgbe1w","slide":9,"text":"Karar çerçevesi: minimum değişiklikle, kanıta dayalı agent-first çalışma modeline geçiş.","textPreview":"Karar çerçevesi: minimum değişiklikle, kanıta dayalı agent-first çalışma modeline geçiş.","textChars":88,"textLines":1,"bbox":[72,626,1000,26]}
-{"kind":"notes","id":"nt/pan4z6","slide":9,"text":"Konuşma notu: Kapanışta hedefi tek cümlede özetleyin: mevcut kanıt ve onay gücünü koruyup bunu dayanıklı, gözlemlenebilir agent runtime üzerine oturtmak.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
+{"kind":"deck","id":"pr/5axznd","name":"Deck"}
+{"kind":"layout","layoutId":"4f750b04-4e89-46c3-93d7-0f7c1208e6b9","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"fc5b4ec4-34d7-4f98-a65d-4ce26430c4c6","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/a9vfac","slide":1,"title":"ARCHITECTURE BRIEFING · 2026","textShapes":6}
+{"kind":"shape","id":"sh/kfuxob2d","slide":1,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/je1wf6ls","slide":1,"bbox":[870,0,410,720]}
+{"kind":"shape","id":"sh/idsfm1k7","slide":1,"bbox":[910,110,260,260]}
+{"kind":"shape","id":"sh/t43el03u","slide":1,"bbox":[960,160,160,160]}
+{"kind":"shape","id":"sh/s3uxsv29","slide":1,"bbox":[1008,208,64,64]}
+{"kind":"textbox","id":"sh/r2lwjqlo","slide":1,"text":"ARCHITECTURE BRIEFING · 2026","textPreview":"ARCHITECTURE BRIEFING · 2026","textChars":28,"textLines":1,"bbox":[72,92,255,30]}
+{"kind":"textbox","id":"sh/6hcfqlk3","slide":1,"text":"Agentic Growth\nIntelligence","textPreview":"Agentic Growth | Intelligence","textChars":27,"textLines":2,"bbox":[72,164,745,150]}
+{"kind":"textbox","id":"sh/98je9w3q","slide":1,"text":"Mevcut Mimari → Hedef Agent-First Runtime","textPreview":"Mevcut Mimari → Hedef Agent-First Runtime","textChars":41,"textLines":1,"bbox":[72,332,700,76]}
+{"kind":"textbox","id":"sh/87adgr25","slide":1,"text":"Toplantı için kısa anlatı: ürün konumu, çalışan yapı, hedef çalışma modeli ve geçiş yaklaşımı.","textPreview":"Toplantı için kısa anlatı: ürün konumu, çalışan yapı, hedef çalışma modeli ve geçiş yaklaşımı.","textChars":94,"textLines":1,"bbox":[72,448,650,72]}
+{"kind":"textbox","id":"sh/6t4ryl4r","slide":1,"text":"24 Temmuz 2026  |  Internal discussion","textPreview":"24 Temmuz 2026  |  Internal discussion","textChars":38,"textLines":1,"bbox":[72,620,600,26]}
+{"kind":"textbox","id":"sh/7ud8rq5w","slide":1,"text":"INTELLIGENCE\nIS THE RUNTIME","textPreview":"INTELLIGENCE | IS THE RUNTIME","textChars":27,"textLines":2,"bbox":[910,445,250,64]}
+{"kind":"notes","id":"nt/a9vfac","slide":1,"text":"Konuşma notu: Ürünü bir dashboard değil, şirket bilgisini kanıta dayalı kararlara dönüştüren yönetilebilir agent runtime olarak konumlandırın.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
+{"kind":"slide","id":"sl/a33x5a","slide":2,"title":"ÜRÜN KONUMU","textShapes":18}
+{"kind":"textbox","id":"sh/lk3ypcvi","slide":2,"text":"ÜRÜN KONUMU","textPreview":"ÜRÜN KONUMU","textChars":11,"textLines":1,"bbox":[72,46,160,30]}
+{"kind":"textbox","id":"sh/excfehw7","slide":2,"text":"Bu ürün klasik bir web uygulaması değil","textPreview":"Bu ürün klasik bir web uygulaması değil","textChars":39,"textLines":1,"bbox":[72,94,1090,60]}
+{"kind":"textbox","id":"sh/zylgnmds","slide":2,"text":"Web UI, intelligence engine’in kendisi değil; runtime için kontrol panelidir.","textPreview":"Web UI, intelligence engine’in kendisi değil; runtime için kontrol panelidir.","textChars":77,"textLines":1,"bbox":[72,154,1080,36]}
+{"kind":"textbox","id":"sh/cvuxc7e1","slide":2,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
+{"kind":"textbox","id":"sh/dw3ylcvm","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
+{"kind":"shape","id":"sh/qtsfaxwv","slide":2,"bbox":[72,270,250,220]}
+{"kind":"shape","id":"sh/ru1wj2dg","slide":2,"bbox":[96,294,42,42]}
+{"kind":"textbox","id":"sh/wrexobul","slide":2,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[109,303,20,20]}
+{"kind":"textbox","id":"sh/xsnyxwvq","slide":2,"text":"Context","textPreview":"Context","textChars":7,"textLines":1,"bbox":[96,360,200,30]}
+{"kind":"textbox","id":"sh/p4fuhgb2","slide":2,"text":"Şirket, kaynak, rol ve görev bağlamı","textPreview":"Şirket, kaynak, rol ve görev bağlamı","textChars":36,"textLines":1,"bbox":[96,404,198,58]}
+{"kind":"shape","id":"sh/o36dobah","slide":2,"bbox":[354,270,250,220]}
+{"kind":"shape","id":"sh/n2xcf6tw","slide":2,"bbox":[378,294,42,42]}
+{"kind":"textbox","id":"sh/2h4bm1sb","slide":2,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[391,303,20,20]}
+{"kind":"textbox","id":"sh/1gvudwbq","slide":2,"text":"Evidence","textPreview":"Evidence","textChars":8,"textLines":1,"bbox":[378,360,200,30]}
+{"kind":"textbox","id":"sh/0fmtkra5","slide":2,"text":"İddialar ve sayılar için izlenebilir dayanak","textPreview":"İddialar ve sayılar için izlenebilir dayanak","textChars":44,"textLines":1,"bbox":[378,404,198,58]}
+{"kind":"shape","id":"sh/fedcbmtk","slide":2,"bbox":[636,270,250,220]}
+{"kind":"shape","id":"sh/ed4bi1sf","slide":2,"bbox":[660,294,42,42]}
+{"kind":"textbox","id":"sh/lczup0ba","slide":2,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[673,303,20,20]}
+{"kind":"textbox","id":"sh/kbqdwvap","slide":2,"text":"Policy","textPreview":"Policy","textChars":6,"textLines":1,"bbox":[660,360,200,30]}
+{"kind":"textbox","id":"sh/4fyxszil","slide":2,"text":"Yetki, tool sınırı ve güvenlik kuralları","textPreview":"Yetki, tool sınırı ve güvenlik kuralları","textChars":40,"textLines":1,"bbox":[660,404,198,58]}
+{"kind":"shape","id":"sh/5g7el4z6","slide":2,"bbox":[918,270,250,220]}
+{"kind":"shape","id":"sh/idwfqp0v","slide":2,"bbox":[942,294,42,42]}
+{"kind":"textbox","id":"sh/jepwjuh0","slide":2,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[955,303,20,20]}
+{"kind":"textbox","id":"sh/wbexozip","slide":2,"text":"Approval","textPreview":"Approval","textChars":8,"textLines":1,"bbox":[942,360,200,30]}
+{"kind":"textbox","id":"sh/xcnehkza","slide":2,"text":"Aday bilgi değişiklikleri için insan onayı","textPreview":"Aday bilgi değişiklikleri için insan onayı","textChars":42,"textLines":1,"bbox":[942,404,198,58]}
+{"kind":"textbox","id":"sh/a9wfmp0j","slide":2,"text":"Temel ilke: her değerli çıktının kaynağı, bağlamı ve onay durumu görünür olmalı.","textPreview":"Temel ilke: her değerli çıktının kaynağı, bağlamı ve onay durumu görünür olmalı.","textChars":80,"textLines":1,"bbox":[72,552,1080,32]}
+{"kind":"notes","id":"nt/a33x5a","slide":2,"text":"Konuşma notu: Bu dört unsur ürünün web yüzeyinden bağımsız çekirdeğidir. UI bunları işletmek ve gözlemlemek için vardır.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
+{"kind":"slide","id":"sl/z1tfww","slide":3,"title":"BUGÜN","textShapes":13}
+{"kind":"textbox","id":"sh/x8bi14nu","slide":3,"text":"BUGÜN","textPreview":"BUGÜN","textChars":5,"textLines":1,"bbox":[72,46,160,30]}
+{"kind":"textbox","id":"sh/a5kj6943","slide":3,"text":"Mevcut çalışma yolu: sağlam veri temeli, iki ayrı execution izi","textPreview":"Mevcut çalışma yolu: sağlam veri temeli, iki ayrı execution izi","textChars":63,"textLines":1,"bbox":[72,94,1090,60]}
+{"kind":"textbox","id":"sh/b6t0ze5o","slide":3,"text":"Aktif API yolu custom persistent runtime kullanıyor; LangGraph ve Chroma ayrı servislerde bulunuyor.","textPreview":"Aktif API yolu custom persistent runtime kullanıyor; LangGraph ve Chroma ayrı servislerde bulunuyor.","textChars":100,"textLines":1,"bbox":[72,154,1080,36]}
+{"kind":"textbox","id":"sh/kb21cjm5","slide":3,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
+{"kind":"textbox","id":"sh/lwb25onq","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
+{"kind":"textbox","id":"sh/y9kja94z","slide":3,"text":"Web UI\nKontrol paneli","textPreview":"Web UI | Kontrol paneli","textChars":21,"textLines":2,"bbox":[72,258,165,78]}
+{"kind":"textbox","id":"sh/jat03e5k","slide":3,"text":"FastAPI\nControl surface","textPreview":"FastAPI | Control surface","textChars":23,"textLines":2,"bbox":[292,258,185,78]}
+{"kind":"textbox","id":"sh/8zm1gjmh","slide":3,"text":"Custom persistent\nworkflow runtime","textPreview":"Custom persistent | workflow runtime","textChars":34,"textLines":2,"bbox":[532,238,218,118]}
+{"kind":"textbox","id":"sh/t0v29onm","slide":3,"text":"Pydantic AI\n4 specialist agents","textPreview":"Pydantic AI | 4 specialist agents","textChars":31,"textLines":2,"bbox":[805,238,188,118]}
+{"kind":"textbox","id":"sh/hgfy9crm","slide":3,"text":"PostgreSQL\nOKF / evidence\nartifacts","textPreview":"PostgreSQL | OKF / evidence | artifacts","textChars":35,"textLines":3,"bbox":[1048,236,160,120]}
+{"kind":"shape","id":"sh/wf6xg7a1","slide":3,"bbox":[237,297,55,0]}
+{"kind":"shape","id":"sh/vexg7m9g","slide":3,"bbox":[477,297,55,0]}
+{"kind":"shape","id":"sh/ud4fehsv","slide":3,"bbox":[750,297,55,0]}
+{"kind":"shape","id":"sh/5kfydwri","slide":3,"bbox":[993,296,55,1]}
+{"kind":"textbox","id":"sh/4j6xkrax","slide":3,"text":"Separate LangGraph service\n(deployed path değil)","textPreview":"Separate LangGraph service | (deployed path değil)","textChars":48,"textLines":2,"bbox":[520,480,250,82]}
+{"kind":"textbox","id":"sh/jixgbm9c","slide":3,"text":"Separate Chroma RAG service\n(aktif API yolunda değil)","textPreview":"Separate Chroma RAG service | (aktif API yolunda değil)","textChars":53,"textLines":2,"bbox":[838,480,250,82]}
+{"kind":"shape","id":"sh/ihofihsr","slide":3,"bbox":[641,356,4,124]}
+{"kind":"shape","id":"sh/lovy1sre","slide":3,"bbox":[899,356,64,124]}
+{"kind":"textbox","id":"sh/knmx8nat","slide":3,"text":"Ana gözlem: evidence / OKF hattı güçlü; orkestrasyon, retrieval ve event davranışı tek bir aktif runtime altında birleşmiş değil.","textPreview":"Ana gözlem: evidence / OKF hattı güçlü; orkestrasyon, retrieval ve event davranışı tek bir aktif runtime altında birleşmiş değil.","textChars":129,"textLines":1,"bbox":[72,606,1100,36]}
+{"kind":"notes","id":"nt/z1tfww","slide":3,"text":"Konuşma notu: Bu bir kalite yargısı değil, çalışma yolu gözlemidir. Aktif API custom runtime’a gider; LangGraph ve Chroma kod tabanında ayrı konumdadır.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
+{"kind":"slide","id":"sl/lpt0j6","slide":4,"title":"MEVCUT AGENT SİSTEMİ","textShapes":24}
+{"kind":"textbox","id":"sh/yx4ji54b","slide":4,"text":"MEVCUT AGENT SİSTEMİ","textPreview":"MEVCUT AGENT SİSTEMİ","textChars":20,"textLines":1,"bbox":[72,46,164,30]}
+{"kind":"textbox","id":"sh/l0v2tk3m","slide":4,"text":"Pydantic AI bugün specialist agent katmanı olarak çalışıyor","textPreview":"Pydantic AI bugün specialist agent katmanı olarak çalışıyor","textChars":59,"textLines":1,"bbox":[72,94,1090,60]}
+{"kind":"textbox","id":"sh/kzm1kfm1","slide":4,"text":"Typed giriş/çıkış ve kanıta bağlı görevler, agent üretimini daha denetlenebilir kılıyor.","textPreview":"Typed giriş/çıkış ve kanıta bağlı görevler, agent üretimini daha denetlenebilir kılıyor.","textChars":88,"textLines":1,"bbox":[72,154,1080,36]}
+{"kind":"textbox","id":"sh/72dkvuls","slide":4,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
+{"kind":"textbox","id":"sh/m14jmp47","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
+{"kind":"shape","id":"sh/94f2x43y","slide":4,"bbox":[72,296,150,154]}
+{"kind":"textbox","id":"sh/83m1ozmd","slide":4,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[90,318,105,20]}
+{"kind":"textbox","id":"sh/vqxkzulo","slide":4,"text":"Ingest","textPreview":"Ingest","textChars":6,"textLines":1,"bbox":[90,355,115,30]}
+{"kind":"textbox","id":"sh/u5ojq943","slide":4,"text":"Raw source snapshot","textPreview":"Raw source snapshot","textChars":19,"textLines":1,"bbox":[90,397,112,42]}
+{"kind":"shape","id":"sh/0rap4vyt","slide":4,"bbox":[262,296,150,154]}
+{"kind":"textbox","id":"sh/1sjqxgze","slide":4,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[280,318,105,20]}
+{"kind":"textbox","id":"sh/eps72lg3","slide":4,"text":"Evidence","textPreview":"Evidence","textChars":8,"textLines":1,"bbox":[280,355,115,30]}
+{"kind":"textbox","id":"sh/fq18vqh8","slide":4,"text":"Locator + metric receipt","textPreview":"Locator + metric receipt","textChars":24,"textLines":1,"bbox":[280,397,112,42]}
+{"kind":"shape","id":"sh/ovap8vy5","slide":4,"bbox":[452,296,150,154]}
+{"kind":"textbox","id":"sh/9wjq10zq","slide":4,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[470,318,105,20]}
+{"kind":"textbox","id":"sh/mts76lgz","slide":4,"text":"Agents","textPreview":"Agents","textChars":6,"textLines":1,"bbox":[470,355,115,30]}
+{"kind":"textbox","id":"sh/nu18zqhk","slide":4,"text":"4 Pydantic specialists","textPreview":"4 Pydantic specialists","textChars":22,"textLines":1,"bbox":[470,397,112,42]}
+{"kind":"shape","id":"sh/wjupcfy1","slide":4,"bbox":[642,296,150,154]}
+{"kind":"textbox","id":"sh/xk3q50fm","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[660,318,105,20]}
+{"kind":"textbox","id":"sh/5gzqp07q","slide":4,"text":"Review","textPreview":"Review","textChars":6,"textLines":1,"bbox":[660,355,115,30]}
+{"kind":"textbox","id":"sh/kfqpgvq5","slide":4,"text":"Evidence review","textPreview":"Evidence review","textChars":15,"textLines":1,"bbox":[660,397,112,42]}
+{"kind":"shape","id":"sh/jeh8nqpk","slide":4,"bbox":[832,296,150,154]}
+{"kind":"textbox","id":"sh/id87e58f","slide":4,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[850,318,105,20]}
+{"kind":"textbox","id":"sh/t4jqtk72","slide":4,"text":"Artifact","textPreview":"Artifact","textChars":8,"textLines":1,"bbox":[850,355,115,30]}
+{"kind":"textbox","id":"sh/s3apkfqh","slide":4,"text":"Candidate OKF / report","textPreview":"Candidate OKF / report","textChars":22,"textLines":1,"bbox":[850,397,112,42]}
+{"kind":"shape","id":"sh/72h8rapw","slide":4,"bbox":[1022,296,150,154]}
+{"kind":"textbox","id":"sh/6h87i58b","slide":4,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1040,318,105,20]}
+{"kind":"textbox","id":"sh/98f6hgri","slide":4,"text":"Approval","textPreview":"Approval","textChars":8,"textLines":1,"bbox":[1040,355,115,30]}
+{"kind":"textbox","id":"sh/876p8bqx","slide":4,"text":"Human decision","textPreview":"Human decision","textChars":14,"textLines":1,"bbox":[1040,397,112,42]}
+{"kind":"shape","id":"sh/ed4nihov","slide":4,"bbox":[222,373,40,0]}
+{"kind":"shape","id":"sh/zed4rm5g","slide":4,"bbox":[412,373,40,0]}
+{"kind":"shape","id":"sh/0fm5kr61","slide":4,"bbox":[602,373,40,0]}
+{"kind":"shape","id":"sh/1gvmtwnm","slide":4,"bbox":[792,373,40,0]}
+{"kind":"shape","id":"sh/mh4nm1o7","slide":4,"bbox":[982,373,40,0]}
+{"kind":"shape","id":"sh/nid4v65c","slide":4,"bbox":[72,535,1136,72]}
+{"kind":"textbox","id":"sh/8jm5or6x","slide":4,"text":"Pydantic AI’nin rolü: specialist agent sözleşmelerini typed tutmak; bu, orkestrasyon motorunun rolü değildir.","textPreview":"Pydantic AI’nin rolü: specialist agent sözleşmelerini typed tutmak; bu, orkestrasyon motorunun rolü değildir.","textChars":109,"textLines":1,"bbox":[98,554,1060,34]}
+{"kind":"notes","id":"nt/lpt0j6","slide":4,"text":"Konuşma notu: Pydantic AI agentların şemalı giriş/çıkış ve tool sınırlarını tanımlar. Mevcut sıralama custom runtime tarafından yönetilir.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
+{"kind":"slide","id":"sl/hv3a2l","slide":5,"title":"KIYAS","textShapes":14}
+{"kind":"textbox","id":"sh/idgz6d0v","slide":5,"text":"KIYAS","textPreview":"KIYAS","textChars":5,"textLines":1,"bbox":[72,46,160,30]}
+{"kind":"textbox","id":"sh/5g7i1sjm","slide":5,"text":"Mevcut yapı → Unified target architecture","textPreview":"Mevcut yapı → Unified target architecture","textChars":41,"textLines":1,"bbox":[72,94,1090,60]}
+{"kind":"textbox","id":"sh/4fyh8ni1","slide":5,"text":"Hedef, her şeyi yeniden yazmak değil; çalışan kanıt katmanını tek bir agent-first runtime altında birleştirmek.","textPreview":"Hedef, her şeyi yeniden yazmak değil; çalışan kanıt katmanını tek bir agent-first runtime altında birleştirmek.","textChars":111,"textLines":1,"bbox":[72,154,1080,36]}
+{"kind":"textbox","id":"sh/ri90321s","slide":5,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
+{"kind":"textbox","id":"sh/qh0jax07","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
+{"kind":"shape","id":"sh/dkri5sji","slide":5,"bbox":[72,226,520,350]}
+{"kind":"shape","id":"sh/sji1c7ix","slide":5,"bbox":[688,226,520,350]}
+{"kind":"textbox","id":"sh/f690721o","slide":5,"text":"MEVCUT","textPreview":"MEVCUT","textChars":6,"textLines":1,"bbox":[106,256,410,34]}
+{"kind":"textbox","id":"sh/e50jex03","slide":5,"text":"HEDEF","textPreview":"HEDEF","textChars":5,"textLines":1,"bbox":[722,256,410,34]}
+{"kind":"shape","id":"sh/0329obyl","slide":5,"bbox":[106,320,430,54]}
+{"kind":"textbox","id":"sh/14vqxgz6","slide":5,"text":"Custom sequential runtime","textPreview":"Custom sequential runtime","textChars":25,"textLines":1,"bbox":[126,336,388,28]}
+{"kind":"shape","id":"sh/e1krmlgf","slide":5,"bbox":[106,394,430,54]}
+{"kind":"textbox","id":"sh/z2t8v6h0","slide":5,"text":"Lexical / optional QMD retrieval","textPreview":"Lexical / optional QMD retrieval","textChars":32,"textLines":1,"bbox":[126,410,388,28]}
+{"kind":"shape","id":"sh/o7m9svyh","slide":5,"bbox":[106,468,430,54]}
+{"kind":"textbox","id":"sh/98vq10z2","slide":5,"text":"Event, MCP ve tool davranışı parçalı","textPreview":"Event, MCP ve tool davranışı parçalı","textChars":36,"textLines":1,"bbox":[126,484,388,28]}
+{"kind":"shape","id":"sh/m54rqlgb","slide":5,"bbox":[722,320,430,54]}
+{"kind":"textbox","id":"sh/n6d8zqhw","slide":5,"text":"LangGraph durable orchestration","textPreview":"LangGraph durable orchestration","textChars":31,"textLines":1,"bbox":[742,336,388,28]}
+{"kind":"shape","id":"sh/wvm9wvyt","slide":5,"bbox":[722,394,430,54]}
+{"kind":"textbox","id":"sh/xwfq50zy","slide":5,"text":"PostgreSQL state + Chroma derived RAG","textPreview":"PostgreSQL state + Chroma derived RAG","textChars":37,"textLines":1,"bbox":[742,410,388,28]}
+{"kind":"shape","id":"sh/5sbqp07i","slide":5,"bbox":[722,468,430,54]}
+{"kind":"textbox","id":"sh/kr29gvqx","slide":5,"text":"Bounded MCP + durable event / worker path","textPreview":"Bounded MCP + durable event / worker path","textChars":41,"textLines":1,"bbox":[742,484,388,28]}
+{"kind":"textbox","id":"sh/jq98nq9c","slide":5,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[608,358,64,34]}
+{"kind":"notes","id":"nt/hv3a2l","slide":5,"text":"Konuşma notu: Unified hedef, kanıt / OKF / approval modelini korur. Değişen temel konu runtime merkezinin LangGraph’a taşınmasıdır.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
+{"kind":"slide","id":"sl/rxylic","slide":6,"title":"HEDEF ÇALIŞMA MODELİ","textShapes":14}
+{"kind":"textbox","id":"sh/7apg7a9w","slide":6,"text":"HEDEF ÇALIŞMA MODELİ","textPreview":"HEDEF ÇALIŞMA MODELİ","textChars":20,"textLines":1,"bbox":[72,46,164,30]}
+{"kind":"textbox","id":"sh/sbyxgfa1","slide":6,"text":"Agent Runtime merkezde; API ve UI onun çevresinde","textPreview":"Agent Runtime merkezde; API ve UI onun çevresinde","textChars":49,"textLines":1,"bbox":[72,94,1090,60]}
+{"kind":"textbox","id":"sh/tcry9krm","slide":6,"text":"FastAPI kontrol ve policy yüzeyi olur. LangGraph run lifecycle’ını yönetir. Pydantic AI graph node’larında uzmanlık sağlar.","textPreview":"FastAPI kontrol ve policy yüzeyi olur. LangGraph run lifecycle’ını yönetir. Pydantic AI graph node’larında uzmanlık sağlar.","textChars":123,"textLines":1,"bbox":[72,154,1080,36]}
+{"kind":"textbox","id":"sh/i5gfa5sz","slide":6,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
+{"kind":"textbox","id":"sh/j6pg3a9k","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
+{"kind":"textbox","id":"sh/k7yxcva5","slide":6,"text":"UI · webhook\nschedule · API","textPreview":"UI · webhook | schedule · API","textChars":27,"textLines":2,"bbox":[72,238,180,100]}
+{"kind":"textbox","id":"sh/587y50rq","slide":6,"text":"FastAPI control plane\npolicy · auth · runs","textPreview":"FastAPI control plane | policy · auth · runs","textChars":42,"textLines":2,"bbox":[315,238,195,100]}
+{"kind":"textbox","id":"sh/210fmpsj","slide":6,"text":"Durable queue\nrun request","textPreview":"Durable queue | run request","textChars":25,"textLines":2,"bbox":[573,238,175,100]}
+{"kind":"textbox","id":"sh/329gfu94","slide":6,"text":"LangGraph runtime\nstate · retry · pause\ncheckpoint","textPreview":"LangGraph runtime | state · retry · pause | checkpoint","textChars":50,"textLines":3,"bbox":[811,218,215,140]}
+{"kind":"textbox","id":"sh/f21cvud4","slide":6,"text":"Pydantic\nAI nodes\n\nTools","textPreview":"Pydantic | AI nodes |  | Tools","textChars":24,"textLines":4,"bbox":[1089,218,119,140]}
+{"kind":"shape","id":"sh/e1sb2pcj","slide":6,"bbox":[252,288,63,0]}
+{"kind":"shape","id":"sh/14juxkva","slide":6,"bbox":[510,288,63,0]}
+{"kind":"shape","id":"sh/g3at4zup","slide":6,"bbox":[748,288,63,0]}
+{"kind":"shape","id":"sh/361czudg","slide":6,"bbox":[1026,288,63,0]}
+{"kind":"textbox","id":"sh/25sb6pcv","slide":6,"text":"PostgreSQL\nstate · audit · evidence","textPreview":"PostgreSQL | state · audit · evidence","textChars":35,"textLines":2,"bbox":[168,500,205,84]}
+{"kind":"textbox","id":"sh/p83u14b6","slide":6,"text":"OKF / Git\nactive company knowledge","textPreview":"OKF / Git | active company knowledge","textChars":34,"textLines":2,"bbox":[455,500,205,84]}
+{"kind":"textbox","id":"sh/o7ad8zul","slide":6,"text":"Chroma\nderived retrieval index","textPreview":"Chroma | derived retrieval index","textChars":30,"textLines":2,"bbox":[742,500,205,84]}
+{"kind":"textbox","id":"sh/bulc3etc","slide":6,"text":"Approved MCP\nproviders / tools","textPreview":"Approved MCP | providers / tools","textChars":30,"textLines":2,"bbox":[1029,500,179,84]}
+{"kind":"shape","id":"sh/qtcva9cr","slide":6,"bbox":[270.5,358,648,142]}
+{"kind":"shape","id":"sh/m1gnix0b","slide":6,"bbox":[557.5,358,361,142]}
+{"kind":"shape","id":"sh/72por21w","slide":6,"bbox":[844.5,358,304,142]}
+{"kind":"shape","id":"sh/83y5k7ih","slide":6,"bbox":[1118.5,358,30,142]}
+{"kind":"notes","id":"nt/rxylic","slide":6,"text":"Konuşma notu: Katmanların sorumluluğu netleşir. LangGraph stateful workflow omurgasıdır; Pydantic AI yalnızca agent node davranışını taşır; kalıcı gerçeklik PostgreSQL/OKF’dedir.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
+{"kind":"slide","id":"sl/wd84zc","slide":7,"title":"NEDEN BU FRAMEWORKLER?","textShapes":15}
+{"kind":"textbox","id":"sh/a1kbmp87","slide":7,"text":"NEDEN BU FRAMEWORKLER?","textPreview":"NEDEN BU FRAMEWORKLER?","textChars":22,"textLines":1,"bbox":[72,46,180.4,30]}
+{"kind":"textbox","id":"sh/xovaxk7y","slide":7,"text":"Teknoloji seçimi, agent lifecycle sorumluluklarını ayırmak için","textPreview":"Teknoloji seçimi, agent lifecycle sorumluluklarını ayırmak için","textChars":63,"textLines":1,"bbox":[72,94,1090,60]}
+{"kind":"textbox","id":"sh/cnmtozqd","slide":7,"text":"Her bileşen tek bir işi iyi yapar; bunlar birbirinin alternatifi değildir.","textPreview":"Her bileşen tek bir işi iyi yapar; bunlar birbirinin alternatifi değildir.","textChars":74,"textLines":1,"bbox":[72,154,1080,36]}
+{"kind":"textbox","id":"sh/nytsrapg","slide":7,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
+{"kind":"textbox","id":"sh/2xkbi58b","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
+{"kind":"shape","id":"sh/p0batk7m","slide":7,"bbox":[72,260,348,246]}
+{"kind":"textbox","id":"sh/oz2tkfq1","slide":7,"text":"FastAPI","textPreview":"FastAPI","textChars":7,"textLines":1,"bbox":[102,293,270,40]}
+{"kind":"textbox","id":"sh/futsnapk","slide":7,"text":"Control plane","textPreview":"Control plane","textChars":13,"textLines":1,"bbox":[102,350,270,26]}
+{"kind":"textbox","id":"sh/et0re58z","slide":7,"text":"API, kimlik, policy, run yönetimi","textPreview":"API, kimlik, policy, run yönetimi","textChars":33,"textLines":1,"bbox":[102,402,270,50]}
+{"kind":"shape","id":"sh/4nupwzex","slide":7,"bbox":[462,260,348,246]}
+{"kind":"textbox","id":"sh/5onqp4v2","slide":7,"text":"LangGraph","textPreview":"LangGraph","textChars":9,"textLines":1,"bbox":[492,293,270,40]}
+{"kind":"textbox","id":"sh/ilc7u9wr","slide":7,"text":"Orchestration","textPreview":"Orchestration","textChars":13,"textLines":1,"bbox":[492,350,270,26]}
+{"kind":"textbox","id":"sh/jml8nedc","slide":7,"text":"State, checkpoint, pause/resume, retry","textPreview":"State, checkpoint, pause/resume, retry","textChars":38,"textLines":1,"bbox":[492,402,270,50]}
+{"kind":"shape","id":"sh/wzupszel","slide":7,"bbox":[852,260,348,246]}
+{"kind":"textbox","id":"sh/h03ql4v6","slide":7,"text":"Pydantic AI","textPreview":"Pydantic AI","textChars":11,"textLines":1,"bbox":[882,293,270,40]}
+{"kind":"textbox","id":"sh/uxc7qpwf","slide":7,"text":"Agent contract","textPreview":"Agent contract","textChars":14,"textLines":1,"bbox":[882,350,270,26]}
+{"kind":"textbox","id":"sh/vyl8jud0","slide":7,"text":"Typed outputs, dependency ve tool scoping","textPreview":"Typed outputs, dependency ve tool scoping","textChars":41,"textLines":1,"bbox":[882,402,270,50]}
+{"kind":"shape","id":"sh/0ve94jep","slide":7,"bbox":[72,555,1136,56]}
+{"kind":"textbox","id":"sh/1w7qxova","slide":7,"text":"Memory & knowledge: PostgreSQL (operational truth) + OKF (portable knowledge) + Chroma (disposable derived retrieval).","textPreview":"Memory & knowledge: PostgreSQL (operational truth) + OKF (portable knowledge) + Chroma (disposable derived retrieval).","textChars":118,"textLines":1,"bbox":[100,571,1080,28]}
+{"kind":"notes","id":"nt/wd84zc","slide":7,"text":"Konuşma notu: Özellikle LangGraph ve Pydantic AI’ı karşılaştırmak yerine tamamlayıcı sorumluluklar olarak anlatın: birincisi workflow, ikincisi agent sözleşmesi.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
+{"kind":"slide","id":"sl/sk2pt9","slide":8,"title":"GEÇİŞ YAKLAŞIMI","textShapes":21}
+{"kind":"textbox","id":"sh/jm10zehs","slide":8,"text":"GEÇİŞ YAKLAŞIMI","textPreview":"GEÇİŞ YAKLAŞIMI","textChars":15,"textLines":1,"bbox":[72,46,160,30]}
+{"kind":"textbox","id":"sh/kna18jyd","slide":8,"text":"Küçük, geri alınabilir ve çalışan PR’larla ilerleme","textPreview":"Küçük, geri alınabilir ve çalışan PR’larla ilerleme","textChars":51,"textLines":1,"bbox":[72,94,1090,60]}
+{"kind":"textbox","id":"sh/5oji1ozy","slide":8,"text":"UI en sona gelir; önce runtime davranışı ve doğrulanabilirlik stabil hale getirilir.","textPreview":"UI en sona gelir; önce runtime davranışı ve doğrulanabilirlik stabil hale getirilir.","textChars":84,"textLines":1,"bbox":[72,154,1080,36]}
+{"kind":"textbox","id":"sh/ah8z29gb","slide":8,"text":"Agentic Growth Intelligence  |  Internal architecture discussion","textPreview":"Agentic Growth Intelligence  |  Internal architecture discussion","textChars":64,"textLines":1,"bbox":[72,682,780,18]}
+{"kind":"textbox","id":"sh/vih0vehg","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1168,682,40,18]}
+{"kind":"shape","id":"sh/wja14jy1","slide":8,"bbox":[72,300,178,174]}
+{"kind":"shape","id":"sh/xkjixozm","slide":8,"bbox":[92,322,42,30]}
+{"kind":"textbox","id":"sh/mt8zy9gz","slide":8,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[104,329,20,16]}
+{"kind":"textbox","id":"sh/nuh0ruhk","slide":8,"text":"Foundation","textPreview":"Foundation","textChars":10,"textLines":1,"bbox":[92,373,140,45]}
+{"kind":"textbox","id":"sh/jah4bmdc","slide":8,"text":"Contracts & run model","textPreview":"Contracts & run model","textChars":21,"textLines":1,"bbox":[92,428,138,30]}
+{"kind":"shape","id":"sh/i983ihcr","slide":8,"bbox":[298,300,178,174]}
+{"kind":"shape","id":"sh/5wzmdwv2","slide":8,"bbox":[318,322,42,30]}
+{"kind":"textbox","id":"sh/kvqlkrux","slide":8,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[330,329,20,16]}
+{"kind":"textbox","id":"sh/7yh4f6d8","slide":8,"text":"Active runtime","textPreview":"Active runtime","textChars":14,"textLines":1,"bbox":[318,373,140,45]}
+{"kind":"textbox","id":"sh/6x83m1cn","slide":8,"text":"LangGraph parity path","textPreview":"LangGraph parity path","textChars":21,"textLines":1,"bbox":[318,428,138,30]}
+{"kind":"shape","id":"sh/t0jmhwve","slide":8,"bbox":[524,300,178,174]}
+{"kind":"shape","id":"sh/szqlorut","slide":8,"bbox":[544,322,42,30]}
+{"kind":"textbox","id":"sh/n2x432d4","slide":8,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[556,329,20,16]}
+{"kind":"textbox","id":"sh/m1o3axcj","slide":8,"text":"Context / RAG","textPreview":"Context / RAG","textChars":13,"textLines":1,"bbox":[544,373,140,45]}
+{"kind":"textbox","id":"sh/qxc7i5w7","slide":8,"text":"Evidence-aware retrieval","textPreview":"Evidence-aware retrieval","textChars":24,"textLines":1,"bbox":[544,428,138,30]}
+{"kind":"shape","id":"sh/ryloraxs","slide":8,"bbox":[750,300,178,174]}
+{"kind":"shape","id":"sh/czupkfex","slide":8,"bbox":[770,322,42,30]}
+{"kind":"textbox","id":"sh/d0n6tkfi","slide":8,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[782,329,20,16]}
+{"kind":"textbox","id":"sh/2tc7e5wv","slide":8,"text":"MCP / Events","textPreview":"MCP / Events","textChars":12,"textLines":1,"bbox":[770,373,140,45]}
+{"kind":"textbox","id":"sh/3ulonqxg","slide":8,"text":"Bounded async execution","textPreview":"Bounded async execution","textChars":23,"textLines":1,"bbox":[770,428,138,30]}
+{"kind":"shape","id":"sh/4vupgve1","slide":8,"bbox":[976,300,178,174]}
+{"kind":"shape","id":"sh/pw36p0fm","slide":8,"bbox":[996,322,42,30]}
+{"kind":"textbox","id":"sh/ups7alwz","slide":8,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1008,329,20,16]}
+{"kind":"textbox","id":"sh/fq1ojqxk","slide":8,"text":"UI / Release","textPreview":"UI / Release","textChars":12,"textLines":1,"bbox":[996,373,140,45]}
+{"kind":"textbox","id":"sh/xkrapof2","slide":8,"text":"Control panel integration","textPreview":"Control panel integration","textChars":25,"textLines":1,"bbox":[996,428,138,30]}
+{"kind":"shape","id":"sh/wji9gjyh","slide":8,"bbox":[250,387,48,0]}
+{"kind":"shape","id":"sh/vipsnehw","slide":8,"bbox":[476,387,48,0]}
+{"kind":"shape","id":"sh/ahgre9gb","slide":8,"bbox":[702,387,48,0]}
+{"kind":"shape","id":"sh/9g7alozq","slide":8,"bbox":[928,387,48,0]}
+{"kind":"textbox","id":"sh/8fy9cjy5","slide":8,"text":"Her faz: 2–6 saat · tek PR · working state · bağımsız doğrulama · kolay rollback","textPreview":"Her faz: 2–6 saat · tek PR · working state · bağımsız doğrulama · kolay rollback","textChars":80,"textLines":1,"bbox":[72,550,1120,28]}
+{"kind":"notes","id":"nt/sk2pt9","slide":8,"text":"Konuşma notu: Roadmap’ın koruyucu kuralı: hiçbir faz broken state bırakmaz. İlk hedefi davranış eşitliği, sonra fonksiyon genişletme olarak anlatın.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}
+{"kind":"slide","id":"sl/pmcwi1","slide":9,"title":"MEETING TAKEAWAY","textShapes":9}
+{"kind":"textbox","id":"sh/nm9gvqhk","slide":9,"text":"MEETING TAKEAWAY","textPreview":"MEETING TAKEAWAY","textChars":16,"textLines":1,"bbox":[72,64,196,30]}
+{"kind":"textbox","id":"sh/onixovy5","slide":9,"text":"Web UI bir kontrol yüzeyidir.\nIntelligence engine, agent runtime’dır.","textPreview":"Web UI bir kontrol yüzeyidir. | Intelligence engine, agent runtime’dır.","textChars":69,"textLines":2,"bbox":[72,140,1060,110]}
+{"kind":"shape","id":"sh/pobyx0zq","slide":9,"bbox":[72,390,340,150]}
+{"kind":"textbox","id":"sh/eh0fi1g3","slide":9,"text":"Protect","textPreview":"Protect","textChars":7,"textLines":1,"bbox":[96,420,250,28]}
+{"kind":"textbox","id":"sh/fi9gr6ho","slide":9,"text":"Evidence + approval + company knowledge","textPreview":"Evidence + approval + company knowledge","textChars":39,"textLines":1,"bbox":[96,466,280,48]}
+{"kind":"shape","id":"sh/0jixkby9","slide":9,"bbox":[456,390,340,150]}
+{"kind":"textbox","id":"sh/1krytgzu","slide":9,"text":"Unify","textPreview":"Unify","textChars":5,"textLines":1,"bbox":[480,420,250,28]}
+{"kind":"textbox","id":"sh/ydkzu5g7","slide":9,"text":"Runtime + memory + tools + events","textPreview":"Runtime + memory + tools + events","textChars":33,"textLines":1,"bbox":[480,466,280,48]}
+{"kind":"shape","id":"sh/zetg3ahs","slide":9,"bbox":[840,390,340,150]}
+{"kind":"textbox","id":"sh/jqhc76hs","slide":9,"text":"Operate","textPreview":"Operate","textChars":7,"textLines":1,"bbox":[864,420,250,28]}
+{"kind":"textbox","id":"sh/ypovel07","slide":9,"text":"Visible runs, checkpoints and governed change","textPreview":"Visible runs, checkpoints and governed change","textChars":45,"textLines":1,"bbox":[864,466,280,48]}
+{"kind":"textbox","id":"sh/lszu9gzy","slide":9,"text":"Karar çerçevesi: minimum değişiklikle, kanıta dayalı agent-first çalışma modeline geçiş.","textPreview":"Karar çerçevesi: minimum değişiklikle, kanıta dayalı agent-first çalışma modeline geçiş.","textChars":88,"textLines":1,"bbox":[72,626,1000,26]}
+{"kind":"notes","id":"nt/pmcwi1","slide":9,"text":"Konuşma notu: Kapanışta hedefi tek cümlede özetleyin: mevcut kanıt ve onay gücünü koruyup bunu dayanıklı, gözlemlenebilir agent runtime üzerine oturtmak.\n\n[Sources]\n- Internal repository analysis: docs/SYSTEM_ARCHITECTURE.md; docs/IMPLEMENTATION_STATUS.md; docs/RELEASE_CHECKLIST.md\n- Implementation evidence: apps/api/agi_server/workflow/persistent_runtime.py; apps/services/ai-agent/ai_agent/graph.py; docker-compose.yml\n"}

@@ -35,6 +35,7 @@ This document is the authoritative statement of what the repository actually doe
 
 - [x] Onboarding Setup Wizard (`SetupWizard.tsx`) covering First Admin Bootstrap Gate, Company Profile, Model Gateway Discovery, CRM/ERP Connectors, OKF Ingestion, and System Ready state.
 - [x] Visual Workflow Editor with `@xyflow/react` node graph and Inspector panel.
+- [x] Aligned Growth Workflow Templates (`templates.py`, `registry_service.py`) referencing real published agent IDs, allowlisted model profiles, valid capability IDs, explicit executable vs catalog-only template metadata, and scope-bounded generic workflow publication rules (ADR-0016 Phase 9).
 - [x] Single authoritative architecture documentation (`docs/SYSTEM_ARCHITECTURE.md`) updated with ADR-0016 migration roadmap.
 
 ---
@@ -61,5 +62,6 @@ The following components exist as target specifications, test stubs, or legacy a
 - **Phase 6 (Completed Active OKF & Chroma Retrieval)**: Knowledge retrieval integrated with ChromaDB disposable derived index using active OKF bundle as source of truth and seamless lexical fallback.
 - **Phase 7 (Completed Approved Product-Owned MCP Gateway)**: Implemented product-owned read-only `MCPGateway` and `MCPProfile` persistence, rejecting arbitrary user-provided execution URLs.
 - **Phase 8 (Completed PostgreSQL Event Inbox & Durable Dispatch)**: Webhook events stored in PostgreSQL `EventInbox`, enforcing idempotency deduplication, trigger rule matching, and published workflow dispatch.
+- **Phase 9 (Completed Template Alignment & Generic Workflow Publication)**: Aligned template catalogs with published agent specs, allowlisted model profiles, capability IDs, explicit executable/catalog-only metadata, and generic workflow publication rules while preserving read-only connectors.
 
 

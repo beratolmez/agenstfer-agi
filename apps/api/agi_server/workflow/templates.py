@@ -11,17 +11,19 @@ GROWTH_WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
             "checks CRM context, and ranks account priorities."
         ),
         "category": "Growth Operations",
+        "type": "executable",
+        "executable": True,
         "nodes": [
             {
                 "id": "node-1",
                 "type": "customNode",
                 "position": {"x": 50, "y": 120},
                 "data": {
-                    "label": "Lead Discovery Agent",
+                    "label": "Growth Opportunity Analyst",
                     "kind": "agent_run",
                     "subtitle": "Lead & Signal Finder",
                     "config": {
-                        "agent_id": "lead-opportunity-agent",
+                        "agent_id": "growth-opportunity-analyst",
                         "model_profile": "local-balanced",
                         "output_type": "OpportunityHypotheses",
                         "capabilities": ["web.scrape", "crm.read"],
@@ -53,7 +55,7 @@ GROWTH_WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
                     "subtitle": "Evidence Verification",
                     "config": {
                         "agent_id": "evidence-reviewer",
-                        "model_profile": "cloud-reasoning",
+                        "model_profile": "cloud-balanced",
                         "output_type": "EvidenceReview",
                         "capabilities": ["knowledge.search", "metrics.calculate"],
                     },
@@ -73,6 +75,8 @@ GROWTH_WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
             "and generates battlecards with objection handling."
         ),
         "category": "Competitive Intelligence",
+        "type": "executable",
+        "executable": True,
         "nodes": [
             {
                 "id": "node-1",
@@ -83,7 +87,7 @@ GROWTH_WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
                     "kind": "agent_run",
                     "subtitle": "Market Monitor",
                     "config": {
-                        "agent_id": "competitor-analyst",
+                        "agent_id": "company-analyst",
                         "model_profile": "local-balanced",
                         "output_type": "CompanyAnalysis",
                         "capabilities": ["web.scrape", "battlecard.generate"],
@@ -119,6 +123,8 @@ GROWTH_WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
             "and produces human-in-the-loop draft responses."
         ),
         "category": "Inbound Operations",
+        "type": "executable",
+        "executable": True,
         "nodes": [
             {
                 "id": "node-1",
@@ -161,7 +167,7 @@ GROWTH_WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
                     "subtitle": "Human In The Loop Review",
                     "config": {
                         "agent_id": "evidence-reviewer",
-                        "model_profile": "cloud-reasoning",
+                        "model_profile": "cloud-balanced",
                         "output_type": "EvidenceReview",
                         "capabilities": ["knowledge.search"],
                     },
@@ -181,6 +187,8 @@ GROWTH_WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
             "and passive customer reactivation signals."
         ),
         "category": "Revenue Operations",
+        "type": "executable",
+        "executable": True,
         "nodes": [
             {
                 "id": "node-1",
@@ -207,7 +215,7 @@ GROWTH_WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
                     "kind": "agent_run",
                     "subtitle": "Knowledge Graph Repair",
                     "config": {
-                        "agent_id": "okf-curator",
+                        "agent_id": "wiki-curator",
                         "model_profile": "local-balanced",
                         "output_type": "OKFChangeSet",
                         "capabilities": ["knowledge.search", "metrics.calculate"],
@@ -219,9 +227,45 @@ GROWTH_WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
             {"id": "edge-1-2", "source": "node-1", "target": "node-2"},
         ],
     },
+    {
+        "id": "enterprise-expansion-blueprint",
+        "name": "Enterprise Account Expansion Blueprint (Catalog Reference)",
+        "description": (
+            "High-level visual diagram for multi-stakeholder enterprise expansion analysis."
+        ),
+        "category": "Strategic Accounts",
+        "type": "catalog-only",
+        "executable": False,
+        "nodes": [
+            {
+                "id": "node-catalog-1",
+                "type": "customNode",
+                "position": {"x": 50, "y": 120},
+                "data": {
+                    "label": "Account Mapping Blueprint",
+                    "kind": "catalog_reference",
+                    "subtitle": "Catalog Only Visual Blueprint",
+                    "config": {
+                        "reference_type": "architectural_blueprint",
+                    },
+                },
+            },
+        ],
+        "edges": [],
+    },
 ]
 
 
 def list_workflow_templates() -> list[dict[str, Any]]:
     """Return serializable growth workflow templates."""
     return GROWTH_WORKFLOW_TEMPLATES
+
+
+def get_executable_templates() -> list[dict[str, Any]]:
+    """Return only templates flagged as executable."""
+    return [item for item in GROWTH_WORKFLOW_TEMPLATES if item.get("executable") is True]
+
+
+def get_catalog_templates() -> list[dict[str, Any]]:
+    """Return catalog-only UI reference templates."""
+    return [item for item in GROWTH_WORKFLOW_TEMPLATES if item.get("executable") is False]

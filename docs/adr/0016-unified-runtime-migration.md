@@ -43,6 +43,7 @@ Adopt **Unified Target Architecture** as the single destination architecture for
 - **Phase 6 (Completed Active OKF & Chroma Retrieval)**: Integrated knowledge retrieval with ChromaDB disposable derived index using active OKF bundle as immutable source of truth and seamless lexical fallback.
 - **Phase 7 (Completed Approved Product-Owned MCP Gateway)**: Implemented product-owned read-only `MCPGateway` and `MCPProfile` persistence, rejecting arbitrary user-provided execution URLs.
 - **Phase 8 (Completed PostgreSQL Event Inbox & Durable Dispatch)**: Webhook events stored in PostgreSQL `EventInbox`, enforcing idempotency deduplication, trigger rule matching, and published workflow dispatch.
+- **Phase 9 (Completed Template Alignment & Generic Workflow Publication)**: Aligned template catalogs with published agent specs, allowlisted model profiles, capability IDs, explicit executable/catalog-only metadata, and generic workflow publication rules while preserving read-only connectors.
 
 ## Consequences
 

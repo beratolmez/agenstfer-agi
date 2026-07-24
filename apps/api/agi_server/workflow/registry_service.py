@@ -217,15 +217,16 @@ def validate_workflow_bindings(db: Session, workflow: WorkflowDefinition) -> Wor
             node.model_copy(update={"config": {**node.config, "agent_version": row.version}})
         )
 
-    required_report_agents = {
-        "company-analyst",
-        "growth-opportunity-analyst",
-        "evidence-reviewer",
-        "wiki-curator",
-    }
-    missing = sorted(required_report_agents - agent_ids)
-    if missing:
-        issues.append(f"report output requires built-in agent roles: {missing}")
+    if workflow.id == "builtin-growth-diagnostic":
+        required_report_agents = {
+            "company-analyst",
+            "growth-opportunity-analyst",
+            "evidence-reviewer",
+            "wiki-curator",
+        }
+        missing = sorted(required_report_agents - agent_ids)
+        if missing:
+            issues.append(f"default diagnostic workflow requires built-in agent roles: {missing}")
     if issues:
         raise ValueError(f"Workflow registry binding validation failed: {issues}")
     return workflow.model_copy(update={"nodes": pinned_nodes})
