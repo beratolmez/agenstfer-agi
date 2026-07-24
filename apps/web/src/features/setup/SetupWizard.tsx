@@ -175,6 +175,9 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
     setProbing(true);
     setProbeSuccess(false);
 
+    const isCloud = Boolean(apiKey.trim() || selectedProvider);
+    const targetProfile = isCloud ? "cloud-balanced" : "local-balanced";
+
     try {
       if (apiKey.trim()) {
         await api.configureModelProvider({
@@ -184,15 +187,10 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
           profile_id: "cloud-balanced",
         });
       }
-      await api.probeModel("cloud-balanced");
+      await api.probeModel(targetProfile);
       setProbeSuccess(true);
     } catch (e: any) {
-      try {
-        await api.probeModel("local-balanced");
-        setProbeSuccess(true);
-      } catch (err: any) {
-        setError(e.message || "Model test edilemedi. Lütfen geçerli bir API Key girin.");
-      }
+      setError(e.message || "Model test edilemedi. Lütfen geçerli bir API Key girin veya model profili kontrol edin.");
     } finally {
       setProbing(false);
     }

@@ -102,7 +102,6 @@ def resolve_model_profile(profile_id: str, settings: Settings) -> ModelProfile:
 
 
 def build_pydantic_ai_model(profile_id: str, settings: Settings):
-    import httpx
     from pydantic_ai.models.openai import OpenAIChatModel
     from pydantic_ai.providers.ollama import OllamaProvider
     from pydantic_ai.providers.openai import OpenAIProvider
@@ -113,14 +112,9 @@ def build_pydantic_ai_model(profile_id: str, settings: Settings):
     else:
         assert profile.base_url is not None and settings.cloud_api_key is not None
         key_val = settings.cloud_api_key.get_secret_value()
-        headers = {}
-        if profile.provider == "gemini":
-            headers["x-goog-api-key"] = key_val
-        client = httpx.AsyncClient(headers=headers) if headers else None
         provider = OpenAIProvider(
             base_url=profile.base_url,
             api_key=key_val,
-            http_client=client,
         )
     return OpenAIChatModel(profile.model_name, provider=provider)
 

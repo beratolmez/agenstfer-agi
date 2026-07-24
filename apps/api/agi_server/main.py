@@ -685,6 +685,7 @@ def setup_status(
     db: Annotated[Session, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> dict[str, Any]:
+    row = db.get(InstallationState, "default")
     return {
         "steps": [
             "Bootstrap ve ilk admin",
@@ -702,6 +703,7 @@ def setup_status(
         "bootstrap_required": db.scalar(select(func.count()).select_from(User)) == 0,
         "auth_enabled": not settings.demo_no_auth,
         "cloud_models_enabled": settings.cloud_models_enabled,
+        "setup_completed": row.status == "completed" if row else False,
     }
 
 
@@ -732,7 +734,16 @@ def setup_progress_update(
     db: Annotated[Session, Depends(get_db)],
     actor: Annotated[User | None, Depends(require_role("admin"))],
 ) -> dict[str, Any]:
-    allowed_keys = {"company_name", "objective", "model_profile", "source_mode", "locale"}
+    allowed_keys = {
+        "company_name",
+        "industry",
+        "objective",
+        "provider",
+        "model",
+        "model_profile",
+        "source_mode",
+        "locale",
+    }
     unknown = sorted(set(payload.configuration) - allowed_keys)
     if unknown:
         raise HTTPException(
@@ -755,6 +766,7 @@ def setup_progress_update(
         raise HTTPException(status_code=422, detail="Unsupported locale")
     for field, minimum, maximum in (
         ("company_name", 2, 160),
+        ("industry", 2, 160),
         ("objective", 8, 1000),
     ):
         value = payload.configuration.get(field)

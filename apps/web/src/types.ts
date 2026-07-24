@@ -164,6 +164,7 @@ export interface SetupStatus {
   bootstrap_required: boolean;
   auth_enabled: boolean;
   cloud_models_enabled: boolean;
+  setup_completed?: boolean;
 }
 
 export interface SetupProgress {
