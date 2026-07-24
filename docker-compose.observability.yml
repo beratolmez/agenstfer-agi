@@ -1,6 +1,7 @@
 services:
   app:
     environment:
+      # OTLP telemetry is content-safe and excludes prompts, source bodies, evidence, secrets, and contact identifiers.
       AGI_OTLP_ENDPOINT: http://jaeger:4318
     depends_on:
       jaeger:

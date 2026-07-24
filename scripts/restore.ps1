@@ -8,7 +8,7 @@ $SourceDirectory = [System.IO.Path]::GetFullPath($SourceDirectory)
 $manifestPath = Join-Path $SourceDirectory "SHA256SUMS"
 if (-not (Test-Path -LiteralPath $manifestPath)) { throw "SHA256SUMS is missing." }
 
-$expectedFiles = @("postgres.dump", "dbos.dump", "knowledge.tar.gz")
+$expectedFiles = @("postgres.dump", "knowledge.tar.gz")
 $seenFiles = @{}
 foreach ($line in Get-Content -LiteralPath $manifestPath) {
     if ($line -notmatch '^([0-9a-fA-F]{64})\s+(.+)$') { throw "Invalid checksum manifest." }
@@ -54,14 +54,10 @@ if ($LASTEXITCODE) { throw "Could not stop the app service." }
 try {
     docker cp (Join-Path $SourceDirectory "postgres.dump") "${postgresId}:/tmp/agi-postgres.dump"
     if ($LASTEXITCODE) { throw "Could not stage the PostgreSQL backup." }
-    docker cp (Join-Path $SourceDirectory "dbos.dump") "${postgresId}:/tmp/agi-dbos.dump"
-    if ($LASTEXITCODE) { throw "Could not stage the DBOS backup." }
     docker compose exec -T postgres sh -c 'pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB" /tmp/agi-postgres.dump'
     if ($LASTEXITCODE) { throw "PostgreSQL restore failed." }
-    docker compose exec -T postgres sh -c 'pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "${POSTGRES_DB}_dbos_sys" /tmp/agi-dbos.dump'
-    if ($LASTEXITCODE) { throw "DBOS system database restore failed." }
-    docker compose exec -T postgres rm -f /tmp/agi-postgres.dump /tmp/agi-dbos.dump
-    if ($LASTEXITCODE) { throw "Could not clean staged database backups." }
+    docker compose exec -T postgres rm -f /tmp/agi-postgres.dump
+    if ($LASTEXITCODE) { throw "Could not clean staged database backup." }
     docker run --rm -v "${knowledgeVolume}:/knowledge" -v "${SourceDirectory}:/backup:ro" alpine:3.22@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce sh -c 'find /knowledge -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + && tar -xzf /backup/knowledge.tar.gz -C /knowledge'
     if ($LASTEXITCODE) { throw "Knowledge restore failed." }
 }

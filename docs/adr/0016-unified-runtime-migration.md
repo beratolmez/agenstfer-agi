@@ -45,6 +45,7 @@ Adopt **Unified Target Architecture** as the single destination architecture for
 - **Phase 8 (Completed PostgreSQL Event Inbox & Durable Dispatch)**: Webhook events stored in PostgreSQL `EventInbox`, enforcing idempotency deduplication, trigger rule matching, and published workflow dispatch.
 - **Phase 9 (Completed Template Alignment & Generic Workflow Publication)**: Aligned template catalogs with published agent specs, allowlisted model profiles, capability IDs, explicit executable/catalog-only metadata, and generic workflow publication rules while preserving read-only connectors.
 - **Phase 10 (Completed Cloud Opt-In Policy & Secret File Boundary)**: Enforced base local Compose execution without cloud provider/key requirements, explicit cloud opt-in, production secret file boundary, and egress proxy allowlist consistency.
+- **Phase 11 (Completed Content-Safe Telemetry, Production Kubernetes & Backup/Restore)**: Cleaned DBOS leftovers from backup/restore PowerShell routines, enforced content-safe telemetry boundary (excluding prompts, source bodies, evidence, secrets, and contact identifiers), and updated production Kubernetes manifests with agi-api control plane and agi-worker background worker topology without hardcoded secrets.
 
 ## Consequences
 

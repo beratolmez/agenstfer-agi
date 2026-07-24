@@ -20,7 +20,7 @@ _configured = False
 
 
 def configure_observability(endpoint: str | None) -> None:
-    """Configure opt-in OTLP exporters; telemetry never contains payloads or secrets."""
+    """Configure opt-in OTLP exporters; telemetry never contains sensitive payloads or secrets."""
     global _configured
     if _configured or not endpoint:
         return
@@ -39,6 +39,15 @@ def configure_observability(endpoint: str | None) -> None:
 
 
 class ObservabilityMiddleware(BaseHTTPMiddleware):
+    """HTTP middleware recording content-safe metrics and traces.
+
+    PROHIBITED FROM SPANS/METRICS BY POLICY:
+    - Prompts, completion text, or model outputs
+    - Raw source bodies or evidence excerpts
+    - Secrets, passwords, or tokens
+    - PII, emails, or contact identifiers
+    """
+
     def __init__(self, app):
         super().__init__(app)
         meter = metrics.get_meter("agi.http")
@@ -53,7 +62,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         started = perf_counter()
         status_code = 500
-        # Deliberately exclude query strings, bodies, headers, and source text.
+        # Deliberately exclude query strings, bodies, headers, prompts, and secrets.
         with self.tracer.start_as_current_span("http.request") as span:
             span.set_attribute("http.request.method", request.method)
             try:

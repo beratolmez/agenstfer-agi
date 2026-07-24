@@ -54,8 +54,7 @@ is persisted separately on content-safe workflow step rows.
 ## Backup and restore
 
 Backups briefly stop the app to prevent concurrent LangGraph or knowledge writes, then capture a
-consistent triple: application PostgreSQL, `${POSTGRES_DB}_langgraph_sys`, and the complete knowledge Git
-volume. The app is health-checked before the script returns.
+consistent pair: application and LangGraph state PostgreSQL database (`postgres.dump`), and the complete knowledge volume (`knowledge.tar.gz`). The app is health-checked before the script returns. DBOS is fully deprecated and removed from backup/restore routines.
 
 ```powershell
 .\scripts\backup.ps1
@@ -68,7 +67,7 @@ volume. The app is health-checked before the script returns.
 ```
 
 Restore verifies SHA-256 and archive paths, stops the app to prevent concurrent LangGraph writes, restores
-both databases and knowledge, then restarts the app. A backup is accepted only after a restore drill.
+the PostgreSQL database and knowledge volume, then restarts the app. A backup is accepted only after a restore drill.
 Encrypt and move backups using the operator's storage policy; encryption keys stay outside archives.
 
 ## Customer product deployment

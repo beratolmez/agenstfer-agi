@@ -1,22 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: agi-app
+  name: agi-api
   namespace: agi-production
   labels:
-    app: agi-app
+    app: agi-api
+    component: api-control-plane
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: agi-app
+      app: agi-api
   template:
     metadata:
       labels:
-        app: agi-app
+        app: agi-api
+        component: api-control-plane
     spec:
       containers:
-        - name: agi-server
+        - name: agi-api-server
           image: beratolmez/agenstfer-agi:latest
           imagePullPolicy: Always
           ports:
@@ -49,7 +51,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: agi-app-service
+  name: agi-api-service
   namespace: agi-production
 spec:
   type: ClusterIP
@@ -57,4 +59,41 @@ spec:
     - port: 8080
       targetPort: 8080
   selector:
-    app: agi-app
+    app: agi-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agi-worker
+  namespace: agi-production
+  labels:
+    app: agi-worker
+    component: background-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agi-worker
+  template:
+    metadata:
+      labels:
+        app: agi-worker
+        component: background-worker
+    spec:
+      containers:
+        - name: agi-event-worker
+          image: beratolmez/agenstfer-agi:latest
+          imagePullPolicy: Always
+          command: ["python", "-m", "agi_server.workflow.scheduler"]
+          envFrom:
+            - configMapRef:
+                name: agi-config
+            - secretRef:
+                name: agi-secrets
+          volumeMounts:
+            - name: knowledge-volume
+              mountPath: /data/knowledge
+      volumes:
+        - name: knowledge-volume
+          persistentVolumeClaim:
+            claimName: agi-knowledge-pvc

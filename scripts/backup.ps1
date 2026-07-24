@@ -36,18 +36,14 @@ if ($LASTEXITCODE) { throw "Could not stop the app for a consistent backup." }
 try {
     docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /tmp/agi-postgres.dump'
     if ($LASTEXITCODE) { throw "PostgreSQL backup failed." }
-    docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "${POSTGRES_DB}_dbos_sys" -Fc -f /tmp/agi-dbos.dump'
-    if ($LASTEXITCODE) { throw "DBOS system database backup failed." }
     docker cp "${postgresId}:/tmp/agi-postgres.dump" (Join-Path $Target "postgres.dump")
     if ($LASTEXITCODE) { throw "Could not copy the PostgreSQL backup." }
-    docker cp "${postgresId}:/tmp/agi-dbos.dump" (Join-Path $Target "dbos.dump")
-    if ($LASTEXITCODE) { throw "Could not copy the DBOS backup." }
-    docker compose exec -T postgres rm -f /tmp/agi-postgres.dump /tmp/agi-dbos.dump
-    if ($LASTEXITCODE) { throw "Could not clean temporary database backups." }
+    docker compose exec -T postgres rm -f /tmp/agi-postgres.dump
+    if ($LASTEXITCODE) { throw "Could not clean temporary database backup." }
     docker run --rm -v "${knowledgeVolume}:/knowledge:ro" -v "${Target}:/backup" alpine:3.22@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce tar -czf /backup/knowledge.tar.gz -C /knowledge .
     if ($LASTEXITCODE) { throw "Knowledge backup failed." }
 
-    $manifest = @("postgres.dump", "dbos.dump", "knowledge.tar.gz") | ForEach-Object {
+    $manifest = @("postgres.dump", "knowledge.tar.gz") | ForEach-Object {
         $hash = (Get-FileHash -Algorithm SHA256 (Join-Path $Target $_)).Hash.ToLowerInvariant()
         "$hash  $_"
     }
