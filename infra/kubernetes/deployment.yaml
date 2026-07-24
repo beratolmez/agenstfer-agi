@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agi-app
+  namespace: agi-production
+  labels:
+    app: agi-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: agi-app
+  template:
+    metadata:
+      labels:
+        app: agi-app
+    spec:
+      containers:
+        - name: agi-server
+          image: beratolmez/agenstfer-agi:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: agi-config
+            - secretRef:
+                name: agi-secrets
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          volumeMounts:
+            - name: knowledge-volume
+              mountPath: /data/knowledge
+      volumes:
+        - name: knowledge-volume
+          persistentVolumeClaim:
+            claimName: agi-knowledge-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agi-app-service
+  namespace: agi-production
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: agi-app

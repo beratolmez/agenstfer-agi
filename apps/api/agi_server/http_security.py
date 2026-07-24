@@ -49,7 +49,11 @@ class RequestSecurityMiddleware(BaseHTTPMiddleware):
         path = request.url.path
 
         if path.startswith("/api") and request.method != "OPTIONS" and not settings.demo_no_auth:
-            is_public = path in PUBLIC_API_PATHS or path.startswith("/api/docs") or path.startswith("/api/webhooks")
+            is_public = (
+                path in PUBLIC_API_PATHS
+                or path.startswith("/api/docs")
+                or path.startswith("/api/webhooks")
+            )
             if not is_public:
                 user_id = request.session.get("user_id")
                 with SessionLocal() as db:

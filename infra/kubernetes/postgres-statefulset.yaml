@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: agi-postgres
+  namespace: agi-production
+spec:
+  serviceName: agi-postgres-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agi-postgres
+  template:
+    metadata:
+      labels:
+        app: agi-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "agi"
+            - name: POSTGRES_USER
+              value: "agi"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: agi-secrets
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-storage
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agi-postgres-service
+  namespace: agi-production
+spec:
+  clusterIP: None
+  ports:
+    - port: 5432
+  selector:
+    app: agi-postgres

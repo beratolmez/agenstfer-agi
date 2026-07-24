@@ -1,8 +1,8 @@
+# ruff: noqa: E402, E501
 import asyncio
-import json
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock
-import sys
 
 # Mock optional dependencies before importing agent modules if needed
 mock_rag = MagicMock()
@@ -14,12 +14,6 @@ mock_rag.retrieve.retrieve_knowledge.return_value = {
 sys.modules.setdefault("rag_service", mock_rag)
 sys.modules.setdefault("rag_service.retrieve", mock_rag.retrieve)
 sys.modules.setdefault("rag_service.ingest", mock_rag.ingest)
-
-import pytest
-from fastapi.testclient import TestClient
-from pydantic_ai.models.test import TestModel
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import sessionmaker
 
 from agi_server.agents.contracts import (
     CompanyAnalysis,
@@ -34,19 +28,16 @@ from agi_server.config import Settings
 from agi_server.db import (
     ApprovalRequest,
     Base,
-    CanonicalEntity,
     EvidenceItem,
     OKFCandidate,
     WorkflowDefinitionRow,
-    WorkflowRun,
-    WorkflowStepRun,
 )
-from agi_server.diagnostics.service import _enforce_evidence_gate, _material_claims
+from agi_server.diagnostics.service import _material_claims
 from agi_server.domain.metrics import calculate_verified_growth_metrics
 from agi_server.ingestion import sync_demo_company
-from agi_server.main import app, get_db, get_settings
+from agi_server.main import app
 from agi_server.okf.git_repo import GitKnowledgeRepository
-from agi_server.okf.lifecycle import approve_candidate, ensure_active_repository
+from agi_server.okf.lifecycle import ensure_active_repository
 from agi_server.workflow import build_default_workflow
 from agi_server.workflow.persistent_runtime import (
     decide_persisted_approval,
@@ -54,8 +45,11 @@ from agi_server.workflow.persistent_runtime import (
 )
 from agi_server.workflow.registry_service import ensure_platform_registry
 from agi_server.workflow.triggers import trigger_engine
-
 from ai_agent.graph import create_graph
+from fastapi.testclient import TestClient
+from pydantic_ai.models.test import TestModel
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import sessionmaker
 
 
 def _setup_test_db(tmp_path: Path):

@@ -1319,7 +1319,9 @@ def source_test_db(
         "read_only": payload.read_only,
         "tables_found": ["accounts", "contacts", "opportunities", "invoices", "products"],
         "connection_time_ms": 14,
-        "message": f"Read-Only {payload.db_type.upper()} veritabanı bağlantısı başarıyla doğrulandı.",
+        "message": (
+            f"Read-Only {payload.db_type.upper()} veritabanı bağlantısı başarıyla doğrulandı."
+        ),
     }
 
 

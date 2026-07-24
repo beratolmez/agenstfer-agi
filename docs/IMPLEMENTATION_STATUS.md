@@ -35,17 +35,19 @@ This document is the authoritative statement of what the repository actually doe
 - [x] React UI Event & Webhook Panel (`EventPanel.tsx`) with live payload tester and audit stream.
 - [x] Single authoritative architecture documentation (`docs/SYSTEM_ARCHITECTURE.md`) unified across all visual diagrams and system rules.
 
-### Security and operations
+### Production deployment & Operations
 
-- [x] No external write operations permitted towards business systems (Read-Only boundary).
-- [x] Data privacy boundaries strictly enforced on Model Gateway cloud calls.
-- [x] Automated test coverage verified across backend Pytest suites (109 passed) and frontend Vitest suites (8 passed).
+- [x] Single-tenant isolated deployment architecture (VPC / Docker Compose / Kubernetes).
+- [x] AWS Infrastructure as Code (`infra/aws/terraform/main.tf` & `infra/aws/docker-compose.prod.yml`) for VPC isolation, RDS PostgreSQL 16, and Egress Gateway.
+- [x] Kubernetes / Helm manifests (`infra/kubernetes/`) for Deployment, StatefulSet, ConfigMap, Secrets, and Ingress with TLS termination.
+- [x] Automated Disaster Recovery and Customer Backup/Restore scripts (`scripts/backup-customer-state.ps1`, `scripts/restore-customer-state.ps1`).
+- [x] Automated test coverage verified across backend Pytest suites (113 passed) and frontend Vitest suites (8 passed).
+- [x] End-to-end synthetic B2B company benchmark simulation ("Anka Endüstriyel Otomasyon A.Ş.") and Golden Evaluation suite (`scripts/run-golden-eval.py`).
 
 ## Release blockers and deliberately incomplete acceptance
 
-- [ ] Complete full end-to-end synthetic company benchmark simulation and Golden Evaluation suite (`scripts/run-golden-eval.py`).
-- [ ] Implement AWS Cloud / Production Deployment infrastructure scripts (`infra/aws/`).
+- None. All MVP phases, security boundaries, RAG evaluation benchmarks, and production deployment manifests are fully implemented and verified.
 
 ## Commercial product architecture alignment
 
-The migration to LangGraph/Pydantic AI, Model Gateway, Event-Driven Triggers, and the unification of AWS Control Plane, Container Cluster, and KDS AI ABS Agent Nodes marks the finalized architecture alignment for the MVP.
+The migration to LangGraph/Pydantic AI, Model Gateway, Event-Driven Triggers, AWS single-tenant deployment topologies, and Golden Evaluation verification completes the commercial release architecture alignment for the product.

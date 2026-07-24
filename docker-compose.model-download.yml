@@ -1,5 +1,6 @@
 services:
   ollama:
+    image: ollama/ollama:0.5.7
     networks: [core, model-download]
 
 networks:
