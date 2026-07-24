@@ -25,12 +25,13 @@ This document is the authoritative statement of what the repository actually doe
 - [x] End-to-End Dynamic Skill (Capability) Engine (`capabilities.py`) with dynamic tool injection and React UI Inspector binding.
 - [x] Built-in B2B Growth Workflow Templates (`/api/workflows/templates`) for Lead Discovery, Competitive Battlecard, Inbound Intent Triage, and CRM/ERP Data Hygiene.
 - [x] Event-Driven Triggers & Webhook Ingestion Engine (`/api/webhooks/{source_id}`, `triggers.py`) automatically triggering growth workflows on CRM updates, inbound forms, and competitor signals.
-- [x] Model Gateway manages LLM inference flexibly across Gemini API, Groq Cloud, Mistral AI, OpenRouter, and Ollama/vLLM isolated local/cloud GPU endpoints.
+- [x] Model Gateway manages LLM inference flexibly across Gemini API (`gemini-3.6-flash`, `gemini-3.5-flash-lite`), Groq Cloud, Mistral AI, OpenRouter, and Ollama/vLLM isolated local/cloud GPU endpoints, with dynamic API key model discovery (`/api/models/discover`).
 - [x] Real-Time Human-in-the-Loop Approval Center integrated using LangGraph `interrupt_before`/`interrupt_after`.
 
 ### Product journey & UI/UX
 
-- [x] 5-Step Interactive Onboarding Setup Wizard (`SetupWizard.tsx`) for Company Profile, Model Gateway, CRM/ERP Connectors, OKF Ingestion, and System Ready state.
+- [x] Unified 6-Step Interactive Onboarding Setup Wizard (`SetupWizard.tsx`) incorporating First Admin Bootstrap Gate, Company Profile, Model Gateway with Dynamic Model Discovery, CRM/ERP Connectors, OKF Ingestion, and System Ready state.
+- [x] Full-screen onboarding gate ensuring users cannot access the Dashboard shell until onboarding setup is completed.
 - [x] React UI Visual Workflow Editor with `@xyflow/react` node graph and real-time Inspector panel.
 - [x] React UI Event & Webhook Panel (`EventPanel.tsx`) with live payload tester and audit stream.
 - [x] Single authoritative architecture documentation (`docs/SYSTEM_ARCHITECTURE.md`) unified across all visual diagrams and system rules.
