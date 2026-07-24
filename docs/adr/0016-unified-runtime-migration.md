@@ -46,6 +46,7 @@ Adopt **Unified Target Architecture** as the single destination architecture for
 - **Phase 9 (Completed Template Alignment & Generic Workflow Publication)**: Aligned template catalogs with published agent specs, allowlisted model profiles, capability IDs, explicit executable/catalog-only metadata, and generic workflow publication rules while preserving read-only connectors.
 - **Phase 10 (Completed Cloud Opt-In Policy & Secret File Boundary)**: Enforced base local Compose execution without cloud provider/key requirements, explicit cloud opt-in, production secret file boundary, and egress proxy allowlist consistency.
 - **Phase 11 (Completed Content-Safe Telemetry, Production Kubernetes & Backup/Restore)**: Cleaned DBOS leftovers from backup/restore PowerShell routines, enforced content-safe telemetry boundary (excluding prompts, source bodies, evidence, secrets, and contact identifiers), and updated production Kubernetes manifests with agi-api control plane and agi-worker background worker topology without hardcoded secrets.
+- **Phase 12 (Completed React Web Console Control Plane Integration)**: Integrated Setup Wizard onboarding progress with backend persisted state, aligned Workflow Editor inspector with published agent/capability allowlist APIs, and ensured UI state survives refresh without synthetic success text or mock execution.
 
 ## Consequences
 

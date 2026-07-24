@@ -45,6 +45,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
 import type {
   AgentDefinitionView,
+  CapabilityDefinitionView,
   ModelProfileView,
   WorkflowDefinition,
   WorkflowScheduleView,
@@ -165,6 +166,7 @@ function Inspector({
   node,
   agents,
   modelProfiles,
+  capabilities,
   readOnly,
   onChange,
   onDelete,
@@ -172,6 +174,7 @@ function Inspector({
   node: FlowNode | null;
   agents: AgentDefinitionView[];
   modelProfiles: ModelProfileView[];
+  capabilities: CapabilityDefinitionView[];
   readOnly: boolean;
   onChange: (node: FlowNode) => void;
   onDelete: () => void;
@@ -179,6 +182,10 @@ function Inspector({
   if (!node) return <aside className="node-inspector node-inspector--empty"><SlidersHorizontal size={28} /><h2>Node seçin</h2><p>Konfigürasyonu burada düzenleyebilirsiniz.</p></aside>;
   const currentNode = node;
   const config = currentNode.data.config;
+  const availableCapIds = capabilities.length > 0
+    ? capabilities.map((c) => c.id)
+    : ["knowledge.search", "web.scrape", "crm.read", "erp.read", "metrics.calculate", "battlecard.generate", "mcp.query", "mcp.read_resource"];
+
   function updateConfig(key: string, value: unknown) {
     onChange({ ...currentNode, data: { ...currentNode.data, config: { ...config, [key]: value } } });
   }
@@ -211,7 +218,7 @@ function Inspector({
           <label style={{ display: "block", marginTop: "8px" }}>
             Atanan Skill'ler (Capabilities)
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px" }}>
-              {["knowledge.search", "web.scrape", "crm.read", "erp.read", "metrics.calculate", "battlecard.generate"].map((cap) => {
+              {availableCapIds.map((cap) => {
                 const currentCaps = Array.isArray(config.capabilities) ? (config.capabilities as string[]) : ["knowledge.search"];
                 const active = currentCaps.includes(cap);
                 return (
@@ -310,14 +317,17 @@ function EditorSurface({ userRoles }: { userRoles: string[] }) {
     setSchedules(scheduleResult.items);
   }, []);
 
+  const [capabilitiesList, setCapabilitiesList] = useState<CapabilityDefinitionView[]>([]);
+
   useEffect(() => {
-    Promise.all([api.workflow(), api.workflows(), api.agents(), api.modelProfiles()]).then(async ([definition, catalog, agentResult, profileResult]) => {
+    Promise.all([api.workflow(), api.workflows(), api.agents(), api.modelProfiles(), api.capabilities()]).then(async ([definition, catalog, agentResult, profileResult, capResult]) => {
       const latestAgents = agentResult.items.filter((agent, index, items) =>
         agent.status === "published"
         && items.findIndex((candidate) => candidate.id === agent.id && candidate.status === "published") === index,
       );
       setAgents(latestAgents);
       setModelProfiles(profileResult.items);
+      setCapabilitiesList(capResult.items);
 
       const userSummary = catalog.items.find((item) => item.id === "growth-diagnostic");
       let selected = definition;
@@ -546,7 +556,7 @@ function EditorSurface({ userRoles }: { userRoles: string[] }) {
             <Controls showInteractive={false} />
           </ReactFlow>
         </div>
-        <Inspector agents={agents} modelProfiles={modelProfiles} node={selectedNode} readOnly={readOnly} onChange={readOnly ? () => undefined : updateSelected} onDelete={() => { if (!readOnly && selectedId) setNodes((current) => current.filter((node) => node.id !== selectedId)); setSelectedId(null); }} />
+        <Inspector agents={agents} modelProfiles={modelProfiles} capabilities={capabilitiesList} node={selectedNode} readOnly={readOnly} onChange={readOnly ? () => undefined : updateSelected} onDelete={() => { if (!readOnly && selectedId) setNodes((current) => current.filter((node) => node.id !== selectedId)); setSelectedId(null); }} />
       </div>
       {actionError ? <div className="inline-alert inline-alert--error" role="alert">{actionError}</div> : null}
       <footer className="workflow-status"><span><GitBranch size={15} /> {nodes.length} node</span><span><i /> <strong>{validation}:</strong> {workflow?.id} v{workflow?.version ?? "–"}</span><span><Check size={15} /> {saved}</span></footer>

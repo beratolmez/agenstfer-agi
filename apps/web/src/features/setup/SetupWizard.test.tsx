@@ -7,6 +7,13 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("SetupWizard", () => {
   it("allows navigating onboarding steps and handles model probe failure gracefully", async () => {
+    vi.spyOn(api, "saveSetupProgress").mockResolvedValue({
+      current_step: 1,
+      completed_steps: [1],
+      configuration: {},
+      status: "in_progress",
+      updated_at: null,
+    });
     vi.spyOn(api, "setupProgress").mockResolvedValue({
       current_step: 0,
       completed_steps: [],

@@ -33,6 +33,7 @@ describe("WorkflowEditor", () => {
     vi.spyOn(api, "workflowVersions").mockResolvedValue({ items: [draft, published] });
     vi.spyOn(api, "workflowSchedules").mockResolvedValue({ items: [] });
     vi.spyOn(api, "agents").mockResolvedValue({ items: [] });
+    vi.spyOn(api, "capabilities").mockResolvedValue({ items: [] });
     vi.spyOn(api, "modelProfiles").mockResolvedValue({ items: [{
       id: "local-balanced", provider: "ollama", model: "qwen3.5:9b", local: true,
       enabled: true, configured: true, selected: true, available: true,

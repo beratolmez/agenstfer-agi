@@ -114,6 +114,16 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
       .then(([prog, profs]) => {
         setProgress(prog);
         setProfiles(profs.items);
+        if (prog.current_step > 1 && prog.status !== "completed") {
+          setActiveStep(prog.current_step);
+        }
+        if (prog.configuration) {
+          if (typeof prog.configuration.company_name === "string") setCompanyName(prog.configuration.company_name);
+          if (typeof prog.configuration.industry === "string") setIndustry(prog.configuration.industry);
+          if (typeof prog.configuration.objective === "string") setObjective(prog.configuration.objective);
+          if (typeof prog.configuration.provider === "string") setSelectedProvider(prog.configuration.provider);
+          if (typeof prog.configuration.model === "string") setModelName(prog.configuration.model);
+        }
         const cloudProf = profs.items.find((p) => p.id === "cloud-balanced" || p.id.startsWith("cloud-"));
         if (cloudProf && cloudProf.configured) {
           setProbeSuccess(true);
@@ -125,6 +135,22 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
         setLoading(false);
       });
   }, []);
+
+  const goToStep = (step: number) => {
+    setActiveStep(step);
+    api.saveSetupProgress({
+      current_step: step,
+      completed_steps: Array.from({ length: step }, (_, i) => i + 1),
+      configuration: {
+        company_name: companyName,
+        industry: industry,
+        objective: objective,
+        provider: selectedProvider,
+        model: modelName,
+      },
+      status: step >= 5 ? "completed" : "in_progress",
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     if (selectedProvider) {
@@ -252,7 +278,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                 <button
                   key={step.num}
                   type="button"
-                  onClick={() => setActiveStep(step.num)}
+                  onClick={() => goToStep(step.num)}
                   style={{
                     flex: 1,
                     padding: "8px 4px",
@@ -889,7 +915,25 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
 
             <button
               type="button"
-              onClick={onComplete}
+              onClick={async () => {
+                try {
+                  await api.saveSetupProgress({
+                    current_step: 5,
+                    completed_steps: [1, 2, 3, 4, 5],
+                    configuration: {
+                      company_name: companyName,
+                      industry: industry,
+                      objective: objective,
+                      provider: selectedProvider,
+                      model: modelName,
+                    },
+                    status: "completed",
+                  });
+                } catch {
+                  // Continue to complete wizard
+                }
+                onComplete();
+              }}
               style={{
                 background: "#059669",
                 color: "#ffffff",
