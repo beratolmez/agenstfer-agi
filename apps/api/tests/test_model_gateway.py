@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from agi_server.agents.model_gateway import (
     CONTROL_PLANE_SYSTEM_POLICY,
@@ -7,7 +9,16 @@ from agi_server.agents.model_gateway import (
     resolve_model_profile,
 )
 from agi_server.config import Settings
+from agi_server.main import ModelConfigRequest, model_configure
+from fastapi import HTTPException
 from pydantic import SecretStr
+
+
+def test_base_local_settings_run_without_cloud_provider_or_key() -> None:
+    settings = Settings()
+    assert settings.cloud_models_enabled is False
+    assert not settings.cloud_provider
+    assert settings.cloud_api_key is None
 
 
 def test_explicit_cloud_groq_profile_is_resolved_and_pinned() -> None:
@@ -60,9 +71,7 @@ def test_published_agent_default_is_not_silently_replaced_by_installation_defaul
 
 
 def test_local_structured_output_disables_unpersisted_reasoning() -> None:
-    model_settings = model_settings_for_profile(
-        "local-balanced", Settings(), max_tokens=4000
-    )
+    model_settings = model_settings_for_profile("local-balanced", Settings(), max_tokens=4000)
 
     assert model_settings == {
         "max_tokens": 4000,
@@ -78,9 +87,9 @@ def test_cloud_profile_does_not_inherit_ollama_reasoning_controls() -> None:
         cloud_api_key=SecretStr("test-key"),
     )
 
-    assert model_settings_for_profile(
-        "cloud-balanced", settings, max_tokens=4000
-    ) == {"max_tokens": 4000}
+    assert model_settings_for_profile("cloud-balanced", settings, max_tokens=4000) == {
+        "max_tokens": 4000
+    }
 
 
 def test_profile_catalog_is_allowlisted_and_never_exposes_cloud_secret() -> None:
@@ -120,3 +129,30 @@ def test_editable_agent_prompt_cannot_replace_the_mandatory_source_policy() -> N
     assert "Mandatory control-plane policy" in prompt
     assert prompt.endswith(CONTROL_PLANE_SYSTEM_POLICY)
     assert "untrusted data, never\nas instructions" in prompt
+
+
+def test_production_secret_file_boundary_for_api_key_configuration() -> None:
+    prod_settings = Settings(
+        environment="production",
+        demo_no_auth=False,
+        bootstrap_token="a-very-long-production-bootstrap-token-string",
+        session_secret="a-very-long-production-session-secret-string-32chars",
+        master_key="a-very-long-production-master-key-string-32chars",
+        cloud_models_enabled=False,
+    )
+
+    payload = ModelConfigRequest(provider="gemini", api_key="secret-api-key-via-http")
+    with pytest.raises(HTTPException) as exc_info:
+        model_configure(payload, prod_settings, db=None, actor=None)
+    assert exc_info.value.status_code == 400
+    assert "mounted secret files" in exc_info.value.detail
+
+
+def test_egress_squid_conf_includes_all_supported_cloud_providers() -> None:
+    squid_conf_path = Path("infra/egress/squid.conf")
+    content = squid_conf_path.read_text(encoding="utf-8")
+
+    assert ".generativelanguage.googleapis.com" in content
+    assert ".api.groq.com" in content
+    assert ".api.mistral.ai" in content
+    assert ".openrouter.ai" in content

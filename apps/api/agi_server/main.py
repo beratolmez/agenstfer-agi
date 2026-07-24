@@ -448,13 +448,28 @@ def model_configure(
             status_code=422,
             detail=f"Desteklenmeyen cloud provider: {payload.provider}",
         )
-    if payload.api_key:
-        settings.cloud_api_key = SecretStr(payload.api_key)
-    elif settings.cloud_api_key is None:
-        raise HTTPException(
-            status_code=422,
-            detail="API Key gereklidir. Lütfen API Key girin veya .env dosyasına tanımlayın.",
-        )
+    if settings.environment.lower() == "production":
+        if payload.api_key:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "In production mode, cloud API keys cannot be passed via API payload;"
+                    " use mounted secret files"
+                ),
+            )
+        if settings.cloud_api_key_file is None or settings.cloud_api_key is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Production cloud API keys must be mounted from secret files",
+            )
+    else:
+        if payload.api_key:
+            settings.cloud_api_key = SecretStr(payload.api_key)
+        elif settings.cloud_api_key is None:
+            raise HTTPException(
+                status_code=422,
+                detail="API Key gereklidir. Lütfen API Key girin veya secret dosyasına tanımlayın.",
+            )
     settings.cloud_models_enabled = True
     settings.cloud_provider = payload.provider
     if payload.model:

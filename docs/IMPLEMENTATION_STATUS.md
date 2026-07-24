@@ -24,6 +24,7 @@ This document is the authoritative statement of what the repository actually doe
 ### Model Gateway & Agent Runtime
 
 - [x] Model Gateway abstraction (`agents/model_gateway.py`) supporting Google Gemini API and local/cloud GPU Ollama endpoints with dynamic API key model discovery (`/api/models/discover`).
+- [x] Cloud opt-in deployment policy (`config.py`, `model_gateway.py`, `docker-compose.yml`, `docker-compose.cloud.yml`, `squid.conf`) running base local Compose without cloud provider/key requirements, enforcing explicit provider selection, mounted secret files in production, fail-closed data boundaries, and egress allowlists (ADR-0016 Phase 10).
 - [x] Pydantic AI structured output probes (`agents/probe.py`) validating model connectivity and contract schemas (`CompanyAnalysis`, `OpportunityHypotheses`, `EvidenceReview`, `OKFChangeSet`).
 - [x] Custom FastAPI Python agent execution runtime (`agents/runtime.py`) processing diagnostic steps with Pydantic AI helpers.
 - [x] Typed LangGraph `StateGraph` foundation module (`workflow/langgraph_runtime.py`) and runtime seam supporting compiled StateGraph execution with Pydantic AI contracts (ADR-0016 Phase 2).
@@ -63,5 +64,6 @@ The following components exist as target specifications, test stubs, or legacy a
 - **Phase 7 (Completed Approved Product-Owned MCP Gateway)**: Implemented product-owned read-only `MCPGateway` and `MCPProfile` persistence, rejecting arbitrary user-provided execution URLs.
 - **Phase 8 (Completed PostgreSQL Event Inbox & Durable Dispatch)**: Webhook events stored in PostgreSQL `EventInbox`, enforcing idempotency deduplication, trigger rule matching, and published workflow dispatch.
 - **Phase 9 (Completed Template Alignment & Generic Workflow Publication)**: Aligned template catalogs with published agent specs, allowlisted model profiles, capability IDs, explicit executable/catalog-only metadata, and generic workflow publication rules while preserving read-only connectors.
+- **Phase 10 (Completed Cloud Opt-In Policy & Secret File Boundary)**: Enforced base local Compose execution without cloud provider/key requirements, explicit cloud opt-in, production secret file boundary, and egress proxy allowlist consistency.
 
 
