@@ -111,6 +111,16 @@ export default function App() {
   if (!setupStatus) return <main className="auth-page"><div className="auth-error">API bağlantısı kurulamadı.</div></main>;
   if (setupStatus.auth_enabled && !user) return <AuthGate status={setupStatus} onAuthenticated={setUser} />;
 
+  if (view === "setup") {
+    return (
+      <main className="auth-page" style={{ padding: "40px 20px", display: "block", overflowY: "auto" }}>
+        <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
+          <SetupWizard onComplete={() => navigate("dashboard")} />
+        </div>
+      </main>
+    );
+  }
+
   const showTopbar = view !== "workflow";
   return (
     <div className="app-shell">
@@ -126,7 +136,6 @@ export default function App() {
             <WorkflowEditor userRoles={user?.roles ?? []} />
           </Suspense>
         ) : null}
-        {view === "setup" ? <SetupWizard onComplete={() => navigate("dashboard")} /> : null}
         {view === "sources" ? <Sources /> : null}
         {view === "events" ? <EventPanel /> : null}
         {view === "approvals" ? <ApprovalCenter /> : null}

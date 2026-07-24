@@ -478,6 +478,16 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                 {probing ? "Canlı Probe Test Ediliyor..." : "🔌 API Key & Modeli Canlı Test Et"}
               </button>
 
+              {error && activeStep === 2 && (
+                <div style={{ marginTop: "12px", background: "#fef2f2", border: "1px solid #fca5a5", padding: "14px 16px", borderRadius: "8px", color: "#991b1b" }}>
+                  <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>⚠️ Model Probe Testi Başarısız Oldu:</strong>
+                  <p style={{ fontSize: "13px", margin: "0 0 8px 0" }}>{error}</p>
+                  <span style={{ fontSize: "12px", color: "#7f1d1d", fontWeight: 600, display: "block" }}>
+                    💡 İpucu: Lütfen API anahtarınızı (API Key), seçtiğiniz modeli veya internet erişiminizi kontrol ediniz.
+                  </span>
+                </div>
+              )}
+
               {probeSuccess && (
                 <span style={{ color: "#059669", fontWeight: 600, fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
                   <CheckCircle2 size={16} /> Model Gateway ve Structured Output probe testi başarılı!
