@@ -25,7 +25,8 @@ CRON_PART = re.compile(r"^[0-9*/,\-]+$")
 def ensure_platform_registry(db: Session) -> None:
     specs = AgentRegistry().list()
     for spec in specs:
-        if db.get(AgentDefinitionRow, (spec.id, spec.version)) is None:
+        row = db.get(AgentDefinitionRow, (spec.id, spec.version))
+        if row is None:
             db.add(
                 AgentDefinitionRow(
                     id=spec.id,
@@ -35,9 +36,13 @@ def ensure_platform_registry(db: Session) -> None:
                     definition=spec.model_dump(mode="json"),
                 )
             )
+        elif row.status != "published":
+            row.status = "published"
+
     capabilities = sorted({item for spec in specs for item in spec.capabilities})
     for capability_id in capabilities:
-        if db.get(CapabilityDefinitionRow, (capability_id, 1)) is None:
+        row = db.get(CapabilityDefinitionRow, (capability_id, 1))
+        if row is None:
             db.add(
                 CapabilityDefinitionRow(
                     id=capability_id,
@@ -51,8 +56,12 @@ def ensure_platform_registry(db: Session) -> None:
                     },
                 )
             )
+        elif row.status != "published":
+            row.status = "published"
+
     workflow = build_default_workflow().model_copy(update={"status": "published"})
-    if db.get(WorkflowDefinitionRow, (workflow.id, workflow.version)) is None:
+    workflow_row = db.get(WorkflowDefinitionRow, (workflow.id, workflow.version))
+    if workflow_row is None:
         db.add(
             WorkflowDefinitionRow(
                 id=workflow.id,
@@ -62,6 +71,9 @@ def ensure_platform_registry(db: Session) -> None:
                 definition=workflow.model_dump(mode="json"),
             )
         )
+    else:
+        workflow_row.status = "published"
+        workflow_row.definition = workflow.model_dump(mode="json")
     db.commit()
 
 

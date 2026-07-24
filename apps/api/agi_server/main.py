@@ -343,9 +343,10 @@ async def model_probe(
             metadata={"error_type": type(error).__name__},
         )
         db.commit()
+        err_msg = str(error) or type(error).__name__
         raise HTTPException(
             status_code=409,
-            detail="Model structured-output probe tamamlanamadı",
+            detail=f"Model structured-output probe tamamlanamadı: {err_msg}",
         ) from error
     record_audit(
         db,

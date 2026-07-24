@@ -24,8 +24,8 @@ function initialView(): ViewId {
 }
 
 function AuthGate({ status, onAuthenticated }: { status: SetupStatus; onAuthenticated: (user: UserView) => void }) {
-  const [mode, setMode] = useState<"bootstrap" | "login">(status.bootstrap_required ? "bootstrap" : "login");
-  const [email, setEmail] = useState("");
+  const mode: "bootstrap" | "login" = status.bootstrap_required ? "bootstrap" : "login";
+  const [email, setEmail] = useState(() => localStorage.getItem("agi_remembered_email") || "");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [token, setToken] = useState("");
@@ -40,7 +40,10 @@ function AuthGate({ status, onAuthenticated }: { status: SetupStatus; onAuthenti
       const session = mode === "bootstrap"
         ? await api.bootstrap({ token, email, name, password })
         : await api.login({ email, password });
-      if (session.user) onAuthenticated(session.user);
+      if (session.user) {
+        localStorage.setItem("agi_remembered_email", email);
+        onAuthenticated(session.user);
+      }
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "Kimlik doğrulama tamamlanamadı");
     } finally {
@@ -64,7 +67,6 @@ function AuthGate({ status, onAuthenticated }: { status: SetupStatus; onAuthenti
             {error ? <div className="auth-error" role="alert">{error}</div> : null}
             <button className="primary-button" disabled={submitting} type="submit">{submitting ? "Kontrol ediliyor…" : mode === "bootstrap" ? "Yönetici oluştur" : "Oturum aç"}</button>
           </form>
-          {!status.bootstrap_required ? <button className="auth-mode" type="button" onClick={() => setMode("login")}>Mevcut hesapla oturum aç</button> : null}
         </div>
       </section>
     </main>

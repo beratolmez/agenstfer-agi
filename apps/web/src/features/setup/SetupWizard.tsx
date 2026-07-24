@@ -8,9 +8,9 @@ const PROVIDERS = [
     id: "gemini",
     name: "Google Gemini API",
     tag: "Free & Fast (Recommended)",
-    description: "Gemini 2.0 Flash / 1.5 Flash via Google AI Studio API key.",
+    description: "Gemini 2.0 Flash, 2.5 Flash, & 2.5 Flash-Lite via Google AI Studio API key.",
     defaultModel: "gemini-2.0-flash",
-    modelOptions: ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"],
+    modelOptions: ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro"],
   },
   {
     id: "groq",
