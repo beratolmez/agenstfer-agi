@@ -324,6 +324,25 @@ class OKFCandidate(Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class MCPProfile(Base):
+    __tablename__ = "mcp_profiles"
+    id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    name: Mapped[str] = mapped_column(String(160))
+    server_identity: Mapped[str] = mapped_column(String(160), index=True)
+    transport_type: Mapped[str] = mapped_column(String(40), default="stdio")
+    allowed_tools: Mapped[list[str]] = mapped_column(JSON, default=list)
+    timeout_seconds: Mapped[int] = mapped_column(Integer, default=30)
+    data_classification: Mapped[str] = mapped_column(String(30), default="internal")
+    read_only: Mapped[bool] = mapped_column(Boolean, default=True)
+    approved: Mapped[bool] = mapped_column(Boolean, default=True)
+    status: Mapped[str] = mapped_column(String(30), default="active", index=True)
+    configuration: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+
 settings = get_settings()
 if settings.database_url.startswith("sqlite"):
     Path("data").mkdir(exist_ok=True)

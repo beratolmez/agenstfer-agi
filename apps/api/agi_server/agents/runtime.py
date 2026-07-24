@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -18,6 +19,7 @@ from agi_server.agents.contracts import (
 from agi_server.agents.model_gateway import build_pydantic_ai_agent, resolve_model_profile
 from agi_server.agents.registry import AgentRegistry, ManagedAgentSpec
 from agi_server.config import Settings
+from agi_server.context import ExecutionContext
 from agi_server.db import CanonicalEntity, EvidenceItem
 from agi_server.domain.metrics import MetricSnapshot
 from agi_server.ingestion import resolve_evidence_excerpt
@@ -172,10 +174,10 @@ class ScopedCapabilityTools:
     def for_spec(
         self,
         spec: ManagedAgentSpec,
-        capability_allowlist: frozenset[str] | None = None,
+        capability_allowlist: frozenset[str] | Iterable[str] | None = None,
     ) -> list[Any]:
         capabilities = set(spec.capabilities)
-        if capability_allowlist is not None:
+        if capability_allowlist is not None and len(capability_allowlist) > 0:
             capabilities.intersection_update(capability_allowlist)
         tools: list[Any] = []
         if "knowledge.search" in capabilities:
@@ -207,7 +209,11 @@ async def run_managed_agent(
     model_override=None,
     spec_override: ManagedAgentSpec | None = None,
     capability_allowlist: frozenset[str] | None = None,
+    execution_context: ExecutionContext | None = None,
 ) -> AgentExecution:
+    if execution_context is not None:
+        execution_context.validate_privacy_boundary(cloud=tools.cloud)
+
     spec = spec_override or AgentRegistry().get(agent_id)
     if spec.id != agent_id:
         raise ValueError("Agent specification ID does not match requested agent")

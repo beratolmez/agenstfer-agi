@@ -417,6 +417,14 @@ async def resume_persisted_workflow(
     *,
     model_overrides: dict[str, Any] | None = None,
 ) -> WorkflowRun:
+    if workflow.id in {"builtin-growth-diagnostic"} or workflow.id.startswith("qualification-"):
+        from agi_server.workflow.langgraph_runtime import LangGraphWorkflowEngine
+
+        engine = LangGraphWorkflowEngine(
+            db, settings, run, workflow, model_overrides=model_overrides
+        )
+        return await engine.execute_workflow()
+
     validation = validate_workflow(workflow)
     if not validation.valid:
         raise ValueError([item.model_dump() for item in validation.issues])

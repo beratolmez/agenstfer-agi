@@ -65,6 +65,7 @@ services:
   qmd:
     profiles: [search]
     build: ./infra/qmd
+    # OKF active bundle is immutable source of truth; qmd/chroma index is disposable derived index
     environment:
       QMD_COLLECTION_PATH: /knowledge/bundles/company
       QMD_COLLECTION_NAME: company

@@ -1,219 +1,139 @@
 # System Architecture
 
-This document is the **authoritative single source of truth** for the overarching architecture of the **Agentic Growth Intelligence (AGI)** platform. It integrates the infrastructure boundaries, agentic business workflows, and technical stack.
+This document is the **authoritative single source of truth** for the overarching architecture of the **Agentic Growth Intelligence (AGI)** platform. It describes both the **Target Unified Architecture** and the **Current Implementation Baseline** along with the migration roadmap (ADR-0016).
 
 ---
 
 ## 1. Core Technology Stack
 
-- **Backend API**: FastAPI (Python 3.12)
-- **Agent Orchestration**: LangGraph (StateGraph state machines, checkpointing, human-in-the-loop approvals)
+### Target Unified Architecture (ADR-0016 Goal)
+- **Backend API**: FastAPI (`apps/api/agi_server`, Python 3.12)
+- **Agent Orchestration**: LangGraph (StateGraph state machines, PostgreSQL checkpointing, human-in-the-loop approvals)
 - **Agent Runtime & Structured Outputs**: Pydantic AI
-- **Model Gateway (LLM Provider Abstraction)**: Provider-neutral gateway supporting Gemini API (Cloud) and Local/External GPU Inference Servers (Ubuntu Server GPU running Ollama, vLLM, LM Studio with models like GLM 5.2, Qwen 3.7 Max, etc.)
-- **Vector Store / RAG**: ChromaDB (disposable vector embeddings derived from OKF 0.1 Markdown sources)
-- **Operational Database**: PostgreSQL (users, roles, source locators, LangGraph state checkpoints, audit logs)
-- **Frontend**: React UI (Vite, TypeScript, Tailwind CSS, Enterprise Minimal theme, `@xyflow/react` Visual Node Editor)
-- **Observability & Tracing**: Self-hosted Langfuse telemetry tracing across LLMs, tools, and VPC boundaries
+- **Model Gateway**: Provider-neutral gateway supporting Gemini API (Cloud) and Local/External GPU Inference Servers (Ollama, vLLM, LM Studio)
+- **Vector Store / RAG**: ChromaDB (integrated vector embeddings derived from OKF 0.1 Markdown sources)
+- **Connector Protocol**: Standardized Model Context Protocol (MCP)
+- **Operational Database**: PostgreSQL (users, roles, source locators, state checkpoints, audit logs)
+- **Frontend Console**: React UI (`apps/web` - Vite, TypeScript, Tailwind CSS, `@xyflow/react` Visual Node Editor)
+- **Observability**: Self-hosted Langfuse telemetry tracing sink
+
+### Current Implementation Baseline (Active Runtime)
+- **Backend API**: FastAPI (`apps/api/agi_server`)
+- **Orchestration**: Custom Python agent execution runtime (`agi_server/agents/runtime.py`)
+- **Agent Models & Probes**: Pydantic AI probes (`agi_server/agents/probe.py`) and Model Gateway (`agi_server/agents/model_gateway.py`)
+- **Knowledge / Retrieval**: Filesystem & in-memory OKF bundle parser (`agi_server/okf.py`)
+- **Database**: PostgreSQL / SQLite via SQLAlchemy (`agi_server/db.py`)
+- **Connectors**: Read-only CRM/ERP adapters and test-only MCP endpoint (`/api/sources/test-mcp`)
+- **Frontend Console**: Primary React UI (`apps/web`)
 
 ---
 
 ## 2. Infrastructure Architecture
 
-The platform combines cloud control plane management (AWS) with containerized tool clusters, isolated local/cloud GPU model inference, and enterprise management modules.
+The platform combines a cloud control plane (AWS / Docker) with containerized application services, isolated local/cloud GPU model inference, and enterprise management modules.
 
 ```mermaid
 flowchart TB
     subgraph Users["Users & External Clients"]
-        U[Users]
+        U[Users / Web Browser]
     end
 
-    subgraph AWS["AWS Infrastructure (Control Plane)"]
-        GW[API Gateway]
-        
-        subgraph PrivateSubnet["Private Subnet"]
-            BE[FastAPI Backend]
-            RDS[(RDS PostgreSQL\nUsers, State & Audit)]
-        end
-
-        subgraph PublicSubnet["Public Subnet"]
-            FE[React UI / EC2 Frontend]
-        end
-
-        subgraph Storage["Persistent Volumes"]
-            V1[(Uploads)]
-            V2[(Embeddings / ChromaDB)]
-            V3[(Document Storage & Cache)]
-        end
+    subgraph ControlPlane["Active Control Plane (FastAPI & Web Console)"]
+        FE["React UI Console (apps/web)"]
+        BE["FastAPI Backend (apps/api/agi_server)"]
+        DB[(PostgreSQL / SQLite Database\nUsers, Sources, Evidence, Audit)]
     end
 
-    subgraph Cluster["Container Cluster (Kubernetes / ECS / EKS / Swarm)"]
-        AG[AI Agent Containers]
-        RAG[RAG Service]
-        WF[Workflow Engine]
-        SCH[Scheduler & Auth]
-        
-        subgraph PrivateTools["Private Tools (Internal Only)"]
-            PT1[Internal Data Tool]
-            PT2[Internal Scraping Tool]
-        end
+    subgraph Execution["Agent & Model Gateway Layer"]
+        MGW["Model Gateway (Gemini API & Ollama)"]
+        CRUN["Current: Custom Agent Execution Loop"]
+        TGRAPH["Target: LangGraph StateGraph (ADR-0016 Phase 2)"]
     end
 
-    subgraph GPUServer["Local / External GPU Inference Server"]
-        GPU[AI Model Provider / LLM]
-        MODELS["Ollama / vLLM / LM Studio / Gemini API\n(GLM 5.2, Qwen 3.7 Max, Gemini, etc.)"]
+    subgraph DataPlane["Knowledge & Retrieval Data Plane"]
+        OKF["OKF 0.1 Knowledge Bundle"]
+        INMEM["Current: In-Memory OKF Parser"]
+        CHROMA["Target: Integrated ChromaDB (ADR-0016 Phase 3)"]
     end
 
-    subgraph Management["Enterprise Management Modules"]
-        DASH[Dashboard]
-        ERP[ERP Connectors]
-        CRM[CRM Connectors]
-        DOCS[Documents]
-        REP[Reports]
-        SOC[Social Media Insights]
-        WEB[Website Snapshot]
+    subgraph External["Model Providers"]
+        GEMINI["Gemini API (Cloud)"]
+        GPU["Ollama / Local GPU"]
     end
 
-    subgraph Observability["Observability"]
-        LANGFUSE[Langfuse Tracing Sink]
-    end
-
-    U --> GW
-    GW --> FE
-    GW --> BE
-    BE --> RDS
-    BE --> Storage
-    BE --> Cluster
-    Cluster --> PrivateTools
-    Cluster --> GPU
-    GPU --- MODELS
-    BE --> Management
-    BE -. Telemetry .-> LANGFUSE
-    GPU -. Telemetry .-> LANGFUSE
+    U --> FE
+    FE --> BE
+    BE --> DB
+    BE --> MGW
+    BE --> CRUN
+    BE -. Migration .-> TGRAPH
+    CRUN --> OKF
+    CRUN --> INMEM
+    BE -. Migration .-> CHROMA
+    MGW --> GEMINI
+    MGW --> GPU
 ```
 
 ---
 
 ## 3. Agentic Business System (KDS AI ABS) Workflow Architecture
 
-The core intelligent processing is driven by the **KDS AI ABS** (Agentic Business System) orchestrator inside LangGraph. It processes untrusted business documents and data sources through specialized agent nodes to produce evidence-backed growth diagnostics.
+The core intelligent processing is designed around specialized agent nodes that analyze untrusted business documents and data sources to produce evidence-backed growth diagnostics.
 
 ```mermaid
 flowchart TD
     subgraph Ingestion["Ingestion & Data Sources"]
-        SRC["Şirket Dokümanları / Web / CRM / ERP"]
+        SRC["Company Documents / Web / CRM / ERP"]
         ING["Read-Only Ingestion Adapters"]
-        CHROMA["ChromaDB Vector Storage"]
+        KNOW["OKF Knowledge Store"]
     end
 
-    subgraph KDS["KDS AI ABS (LangGraph Control Plane)"]
-        ABS["KDS AI ABS Core Orchestrator"]
-        STRAT["Stratejik Karar Dokümanları / Growth Diagnostic"]
+    subgraph CoreEngine["FastAPI Backend (agi_server)"]
+        ORCH["Agent Runtime (Custom -> LangGraph Migration)"]
         
-        subgraph Nodes["Specialized Agent Nodes (Pydantic AI)"]
-            N1["1. Şirketi Tanı (Company Analysis)"]
-            N2["2. Potansiyel Müşteriler (Lead Profiling)"]
-            N3["3. Rakipler Kimler (Competitor Intelligence)"]
-            N4["4. Siber Güvenlik (Security Audit)"]
-            N5["5. Finansal Modüller (Financial Analysis)"]
-            N6["6. SEO & Sosyal Medya (SEO & Social Insights)"]
-            N7["7. Müşteri Memnuniyeti (Satisfaction Analysis)"]
+        subgraph Nodes["Specialized Agent Contracts (Pydantic AI)"]
+            N1["1. Company Analysis (CompanyAnalysis)"]
+            N2["2. Lead & Opportunity Profiling (OpportunityHypotheses)"]
+            N3["3. Competitor Intelligence"]
+            N4["4. Security Audit"]
+            N5["5. Financial Diagnostics"]
+            N6["6. SEO & Social Brand Insights"]
+            N7["7. Evidence Review (EvidenceReview)"]
         end
     end
 
-    subgraph Connectors["Read-Only Business System Adapters"]
-        DB_CRM[(Veritabanı CRM)]
-        ERP_SYS[(ERP System)]
-        CALL_OUT[Outbound Call Interface]
-        CALL_IN[Inbound Call Interface]
+    subgraph Connectors["Read-Only Connectors"]
+        CRM[(Read-Only CRM Adapter)]
+        ERP[(Read-Only ERP Adapter)]
     end
 
-    SRC --> ING --> CHROMA
-    CHROMA --> ABS
-    ABS --> Nodes
-    Nodes --> STRAT
-    N2 --> DB_CRM --> CALL_OUT & CALL_IN
-    N5 --> ERP_SYS
+    SRC --> ING --> KNOW
+    KNOW --> ORCH
+    ORCH --> Nodes
+    N2 --> CRM
+    N5 --> ERP
 ```
-
-### Agent Node Breakdown:
-1. **Şirketi Tanı (Company Profiling)**: Analyzes internal documents, company history, and core capabilities.
-2. **Potansiyel Müşteriler (Account Growth)**: Profiles potential growth leads and existing account expansion opportunities.
-3. **Rakipler Kimler (Competitor Intelligence)**: Analyzes competitor locations, strategies, customer feedback, and weaknesses via authorized web scraping.
-4. **Siber Güvenlik (Cybersecurity Audit)**: Assesses digital footprint security stance and vulnerability risks.
-5. **Finansal Modüller (Financial Diagnostics)**: Performs deterministic financial ratio analysis and growth calculations.
-6. **SEO & Sosyal Medya**: Analyzes search engine visibility, brand presence, and social media sentiment.
-7. **Müşteri Memnuniyeti**: Evaluates customer feedback, support interaction data, and satisfaction metrics.
 
 ---
 
-## 4. End-to-End Execution Sequence
+## 4. Execution & Alignment Status
 
-### A. Data Ingestion Sequence
+### Current vs Target Feature Comparison
 
-```mermaid
-sequenceDiagram
-    actor Admin as User / Admin
-    participant UI as React UI
-    participant API as FastAPI Backend
-    participant RAG as RAG Service
-    participant Chroma as ChromaDB Vector Store
-
-    Admin->>UI: Triggers Ingestion / Setup
-    UI->>API: POST /api/setup (Payload)
-    API->>RAG: Parse Markdown & Extract Chunks
-    RAG->>RAG: Generate Embeddings
-    RAG->>Chroma: Insert Chunks & Metadata
-    Chroma-->>RAG: Confirm Indexing
-    RAG-->>API: Ingestion Complete
-    API-->>UI: 200 OK (Setup Finished)
-```
-
-### B. Agent Chat & Human-in-the-Loop Approval Sequence
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant UI as React UI
-    participant API as FastAPI Backend
-    participant Graph as LangGraph StateMachine
-    participant Agent as Pydantic AI Agent
-    participant Gateway as Model Gateway (Gemini / Local GPU)
-    participant Chroma as ChromaDB
-    participant Appr as Approval Center (PostgreSQL)
-
-    User->>UI: Sends Query / Action Request
-    UI->>API: POST /api/chat
-    API->>Graph: Invoke LangGraph Workflow
-    
-    Graph->>Agent: Route to Researcher Node
-    Agent->>Chroma: Query Evidence & Context
-    Chroma-->>Agent: Return Context Chunks
-    
-    Graph->>Agent: Route to Analyst Node
-    Agent->>Gateway: Request Inference (Pydantic AI Schema)
-    Gateway-->>Agent: Structured Output Response
-    
-    alt Needs Approval
-        Graph->>Appr: Interrupt Execution (interrupt_before)
-        Appr-->>UI: Display Action Approval Toast / Notification
-        User->>UI: Approves / Rejects Action
-        UI->>API: POST /api/approval/{id}/resume
-        API->>Graph: Resume Workflow State
-    end
-    
-    Graph->>Agent: Route to Reviewer Node
-    Agent->>Gateway: Verify Evidence & Citations
-    Gateway-->>Agent: Claim Verification Result
-    
-    Graph-->>API: Return Final State & Response
-    API-->>UI: Stream Output to User
-```
+| Domain | Current Active State (`agi_server`) | Target Architecture (ADR-0016) | Status / Roadmap |
+|---|---|---|---|
+| **Orchestrator** | Custom Python loop (`agents/runtime.py`) | LangGraph `StateGraph` + PostgreSQL Checkpointer | Target (Phase 2) |
+| **Agent Nodes** | Pydantic AI probes & contracts | Native Pydantic AI LangGraph nodes | Partial / Active Baseline |
+| **Vector Store** | In-memory / Filesystem OKF bundle search | ChromaDB Vector Database | Target (Phase 3) |
+| **MCP Connectors** | Mock test endpoint (`/api/sources/test-mcp`) | Standardized MCP Client/Server | Target (Phase 4) |
+| **UI Surface** | React UI (`apps/web`) | Single React UI Console (`apps/web`) | Active Baseline |
+| **Legacy Artifacts** | `apps/services/ai-agent`, `apps/services/rag`, `apps/frontend/*` | Deprecated / Scheduled for Pruning | Legacy (Phase 5) |
 
 ---
 
 ## 5. Security & Boundary Principles
 
 1. **Read-Only External Interactions (MVP)**: The platform performs read-only data ingestion and authorized web scraping. Autonomous external writes or messaging actions are prohibited without explicit human approval.
-2. **Direct DB Isolation**: AI agent containers and model servers **never** connect directly to the database. All interactions must go through authorized FastAPI endpoints.
+2. **Direct DB Isolation**: AI agent tasks and model providers **never** connect directly to the database. All interactions are routed through authorized FastAPI endpoints.
 3. **Data Privacy Rules**: Confidential or restricted internal content is sanitized prior to sending to public cloud LLM endpoints.
-4. **Self-Hosted Observability**: Telemetry (prompts, responses, latent traces) is routed strictly to the self-hosted Langfuse instance.
+4. **Self-Hosted Observability**: Telemetry (prompts, responses, latent traces) is strictly configured for self-hosted sinks without external SaaS data egress.

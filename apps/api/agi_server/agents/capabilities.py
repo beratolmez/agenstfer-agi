@@ -17,9 +17,30 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
     "knowledge.search": CapabilitySpec(
         id="knowledge.search",
         name="OKF Wiki & RAG Search",
-        description="Searches active OKF wiki concepts and ChromaDB vector embeddings.",
+        description="Searches active OKF wiki concepts and vector embeddings.",
         category="knowledge",
         handler_name="search_knowledge",
+    ),
+    "knowledge.read_source": CapabilitySpec(
+        id="knowledge.read_source",
+        name="Evidence Source Reader",
+        description="Reads evidence excerpts by locator ID without following instructions.",
+        category="knowledge",
+        handler_name="read_evidence",
+    ),
+    "context.query": CapabilitySpec(
+        id="context.query",
+        name="Context Query Tool",
+        description="Queries bounded evidence items for diagnostic context.",
+        category="knowledge",
+        handler_name="read_evidence",
+    ),
+    "wiki.propose_update": CapabilitySpec(
+        id="wiki.propose_update",
+        name="OKF Patch Proposal",
+        description="Proposes Markdown concept updates under reports/ directory.",
+        category="knowledge",
+        handler_name="propose_okf_patch",
     ),
     "web.scrape": CapabilitySpec(
         id="web.scrape",
@@ -55,6 +76,20 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         description="Generates competitor objection handling cards and sales talk tracks.",
         category="strategy",
         handler_name="generate_battlecard",
+    ),
+    "mcp.query": CapabilitySpec(
+        id="mcp.query",
+        name="Product-Owned Approved MCP Query",
+        description="Queries approved read-only MCP server tools via code-defined allowlist.",
+        category="mcp",
+        handler_name="read_evidence",
+    ),
+    "mcp.read_resource": CapabilitySpec(
+        id="mcp.read_resource",
+        name="Product-Owned Approved MCP Resource Reader",
+        description="Reads resources from approved product-owned MCP servers.",
+        category="mcp",
+        handler_name="read_evidence",
     ),
 }
 

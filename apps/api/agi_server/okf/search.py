@@ -15,6 +15,7 @@ class SearchHit:
     score: float
     snippet: str
     engine: str
+    locator: str | None = None
 
 
 class KnowledgeSearch:
@@ -36,11 +37,16 @@ class KnowledgeSearch:
                     if isinstance(rows, list):
                         return [
                             SearchHit(
-                                path=str(row.get("file") or row.get("path")),
-                                title=str(row.get("title") or row.get("file")),
+                                path=str(row.get("file") or row.get("path") or "concept.md"),
+                                title=str(row.get("title") or row.get("file") or "Untitled"),
                                 score=float(row.get("score") or 0),
                                 snippet=str(row.get("snippet") or row.get("content") or "")[:320],
-                                engine="qmd",
+                                engine=str(row.get("engine") or "chroma"),
+                                locator=str(
+                                    row.get("locator")
+                                    or row.get("evidence_id")
+                                    or f"ev_{row.get('file') or row.get('path') or 'concept'}"
+                                ),
                             )
                             for row in rows[:limit]
                         ]
@@ -49,19 +55,23 @@ class KnowledgeSearch:
         return self._lexical(clean_query, limit)
 
     def _lexical(self, query: str, limit: int) -> list[SearchHit]:
-        terms = {term.lower() for term in re.findall(r"[\wçğıöşüÇĞİÖŞÜ-]+", query) if len(term) > 1}
+        terms = {
+            term.lower() for term in re.findall(r"[\wçğıöşüÇĞİÖŞÜ-]+", query) if len(term) > 1
+        }
         hits: list[SearchHit] = []
         for concept in self.bundle.list_concepts():
             haystack = f"{concept.title}\n{concept.body}".lower()
             matched = sum(haystack.count(term) for term in terms)
             if matched:
+                clean_body = " ".join(concept.body.replace("#", "").split())
                 hits.append(
                     SearchHit(
                         path=concept.path,
                         title=concept.title,
                         score=float(matched),
-                        snippet=" ".join(concept.body.replace("#", "").split())[:320],
+                        snippet=clean_body[:320],
                         engine="lexical-fallback",
+                        locator=f"ev_concept_{concept.path}",
                     )
                 )
         return sorted(hits, key=lambda item: (-item.score, item.path))[:limit]
