@@ -45,16 +45,14 @@ Treat vision documents as immutable sources. Record revised decisions in the arc
 - A model integration is not complete until a real structured-output probe and golden evaluation pass.
 - Never label deterministic fixtures or placeholders as agent execution.
 - Update `docs/IMPLEMENTATION_STATUS.md` in the same change that materially changes capability status.
-- Add or supersede an ADR for durable architecture or security decisions.
+- Add or supersede an ADR in `docs/adr/` for durable architecture, UI flow, model gateway, or security decisions.
+- Synchronize `docker-compose.yml` and rebuild/recreate containers whenever environment variables, default model names, or UI builds change.
 
-## Required verification
+## Mandatory Task Handoff Protocol
 
-Run `scripts/project-check.ps1` on Windows or `scripts/project-check.sh` on Linux before handoff.
+Before presenting completion to the user, the agent MUST strictly perform the following steps automatically without waiting for user reminders:
 
-- Backend change (FastAPI/LangGraph/Pydantic AI): Ruff and backend tests.
-- Frontend change (React UI): frontend tests and production build.
-- Compose/configuration change: compose config validation.
-- Database change: upgrade from an empty database and from the previous revision.
-- Workflow/approval change: LangGraph state idempotency and restart/resume coverage.
-- Agent/model/retrieval change: golden evaluation and unsupported-claim checks using ChromaDB.
-- Security boundary change: update the threat model and add a negative test.
+1. Update `docs/IMPLEMENTATION_STATUS.md` and add/update an ADR in `docs/adr/`.
+2. Update `docker-compose.yml` and execute `docker compose up -d --build --force-recreate` if compose configs or UI assets change.
+3. Run `scripts/project-check.ps1` on Windows or `scripts/project-check.sh` on Linux to verify 100% clean test passes.
+4. Commit and push all changes to the remote Git repository (`origin main`).
