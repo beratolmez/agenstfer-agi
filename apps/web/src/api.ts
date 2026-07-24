@@ -99,6 +99,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  discoverModels: (provider: string, apiKey?: string) =>
+    request<{ provider: string; models: string[]; dynamic: boolean }>("/api/models/discover", {
+      method: "POST",
+      body: JSON.stringify({ provider, api_key: apiKey }),
+    }),
   probeModel: (profile?: string) => request<{
     ready: boolean;
     profile: string;

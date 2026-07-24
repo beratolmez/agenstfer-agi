@@ -364,6 +364,67 @@ async def model_probe(
     return result
 
 
+class ModelDiscoverRequest(BaseModel):
+    provider: str
+    api_key: str | None = None
+
+
+@app.post("/api/models/discover")
+async def model_discover(
+    payload: ModelDiscoverRequest,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> dict[str, Any]:
+    provider = payload.provider.lower()
+    api_key = payload.api_key.strip() if payload.api_key else None
+    if not api_key and settings.cloud_api_key:
+        api_key = settings.cloud_api_key.get_secret_value()
+
+    discovered_models: list[str] = []
+    if provider == "gemini" and api_key:
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+                res = await client.get(url)
+                if res.status_code == 200:
+                    data = res.json()
+                    models_list = data.get("models", [])
+                    for item in models_list:
+                        name = item.get("name", "")
+                        if name.startswith("models/"):
+                            name = name[7:]
+                        ignored = ["embedding", "imagen", "aqa"]
+                        if "gemini" in name.lower() and not any(x in name for x in ignored):
+                            discovered_models.append(name)
+        except Exception:
+            pass
+
+    if not discovered_models:
+        if provider == "gemini":
+            discovered_models = [
+                "gemini-3.6-flash",
+                "gemini-3.5-flash-lite",
+                "gemini-2.5-flash",
+                "gemini-2.0-flash",
+            ]
+        elif provider == "groq":
+            discovered_models = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"]
+        elif provider == "mistral":
+            discovered_models = ["mistral-small-latest", "mistral-medium-latest"]
+        elif provider == "openrouter":
+            discovered_models = [
+                "google/gemini-2.5-flash-free",
+                "meta-llama/llama-3.3-70b-instruct:free",
+            ]
+        else:
+            discovered_models = ["default"]
+
+    return {
+        "provider": provider,
+        "models": discovered_models,
+        "dynamic": len(discovered_models) > 0 and provider == "gemini" and bool(api_key),
+    }
+
+
 class ModelConfigRequest(BaseModel):
     provider: str
     api_key: str | None = None

@@ -13,7 +13,7 @@ def test_cloud_providers_registry():
 
     gemini_base_url, gemini_model = CLOUD_PROVIDERS["gemini"]
     assert "googleapis" in gemini_base_url
-    assert gemini_model == "gemini-2.0-flash"
+    assert gemini_model == "gemini-3.6-flash"
 
 
 def test_resolve_cloud_model_profile():

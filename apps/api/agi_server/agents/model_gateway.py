@@ -20,7 +20,7 @@ PROFILES = {
 }
 
 CLOUD_PROVIDERS = {
-    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.0-flash"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-3.6-flash"),
     "groq": ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
     "mistral": ("https://api.mistral.ai/v1", "mistral-small-latest"),
     "openrouter": ("https://openrouter.ai/api/v1", "google/gemini-2.5-flash-free"),

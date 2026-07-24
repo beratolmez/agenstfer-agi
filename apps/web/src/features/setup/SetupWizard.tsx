@@ -8,9 +8,9 @@ const PROVIDERS = [
     id: "gemini",
     name: "Google Gemini API",
     tag: "Free & Fast (Recommended)",
-    description: "Gemini 2.0 Flash, 2.5 Flash, & 2.5 Flash-Lite via Google AI Studio API key.",
-    defaultModel: "gemini-2.0-flash",
-    modelOptions: ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro"],
+    description: "Gemini 3.6 Flash, 3.5 Flash-Lite, 2.5 Flash & 2.0 Flash via Google AI Studio API key.",
+    defaultModel: "gemini-3.6-flash",
+    modelOptions: ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash"],
   },
   {
     id: "groq",
@@ -50,10 +50,12 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [industry, setIndustry] = useState("Industrial Automation");
   const [objective, setObjective] = useState("B2B Lead Generation & Competitor Intelligence");
 
-  // Step 2: Model Provider
+  // Step 2: Model Provider & Discovery
   const [selectedProvider, setSelectedProvider] = useState("gemini");
   const [apiKey, setApiKey] = useState("");
-  const [modelName, setModelName] = useState("gemini-2.0-flash");
+  const [modelName, setModelName] = useState("gemini-3.6-flash");
+  const [dynamicModels, setDynamicModels] = useState<string[]>([]);
+  const [isDiscovering, setIsDiscovering] = useState(false);
   const [probing, setProbing] = useState(false);
   const [probeSuccess, setProbeSuccess] = useState(false);
 
@@ -123,6 +125,24 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    if (selectedProvider) {
+      setIsDiscovering(true);
+      api
+        .discoverModels(selectedProvider, apiKey.trim() || undefined)
+        .then((res) => {
+          if (res.models && res.models.length > 0) {
+            setDynamicModels(res.models);
+            if (!res.models.includes(modelName)) {
+              setModelName(res.models[0]);
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => setIsDiscovering(false));
+    }
+  }, [selectedProvider, apiKey]);
 
   const handleConfigureAndProbe = async () => {
     setError(null);
@@ -425,10 +445,12 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
               </label>
 
               <label style={{ display: "block" }}>
-                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>Model Adı (Önerilenler)</span>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>
+                  Model Adı {isDiscovering ? "(Modeller Keşfediliyor...)" : dynamicModels.length > 0 ? "(API Key İle Keşfedilen Modeller)" : "(Önerilenler)"}
+                </span>
                 {(() => {
                   const currentProv = PROVIDERS.find((p) => p.id === selectedProvider);
-                  const options = currentProv?.modelOptions || [modelName];
+                  const options = dynamicModels.length > 0 ? dynamicModels : (currentProv?.modelOptions || [modelName]);
                   return (
                     <select
                       value={modelName}
