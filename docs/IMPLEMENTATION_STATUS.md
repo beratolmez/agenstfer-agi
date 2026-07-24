@@ -19,6 +19,7 @@ This document is the authoritative statement of what the repository actually doe
 - [x] Filesystem & In-Memory OKF (Open Knowledge Format) bundle parsing (`FileSystemOKFBundle`) as immutable source of truth.
 - [x] ChromaDB / QMD vector retrieval integration (`okf/search.py`, `rag_service/retrieve.py`) using active OKF bundle as source of truth, with automatic lexical fallback when vector service is unreachable, bounded 320-char snippets, and `ev_...` locator provenance (ADR-0016 Phase 6).
 - [x] Approved Product-Owned MCP Client Gateway (`mcp.py`, `MCPProfile` DB model, Alembic migration `20260724_0008`) operating strictly on approved, read-only MCP profiles with code-defined tool allowlists, rejecting arbitrary user-provided URLs as execution authority (ADR-0016 Phase 7).
+- [x] PostgreSQL `EventInbox` persistence and `EventDispatchQueue` worker (`events.py`, `triggers.py`, `scheduler.py`, Alembic migration `20260724_0009`) ingesting untrusted webhook payloads, enforcing idempotency deduplication, matching approved trigger rules, and executing strictly published workflow versions (ADR-0016 Phase 8).
 
 ### Model Gateway & Agent Runtime
 
@@ -59,5 +60,6 @@ The following components exist as target specifications, test stubs, or legacy a
 - **Phase 5 (Completed Capability Allowlist Alignment)**: Published agent capability specs and runtime tool injection aligned to a single code-defined allowlist registry (`capabilities.py`), enforcing capability narrowing rules.
 - **Phase 6 (Completed Active OKF & Chroma Retrieval)**: Knowledge retrieval integrated with ChromaDB disposable derived index using active OKF bundle as source of truth and seamless lexical fallback.
 - **Phase 7 (Completed Approved Product-Owned MCP Gateway)**: Implemented product-owned read-only `MCPGateway` and `MCPProfile` persistence, rejecting arbitrary user-provided execution URLs.
+- **Phase 8 (Completed PostgreSQL Event Inbox & Durable Dispatch)**: Webhook events stored in PostgreSQL `EventInbox`, enforcing idempotency deduplication, trigger rule matching, and published workflow dispatch.
 
 

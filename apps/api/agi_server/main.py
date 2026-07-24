@@ -500,34 +500,40 @@ def list_trigger_events(limit: int = 50) -> dict[str, Any]:
 def receive_webhook(
     source_id: str,
     payload: WebhookPayloadRequest,
+    request: Request,
     db: Annotated[Session, Depends(get_db)],
     actor: Annotated[User | None, Depends(current_user_optional)] = None,
 ) -> dict[str, Any]:
-    from agi_server.workflow.triggers import trigger_engine
+    from agi_server.workflow.events import ingest_webhook_event
 
-    matched_rules = trigger_engine.match_rules(payload.event_type)
-    status = "triggered" if matched_rules else "no_match"
-    evt = trigger_engine.record_event(source_id, payload.event_type, payload.data, status=status)
+    idempotency_key = request.headers.get("Idempotency-Key")
+    inbox_row, dispatches = ingest_webhook_event(
+        db,
+        source_id,
+        payload.event_type,
+        payload.data,
+        idempotency_key=idempotency_key,
+    )
 
     record_audit(
         db,
         actor_id=None if actor is None else actor.id,
         action="webhook.received",
         target_type="webhook",
-        target_id=evt["id"],
+        target_id=inbox_row.id,
         metadata={
             "source_id": source_id,
             "event_type": payload.event_type,
-            "matched_rules": [r.id for r in matched_rules],
+            "matched_rules_count": inbox_row.matched_rules_count,
         },
     )
     db.commit()
 
     return {
-        "event_id": evt["id"],
-        "status": status,
-        "matched_rules_count": len(matched_rules),
-        "triggered_workflows": [r.target_workflow_id for r in matched_rules],
+        "event_id": inbox_row.id,
+        "status": inbox_row.status,
+        "matched_rules_count": inbox_row.matched_rules_count,
+        "triggered_workflows": [d.target_workflow_id for d in dispatches],
     }
 
 

@@ -112,9 +112,72 @@ def expire_approvals(db: Session, now: datetime | None = None) -> int:
     return len(rows)
 
 
+async def dispatch_queued_events(
+    db: Session,
+    settings: Settings,
+) -> list[str]:
+    from agi_server.db import EventDispatchQueue, EventInbox
+
+    dispatched_run_ids: list[str] = []
+    stmt = (
+        select(EventDispatchQueue)
+        .where(EventDispatchQueue.status == "queued")
+        .with_for_update(skip_locked=True)
+    )
+    queued_items = list(db.scalars(stmt))
+
+    for item in queued_items:
+        version = item.target_workflow_version
+        if version is None:
+            stmt_wf = select(WorkflowDefinitionRow).where(
+                WorkflowDefinitionRow.id == item.target_workflow_id,
+                WorkflowDefinitionRow.status == "published",
+            )
+            wf_row = db.scalars(stmt_wf).first()
+            if wf_row is None:
+                item.status = "skipped"
+                item.error = "Target workflow is not published"
+                db.commit()
+                continue
+            version = wf_row.version
+        else:
+            wf_row = db.get(WorkflowDefinitionRow, (item.target_workflow_id, version))
+
+        if wf_row is None or wf_row.status != "published":
+            item.status = "skipped"
+            item.error = "Target workflow is not published"
+            db.commit()
+            continue
+
+        inbox_event = db.get(EventInbox, item.event_id)
+        payload = inbox_event.payload if inbox_event else {}
+
+        try:
+            run = await start_persisted_workflow(
+                db,
+                settings,
+                wf_row,
+                f"event:{item.event_id}",
+                actor_id=None,
+                input_json={"event_id": item.event_id, "payload": payload},
+            )
+            item.status = "dispatched"
+            item.workflow_run_id = run.id
+            item.dispatched_at = datetime.now(UTC)
+            db.commit()
+            dispatched_run_ids.append(run.id)
+        except Exception as exc:
+            item.status = "failed"
+            item.error = str(exc)
+            db.commit()
+
+    return dispatched_run_ids
+
+
 async def scheduler_loop(settings: Settings) -> None:
     while True:
         with SessionLocal() as db:
             expire_approvals(db)
             await run_due_schedules(db, settings)
+            await dispatch_queued_events(db, settings)
         await asyncio.sleep(30)

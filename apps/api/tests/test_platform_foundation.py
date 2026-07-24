@@ -27,7 +27,7 @@ def test_explicit_migration_upgrades_empty_database(tmp_path: Path) -> None:
     assert LEGACY_TABLES.issubset(inspect(engine).get_table_names())
     with engine.connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
-        assert revision == "20260724_0008"
+        assert revision == "20260724_0009"
     engine.dispose()
 
 
@@ -44,7 +44,7 @@ def test_known_legacy_scaffold_is_stamped_without_recreating_tables(tmp_path: Pa
     engine = create_engine(url)
     with engine.connect() as connection:
         revision = connection.scalar(text("SELECT version_num FROM alembic_version"))
-        assert revision == "20260724_0008"
+        assert revision == "20260724_0009"
     engine.dispose()
 
 

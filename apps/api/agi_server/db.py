@@ -343,6 +343,32 @@ class MCPProfile(Base):
     )
 
 
+class EventInbox(Base):
+    __tablename__ = "event_inbox"
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    source_id: Mapped[str] = mapped_column(String(120), index=True)
+    event_type: Mapped[str] = mapped_column(String(120), index=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(160), index=True, nullable=True)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(30), default="received", index=True)
+    matched_rules_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class EventDispatchQueue(Base):
+    __tablename__ = "event_dispatch_queue"
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    event_id: Mapped[str] = mapped_column(ForeignKey("event_inbox.id"), index=True)
+    trigger_rule_id: Mapped[str] = mapped_column(String(120), index=True)
+    target_workflow_id: Mapped[str] = mapped_column(String(120), index=True)
+    target_workflow_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="queued", index=True)
+    workflow_run_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 settings = get_settings()
 if settings.database_url.startswith("sqlite"):
     Path("data").mkdir(exist_ok=True)
