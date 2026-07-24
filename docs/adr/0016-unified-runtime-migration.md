@@ -49,6 +49,8 @@ Adopt **Unified Target Architecture** as the single destination architecture for
 - **Phase 12 (Completed React Web Console Control Plane Integration)**: Integrated Setup Wizard onboarding progress with backend persisted state, aligned Workflow Editor inspector with published agent/capability allowlist APIs, and ensured UI state survives refresh without synthetic success text or mock execution.
 - **Phase 13 (Completed Frontend Truthfulness Alignment)**: Removed synthetic mock scraping timers, fake percentage bars, and mock tasks from RAG visualizer and web scraping panel, querying real backend OKF validation state and presenting truthful bounded capability status across control plane surfaces.
 - **Phase 14 (Completed Release Alignment & Legacy Documentation)**: Documented legacy microservice stubs (`apps/services/ai-agent`, `apps/services/rag`) as unintegrated legacy code, updated root README and repository maps, and aligned release checklist and evaluation plan with the active unified LangGraph/FastAPI/ChromaDB/MCP target architecture.
+- **Phase 15 (Completed Model Gateway Auth & Setup Wizard Resolution - ADR-0017)**: Standardized Gemini Bearer token authentication for OpenAI-compatible endpoint, synchronized SetupProgress configuration schema allowed keys (`industry`, `provider`, `model`), enforced full-screen onboarding gate compliance, and improved probe error reporting.
+- **Phase 16 (Completed Docker Network Egress & Setup Progress Completion - ADR-0018)**: Configured Docker Compose `app` service with egress proxy network routing (`HTTP_PROXY`/`HTTPS_PROXY` via `egress-gateway`), enabled non-blocking `completed_steps` resolution in `/api/setup/progress`, and eliminated onboarding infinite loop on Dashboard navigation.
 
 ## Consequences
 

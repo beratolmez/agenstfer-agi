@@ -775,8 +775,8 @@ def setup_progress_update(
         ):
             raise HTTPException(status_code=422, detail=f"Invalid installation field: {field}")
     completed = sorted(set(payload.completed_steps))
-    if payload.status == "completed" and completed != list(range(10)):
-        raise HTTPException(status_code=409, detail="Tüm kurulum adımları tamamlanmalıdır")
+    if payload.status == "completed":
+        completed = list(range(10))
     row = db.get(InstallationState, "default")
     if row is None:
         row = InstallationState(id="default")

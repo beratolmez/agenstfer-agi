@@ -15,6 +15,9 @@ services:
       AGI_MODEL_PROFILE: ${AGI_MODEL_PROFILE:-local-balanced}
       AGI_QMD_URL: http://qmd:8181
       AGI_CLOUD_MODELS_ENABLED: ${AGI_CLOUD_MODELS_ENABLED:-false}
+      HTTPS_PROXY: ${HTTPS_PROXY:-http://egress-gateway:3128}
+      HTTP_PROXY: ${HTTP_PROXY:-http://egress-gateway:3128}
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,postgres,ollama,qmd,egress-gateway,web-proxy}
     volumes:
       - knowledge_data:/data/knowledge
     depends_on:
@@ -25,7 +28,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-    networks: [core]
+    networks: [core, egress]
     restart: unless-stopped
 
   web-proxy:
@@ -81,7 +84,6 @@ services:
     networks: [core, ingress]
 
   egress-gateway:
-    profiles: [cloud]
     image: ubuntu/squid:6.10-24.10_edge@sha256:c9f5212b147a766529c7b026e2bebed37b998d33d0066b658596af5eba7cc65c
     volumes:
       - ./infra/egress/squid.conf:/etc/squid/squid.conf:ro
