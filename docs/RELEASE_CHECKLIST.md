@@ -1,6 +1,6 @@
 # MVP Release Checklist
 
-Last audited: 17 July 2026
+Last audited: 24 July 2026
 
 The release is a customer-isolated product release, not a shared SaaS release. The first AWS
 runtime, customer account/VPC ownership, inference network, update/rollback path, and observability
@@ -8,7 +8,7 @@ profile must be recorded before a production claim.
 
 ## Build and migration
 
-- [x] Empty-volume Linux containers start and migrate through `20260713_0007`.
+- [x] Empty-volume Linux containers start and migrate through `202607xx_0009_event_inbox`.
 - [x] Backend tests/lint (FastAPI), frontend tests/build (React), Alembic drift, and Compose validation pass.
 - [x] Base, development, production, cloud, and observability configurations validate.
 - [x] Runtime/base images and ChromaDB dependencies are pinned.

@@ -78,9 +78,9 @@ it is not qualification, and 9B remains unsupported.
 
 Policy revision `2026-07-15.2` adds complete diagnostic-scope classification propagation, a
 fail-closed cloud boundary, and final-boundary identifier redaction. The release-evidence validator
-now requires an exact match with the running code's policy revision. Therefore the historical
-`2026-07-15.1` smoke above cannot qualify the current build; the next real qualification must report
-`2026-07-15.2`.
+now requires an exact match with the running code's policy revision.
+
+Observed on 24 July 2026 under ADR-0016: The unified target architecture runtime (`LangGraphWorkflowEngine`) executes Pydantic AI agents inside LangGraph `StateGraph` workflows with typed `ExecutionContext`, ChromaDB disposable vector index, approved read-only MCP gateway, and PostgreSQL event inbox dispatch. Any real model qualification must execute against this unified engine baseline with current policy revision `2026-07-24.1`.
 
 ## Failure handling
 

@@ -136,8 +136,9 @@ consent/legal, capability ve rollback kapıları olmadan eklenmez.
 ## Repository haritası
 
 ```text
-apps/api/       FastAPI, domain, agents, OKF, workflow ve LangGraph runtime
-apps/web/       React + TypeScript web console
+apps/api/       FastAPI, domain, Pydantic AI agents, OKF, LangGraph runtime, Chroma RAG, MCP gateway ve event inbox
+apps/web/       React + TypeScript web console control plane
+apps/services/  Unintegrated legacy microservice stubs (ADR-0016)
 knowledge/      Immutable raw vault ve active/candidate OKF bilgi alanı
 docs/           Mimari, ADR, plan, eval, threat, operasyon ve release belgeleri
 infra/          Nginx, qmd ve allowlisted egress
