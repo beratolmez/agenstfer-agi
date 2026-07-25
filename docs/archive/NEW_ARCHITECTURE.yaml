@@ -1,3 +1,4 @@
+# DEPRECATED / ARCHIVED SPECIFICATION: See docs/SYSTEM_ARCHITECTURE.md for active architecture.
 architecture:
   cloud:
     provider: AWS

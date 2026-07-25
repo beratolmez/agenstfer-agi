@@ -44,7 +44,7 @@ ChromaDB is disposable and never backup state. Start with `--profile search`; ap
 request reindex, while ChromaDB failure falls back to lexical search.
 
 ```powershell
-docker compose -f docker-compose.yml -f docker-compose.observability.yml --profile observability up -d
+docker compose --profile observability up -d
 ```
 
 Jaeger is at `http://localhost:16686`. OTLP telemetry contains HTTP route templates, method, status,

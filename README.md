@@ -12,6 +12,8 @@ Kaynak [PRD](./Agentic_Growth_Intelligence_Server_PRD.md) ve
 durum:
 
 - [Project Architecture](./docs/PROJECT_ARCHITECTURE.md)
+- [Domain Contracts](./docs/DOMAIN_CONTRACTS.md)
+- [Product Roadmap](./docs/PRODUCT_ROADMAP_TO_GOAL.md)
 - [New Architecture Plan](./docs/NEW_ARCHITECTURE_PLAN.md)
 - [Product Deployment Plan](./docs/PRODUCT_DEPLOYMENT_PLAN.md)
 - [Implementation Status](./docs/IMPLEMENTATION_STATUS.md)
