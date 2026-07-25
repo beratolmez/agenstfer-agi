@@ -688,16 +688,11 @@ def setup_status(
     row = db.get(InstallationState, "default")
     return {
         "steps": [
-            "Bootstrap ve ilk admin",
-            "Roller",
-            "Yerel model testi",
-            "Şirket hedefi",
-            "Demo veya dosya kaynakları",
-            "Mapping ve önizleme",
-            "OKF bundle",
-            "Growth Diagnostic",
-            "Taslak rapor",
-            "OKF diff ve onay",
+            "Şirket Profili",
+            "Model Gateway",
+            "Konektör Ayarları",
+            "RAG & OKF İndeksi",
+            "Sistem Kurulumu & Tamamlama",
         ],
         "demo_available": True,
         "bootstrap_required": db.scalar(select(func.count()).select_from(User)) == 0,
@@ -776,7 +771,7 @@ def setup_progress_update(
             raise HTTPException(status_code=422, detail=f"Invalid installation field: {field}")
     completed = sorted(set(payload.completed_steps))
     if payload.status == "completed":
-        completed = list(range(10))
+        completed = list(range(1, 6))
     row = db.get(InstallationState, "default")
     if row is None:
         row = InstallationState(id="default")

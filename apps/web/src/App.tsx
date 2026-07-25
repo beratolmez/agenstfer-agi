@@ -115,7 +115,13 @@ export default function App() {
     return (
       <main className="auth-page" style={{ padding: "40px 20px", display: "block", overflowY: "auto" }}>
         <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
-          <SetupWizard onComplete={() => { api.setupStatus().then(setSetupStatus); navigate("dashboard"); }} />
+          <SetupWizard
+            onComplete={async () => {
+              const freshStatus = await api.setupStatus();
+              setSetupStatus(freshStatus);
+              navigate("dashboard");
+            }}
+          />
         </div>
       </main>
     );

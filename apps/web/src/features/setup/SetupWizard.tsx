@@ -916,8 +916,8 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
               onClick={async () => {
                 try {
                   await api.saveSetupProgress({
-                    current_step: 9,
-                    completed_steps: Array.from({ length: 10 }, (_, i) => i),
+                    current_step: 5,
+                    completed_steps: [1, 2, 3, 4, 5],
                     configuration: {
                       company_name: companyName,
                       industry: industry,

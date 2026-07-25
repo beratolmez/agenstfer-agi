@@ -6,25 +6,16 @@ This document is the **authoritative single source of truth** for the overarchin
 
 ## 1. Core Technology Stack
 
-### Target Unified Architecture (ADR-0016 Goal)
+### Target & Active Unified Architecture (ADR-0016)
 - **Backend API**: FastAPI (`apps/api/agi_server`, Python 3.12)
-- **Agent Orchestration**: LangGraph (StateGraph state machines, PostgreSQL checkpointing, human-in-the-loop approvals)
-- **Agent Runtime & Structured Outputs**: Pydantic AI
+- **Agent Orchestration**: LangGraph (StateGraph execution engine in `langgraph_runtime.py` with pause/resume approval semantics)
+- **Agent Runtime & Structured Outputs**: Pydantic AI contracts and probes (`agi_server/agents/probe.py`)
 - **Model Gateway**: Provider-neutral gateway supporting Gemini API (Cloud) and Local/External GPU Inference Servers (Ollama, vLLM, LM Studio)
-- **Vector Store / RAG**: ChromaDB (integrated vector embeddings derived from OKF 0.1 Markdown sources)
-- **Connector Protocol**: Standardized Model Context Protocol (MCP)
-- **Operational Database**: PostgreSQL (users, roles, source locators, state checkpoints, audit logs)
-- **Frontend Console**: React UI (`apps/web` - Vite, TypeScript, Tailwind CSS, `@xyflow/react` Visual Node Editor)
-- **Observability**: Self-hosted Langfuse telemetry tracing sink
-
-### Current Implementation Baseline (Active Runtime)
-- **Backend API**: FastAPI (`apps/api/agi_server`)
-- **Orchestration**: Custom Python agent execution runtime (`agi_server/agents/runtime.py`)
-- **Agent Models & Probes**: Pydantic AI probes (`agi_server/agents/probe.py`) and Model Gateway (`agi_server/agents/model_gateway.py`)
-- **Knowledge / Retrieval**: Filesystem & in-memory OKF bundle parser (`agi_server/okf.py`)
-- **Database**: PostgreSQL / SQLite via SQLAlchemy (`agi_server/db.py`)
-- **Connectors**: Read-only CRM/ERP adapters and test-only MCP endpoint (`/api/sources/test-mcp`)
-- **Frontend Console**: Primary React UI (`apps/web`)
+- **Vector Store / RAG**: ChromaDB / QMD vector search with automatic lexical fallback (`okf/search.py`)
+- **Connector Protocol**: Approved product-owned MCP Client Gateway (`mcp.py`) with code-defined allowlists
+- **Operational Database**: PostgreSQL / SQLite via SQLAlchemy (`agi_server/db.py`)
+- **Frontend Console**: React UI (`apps/web` - Vite, TypeScript, Vanilla CSS, `@xyflow/react` Visual Node Editor)
+- **Observability**: Self-hosted Langfuse telemetry tracing sink boundary
 
 ---
 
@@ -46,14 +37,12 @@ flowchart TB
 
     subgraph Execution["Agent & Model Gateway Layer"]
         MGW["Model Gateway (Gemini API & Ollama)"]
-        CRUN["Current: Custom Agent Execution Loop"]
-        TGRAPH["Target: LangGraph StateGraph (ADR-0016 Phase 2)"]
+        LGRAPH["Active: LangGraph StateGraph (langgraph_runtime.py)"]
     end
 
     subgraph DataPlane["Knowledge & Retrieval Data Plane"]
         OKF["OKF 0.1 Knowledge Bundle"]
-        INMEM["Current: In-Memory OKF Parser"]
-        CHROMA["Target: Integrated ChromaDB (ADR-0016 Phase 3)"]
+        CHROMA["Active: ChromaDB Vector Store with Lexical Fallback"]
     end
 
     subgraph External["Model Providers"]
@@ -65,11 +54,9 @@ flowchart TB
     FE --> BE
     BE --> DB
     BE --> MGW
-    BE --> CRUN
-    BE -. Migration .-> TGRAPH
-    CRUN --> OKF
-    CRUN --> INMEM
-    BE -. Migration .-> CHROMA
+    BE --> LGRAPH
+    LGRAPH --> OKF
+    LGRAPH --> CHROMA
     MGW --> GEMINI
     MGW --> GPU
 ```
@@ -89,7 +76,7 @@ flowchart TD
     end
 
     subgraph CoreEngine["FastAPI Backend (agi_server)"]
-        ORCH["Agent Runtime (Custom -> LangGraph Migration)"]
+        ORCH["LangGraph StateGraph Engine (langgraph_runtime.py)"]
         
         subgraph Nodes["Specialized Agent Contracts (Pydantic AI)"]
             N1["1. Company Analysis (CompanyAnalysis)"]
@@ -122,11 +109,11 @@ flowchart TD
 
 | Domain | Current Active State (`agi_server`) | Target Architecture (ADR-0016) | Status / Roadmap |
 |---|---|---|---|
-| **Orchestrator** | Custom Python loop (`agents/runtime.py`) | LangGraph `StateGraph` + PostgreSQL Checkpointer | Target (Phase 2) |
-| **Agent Nodes** | Pydantic AI probes & contracts | Native Pydantic AI LangGraph nodes | Partial / Active Baseline |
-| **Vector Store** | In-memory / Filesystem OKF bundle search | ChromaDB Vector Database | Target (Phase 3) |
-| **MCP Connectors** | Mock test endpoint (`/api/sources/test-mcp`) | Standardized MCP Client/Server | Target (Phase 4) |
-| **UI Surface** | React UI (`apps/web`) | Single React UI Console (`apps/web`) | Active Baseline |
+| **Orchestrator** | LangGraph `StateGraph` active for diagnostic workflows (`langgraph_runtime.py`) | Native LangGraph engine with PostgreSQL checkpointer | Phase 2-3 Completed |
+| **Agent Nodes** | Pydantic AI probes & contracts | Native Pydantic AI LangGraph nodes | Active Baseline |
+| **Vector Store** | ChromaDB vector search with automatic lexical fallback (`okf/search.py`) | Integrated ChromaDB Vector Database | Phase 6 Completed |
+| **MCP Connectors** | Product-owned read-only MCP Client Gateway (`mcp.py`) | Standardized MCP Gateway | Phase 7 Completed |
+| **UI Surface** | React UI (`apps/web` with Vanilla CSS) | Single React UI Console (`apps/web`) | Active Baseline |
 | **Legacy Artifacts** | `apps/services/ai-agent`, `apps/services/rag`, `apps/frontend/*` | Deprecated / Scheduled for Pruning | Legacy (Phase 5) |
 
 ---

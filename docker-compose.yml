@@ -28,7 +28,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-    networks: [core, egress]
+    networks: [core]
     restart: unless-stopped
 
   web-proxy:
