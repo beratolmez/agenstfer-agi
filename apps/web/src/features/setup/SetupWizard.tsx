@@ -147,9 +147,14 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
         objective: objective,
         provider: selectedProvider,
         model: modelName,
+        model_profile: selectedProvider ? "cloud-balanced" : "local-balanced",
+        source_mode: connectorTab === "demo" ? "synthetic-demo" : "file-upload",
+        locale: "tr-TR",
       },
       status: step >= 5 ? "completed" : "in_progress",
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error("Setup progress auto-save failed:", err);
+    });
   };
 
   useEffect(() => {
@@ -924,11 +929,14 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                       objective: objective,
                       provider: selectedProvider,
                       model: modelName,
+                      model_profile: selectedProvider ? "cloud-balanced" : "local-balanced",
+                      source_mode: connectorTab === "demo" ? "synthetic-demo" : "file-upload",
+                      locale: "tr-TR",
                     },
                     status: "completed",
                   });
-                } catch {
-                  // Continue to complete wizard
+                } catch (err) {
+                  console.error("Final setup progress save failed:", err);
                 }
                 onComplete();
               }}

@@ -1,7 +1,10 @@
 
+> [!WARNING]
+> **DEPRECATED / ARCHIVED SPECIFICATION**: This document contains legacy multi-service proposal specifications. For the authoritative active production architecture, see [SYSTEM_ARCHITECTURE.md](./SYSTEM_ARCHITECTURE.md).
+
 # Agentic Growth Intelligence Platform
 
-Version: MVP v1
+Version: MVP v1 (Legacy Draft)
 
 ---
 

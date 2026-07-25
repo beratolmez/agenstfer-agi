@@ -30,7 +30,7 @@ The core LLM provider is the Gemini API. Do not use local runtimes like Ollama o
 
 Configuration:
 
-1. Put the API key in `.secrets/gemini_api_key`.
+1. Put the API key in `.secrets/cloud_model_api_key`.
 2. Set `AGI_CLOUD_PROVIDER=gemini` and the appropriate `AGI_MODEL_PROFILE` in `.env`.
 3. Start base + production overlays.
 4. Run the real model probe and golden evaluation.

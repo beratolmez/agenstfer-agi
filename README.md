@@ -8,16 +8,13 @@ aksiyon planı** üreten local-first üründür. Bu ürün ortak SaaS tenancy va
 şirkete hizmet eder.
 
 Kaynak [PRD](./Agentic_Growth_Intelligence_Server_PRD.md) ve
-[yönetici mimarisi](./ARCHITECTURE_CONTEXT.md) değiştirilmeden korunur. Güncel kararlar ve gerçek
+[yönetici mimarisi](./docs/SYSTEM_ARCHITECTURE.md) değiştirilmeden korunur. Güncel kararlar ve gerçek
 durum:
 
 - [Project Architecture](./docs/PROJECT_ARCHITECTURE.md)
 - [New Architecture Plan](./docs/NEW_ARCHITECTURE_PLAN.md)
 - [Product Deployment Plan](./docs/PRODUCT_DEPLOYMENT_PLAN.md)
-- [Engineering Focus Roadmap](./docs/ENGINEERING_FOCUS_ROADMAP.md)
-- [Implementation Plan](./docs/MVP_IMPLEMENTATION_PLAN.md)
 - [Implementation Status](./docs/IMPLEMENTATION_STATUS.md)
-- [Next Steps](./docs/NEXT_STEPS_GUIDE.md)
 - [Operations Runbook](./docs/OPERATIONS_RUNBOOK.md)
 - [Release Checklist](./docs/RELEASE_CHECKLIST.md)
 

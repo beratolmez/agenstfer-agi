@@ -9,7 +9,7 @@ This document is the authoritative statement of what the repository actually doe
 ### Platform and Trust Boundary
 
 - [x] FastAPI monolithic backend service (`apps/api/agi_server`) exposing REST APIs, auth, model gateway, connectors, and diagnostics.
-- [x] Primary React Web Console (`apps/web`) built with Vite, TypeScript, Tailwind CSS, and visual workflow inspector (`@xyflow/react`).
+- [x] Primary React Web Console (`apps/web`) built with Vite, TypeScript, Vanilla CSS, and visual workflow inspector (`@xyflow/react`).
 - [x] Database persistence using PostgreSQL / SQLite (via SQLAlchemy) for canonical entities, users, accounts, leads, evidence items, and audit records.
 
 ### Ingestion, Evidence, and Knowledge
@@ -72,5 +72,6 @@ The following components exist as target specifications, test stubs, or legacy a
 - **Phase 15 (Completed Model Gateway Auth & Setup Wizard Resolution - ADR-0017)**: Standardized Gemini Bearer token authentication for OpenAI-compatible endpoint, synchronized SetupProgress configuration schema allowed keys (`industry`, `provider`, `model`), enforced full-screen onboarding gate compliance, and improved probe error reporting.
 - **Phase 16 (Completed Docker Network Egress & Setup Progress Completion - ADR-0018)**: Configured Docker Compose `app` service with egress proxy network routing (`HTTP_PROXY`/`HTTPS_PROXY` via `egress-gateway`), enabled non-blocking `completed_steps` resolution in `/api/setup/progress`, and eliminated onboarding infinite loop on Dashboard navigation.
 - **Phase 17 (Completed Audit Report Runde 1 Critical Fixes - ADR-0019)**: Resolved `App.tsx` onboarding completion race condition, aligned 5-step onboarding progress schema in frontend and backend endpoints, enforced container network isolation by removing `app` from `egress` network to strictly force egress proxy routing via `egress-gateway`, and synchronized `docs/SYSTEM_ARCHITECTURE.md` with active runtime status.
+- **Phase 18 (Completed Audit Report Runde 2 High Priority Fixes - ADR-0020)**: Aligned Vite proxy port target to 8080, cleaned non-prefixed `GEMINI_*` and deprecated `AGI_ENABLE_DBOS` variables from `.env.example` and `config.py`, persisted extended onboarding progress configuration (`model_profile`, `source_mode`, `locale`), updated `decideCandidate` response type in `api.ts`, fixed broken links in `README.md` and `OPERATIONS_RUNBOOK.md`, and marked `NEW_ARCHITECTURE_PLAN.md` with deprecation notice.
 
 

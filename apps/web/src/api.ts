@@ -220,7 +220,7 @@ export const api = {
   okfCandidates: () => request<{ items: OKFCandidateView[] }>("/api/okf/candidates"),
   candidateDiff: (candidateId: string) => request<{ diff: string; status: string }>(`/api/okf/candidates/${encodeURIComponent(candidateId)}/diff`),
   decideCandidate: (candidateId: string, decision: "approved" | "rejected", reason: string) =>
-    request<{ status: string; revision: string; qmd: string }>(
+    request<{ candidate_id: string; status: string; revision: string; qmd: string }>(
       `/api/okf/candidates/${encodeURIComponent(candidateId)}/decision?decision=${decision}&reason=${encodeURIComponent(reason)}`,
       { method: "POST" },
     ),

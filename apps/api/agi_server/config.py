@@ -21,7 +21,6 @@ class Settings(BaseSettings):
     master_key: str = "development-only-master-key"
     master_key_file: Path | None = None
     demo_no_auth: bool = True
-    enable_dbos: bool = False
     knowledge_root: Path = Field(default=Path("knowledge"))
     ollama_base_url: str = "http://localhost:11434/v1"
     model_profile: str = "local-balanced"
