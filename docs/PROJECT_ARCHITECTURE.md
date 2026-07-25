@@ -24,7 +24,7 @@ Upon onboarding, the system generates:
 | **KDS AI ABS** | Growth Intelligence Control Plane | FastAPI, LangGraph, Pydantic AI | Core orchestration state machine |
 | **Local / Cloud GPU** | Model Gateway | Gemini API, Ollama, vLLM, LM Studio | Flexible LLM provider abstraction |
 | **Şirket Dokümanları & Web** | Ingestion & Vector RAG | RAG Service, ChromaDB | OKF 0.1 Markdown sources |
-| **Container Cluster** | Containerized Microservices | Kubernetes / ECS / Docker Swarm | Microservices & Private Tools |
+| **Container Stack** | Isolated Customer Deployment | Docker Compose (Reference Deployment) | FastAPI Monolithic Control Plane & Worker |
 | **Ajan Düğümleri** | Specialized Agent Nodes | Pydantic AI + LangGraph | Company Analysis, Competitor Intel, Security, Financial, SEO, Satisfaction |
 | **İnsan Onayı** | Approval Center | LangGraph interrupt_before/after | Human-in-the-loop approval workflow |
 | **Management & Modules** | Read-Only Adapters | React UI, FastAPI, PostgreSQL | Dashboard, ERP, CRM, Documents, Reports, Social Media, Web |

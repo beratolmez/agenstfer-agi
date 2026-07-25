@@ -136,9 +136,42 @@ export interface WorkflowRunStart {
   model_profile: string | null;
 }
 
+export interface WorkflowRunStepDetail {
+  id: string;
+  step_id: string;
+  sequence: number;
+  kind: string;
+  agent_id?: string | null;
+  agent_version?: number | null;
+  model_profile?: string | null;
+  model_provider?: string | null;
+  model_name?: string | null;
+  data_classification?: string | null;
+  redaction_applied?: boolean;
+  status: string;
+  input_hash?: string | null;
+  output?: Record<string, unknown> | null;
+  error?: Record<string, unknown> | null;
+  token_usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+}
+
+export interface WorkflowRunArtifactDetail {
+  id: string;
+  kind: string;
+  summary: string;
+  created_at: string;
+}
+
 export interface WorkflowRunDetail extends WorkflowRunView {
+  idempotency_key?: string | null;
+  evidence_ids?: string[];
+  agent_versions?: Record<string, number>;
   output: { diagnostic?: GrowthDiagnostic } | null;
   error: { code?: string; message?: string } | null;
+  steps?: WorkflowRunStepDetail[];
+  artifacts?: WorkflowRunArtifactDetail[];
 }
 
 export interface UserView {

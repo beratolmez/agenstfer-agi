@@ -1272,6 +1272,38 @@ async def source_file_preview(
     }
 
 
+@app.get("/api/sources/{source_id}/preview")
+def source_preview_get(
+    source_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> dict[str, Any]:
+    source = db.get(DataSource, source_id)
+    if source is None:
+        raise HTTPException(status_code=404, detail="Data source not found")
+    if source.connector_type == "tabular-file":
+        rel_path = source.configuration.get("upload_path")
+        if not rel_path:
+            raise HTTPException(status_code=422, detail="Missing upload path")
+        file_path = (settings.knowledge_root.resolve() / rel_path).resolve()
+        if not file_path.is_file():
+            raise HTTPException(status_code=404, detail="Source file not found")
+        connector = ReadOnlyTabularConnector(
+            file_path, source.id, source.configuration.get("entity_type", "accounts")
+        )
+        schema = connector.discover_schema()
+        preview, warnings = connector.preview_with_warnings()
+        return {
+            "source_id": source.id,
+            "filename": source.name,
+            "bytes": file_path.stat().st_size,
+            "schema": schema.model_dump(mode="json"),
+            "preview": [item.model_dump(mode="json") for item in preview],
+            "warnings": warnings,
+        }
+    raise HTTPException(status_code=400, detail="Preview only available for tabular-file sources")
+
+
 @app.post("/api/sources/{source_id}/mapping", status_code=201)
 def source_mapping_create(
     source_id: str,

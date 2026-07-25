@@ -17,3 +17,4 @@ apps/web/blob-report
 **/*.egg-info
 docs/design/*.png
 knowledge/bundles/company/.git
+apps/frontend/
