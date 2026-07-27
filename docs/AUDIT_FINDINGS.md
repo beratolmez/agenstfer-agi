@@ -861,3 +861,35 @@ docker run -d --name agi-audit-fresh -p 8099:8080 -w /tmp \
 ---
 
 *Tur 1 sonu. Sonraki denetim turları bu satırın altına eklenmelidir.*
+
+---
+
+# Tur 2 — Runde 5 Low-Priority Blocker Çözümleri (LO-04, LO-05, LO-06)
+
+**Tarih:** 27 Temmuz 2026
+**Kapsam:** `apps/services/ai-agent/ai_agent/models.py`, `apps/services/ai-agent/ai_agent/tools/web_scraper.py`, `apps/api/agi_server/workflow/runtime.py`
+**ADR:** ADR-0025
+
+## Çözüm Özeti
+
+| ID | Bulgu | Durum | Değişen Dosya |
+|---|---|---|---|
+| LO-04 | İkinci, yönetişimsiz LLM yolu — `TestModel()` sessiz fallback | **ÇÖZÜLDÜ** | `apps/services/ai-agent/ai_agent/models.py` |
+| LO-05 | `web_scraper.py` egress kontrolsüz HTTP stub | **ÇÖZÜLDÜ** | `apps/services/ai-agent/ai_agent/tools/web_scraper.py` |
+| LO-06 | `durable_*` DBOS docstring kalıntısı | **ÇÖZÜLDÜ** | `apps/api/agi_server/workflow/runtime.py` |
+
+### LO-04 Uygulama Notları
+`get_llm_model()` fonksiyonundaki `try/except Exception: pass → return TestModel()` deseni kaldırıldı.
+Artık `RuntimeError` fırlatıyor; Model Gateway ulaşılamaz durumdaysa sessizce `TestModel`'a düşmek yerine hata görünür hale geliyor.
+`durable_persisted_workflow` referansı auditing sırasında zaten mevcut değildi; gerçek DBOS kalıntısı `runtime.py`'daki docstring'di (LO-06).
+
+### LO-05 Uygulama Notları
+Orijinal `web_scraper.py` (denetim raporundaki 33 satırlık versiyon) gerçek HTTP yapıyordu; bu versiyon repo'da bulunmayan daha eski bir committen geliyor.
+Repodaki mevcut stub sahte bir string döndürüyordu — egress ihlali yok ama politika belgelenmemişti.
+Şimdi `NotImplementedError` ile fail-loud; ADR-0016 Phase 5 pruning kararı ve ADR-0005 egress sınırı docstring'de belgelendi.
+
+### LO-06 Uygulama Notları
+`runtime.py:13`'deki `"""Deterministic node dispatcher; DBOS step wrapper checkpoints each return value."""` docstring'i güncellendi.
+`durable_persisted_workflow` fonksiyonu Phase 20 / ADR-0022'de zaten kaldırılmıştı; bu commit son DBOS metin artefaktını da temizledi.
+
+*Tur 2 sonu.*

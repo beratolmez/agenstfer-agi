@@ -43,7 +43,7 @@ def ingest_markdown_files(docs_dir: str):
 
     for file_path in files:
         rel_path = os.path.relpath(file_path, docs_dir).replace("\\", "/")
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
 
         md_header_splits = markdown_splitter.split_text(content)

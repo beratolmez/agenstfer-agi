@@ -183,9 +183,9 @@ def test_admin_can_disable_and_reenable_a_persisted_schedule_with_audit(
 
 
 def test_validate_workflow_bindings_rejects_unpublished_pinned_agent_version(tmp_path: Path) -> None:
-    from agi_server.workflow.registry_service import validate_workflow_bindings
     from agi_server.workflow.default import build_default_workflow
     from agi_server.workflow.models import NodeKind
+    from agi_server.workflow.registry_service import validate_workflow_bindings
 
     engine, local_session = _database(tmp_path)
     with local_session() as db:
@@ -208,9 +208,9 @@ def test_validate_workflow_bindings_rejects_unpublished_pinned_agent_version(tmp
 
 
 def test_publish_workflow_rejects_unavailable_model_profile_when_cloud_disabled(tmp_path: Path) -> None:
-    from agi_server.workflow.registry_service import validate_workflow_bindings
     from agi_server.workflow.default import build_default_workflow
     from agi_server.workflow.models import NodeKind
+    from agi_server.workflow.registry_service import validate_workflow_bindings
 
     engine, local_session = _database(tmp_path)
     settings = Settings(_env_file=None, cloud_models_enabled=False)

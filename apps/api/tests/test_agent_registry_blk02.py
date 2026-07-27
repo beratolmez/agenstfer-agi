@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 
 import pytest
-
 from agi_server.agents.registry import AgentRegistry
 
 

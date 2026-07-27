@@ -17,6 +17,7 @@ from sqlalchemy import (
     Text,
     create_engine,
 )
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -25,8 +26,6 @@ from sqlalchemy.orm import (
     relationship,
     sessionmaker,
 )
-
-from sqlalchemy.engine import make_url
 
 from agi_server.config import get_settings
 from agi_server.logging_utils import logger
@@ -390,7 +389,7 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
-def load_persisted_settings(db: Session, settings: Settings) -> Settings:
+def load_persisted_settings(db: Session, settings: Any) -> Any:
     from pydantic import SecretStr
 
     try:

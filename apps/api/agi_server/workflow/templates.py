@@ -4,7 +4,6 @@ from typing import Any
 
 from agi_server.workflow.models import WorkflowDefinition
 
-
 GROWTH_WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
     {
         "id": "lead-discovery-enrichment",

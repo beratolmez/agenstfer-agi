@@ -1,6 +1,6 @@
 import os
 import sys
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 # Mock optional dependencies before importing agent modules
 mock_rag = MagicMock()
@@ -15,6 +15,15 @@ sys.modules["rag_service.ingest"] = mock_rag.ingest
 
 sys.path.insert(0, os.path.abspath("apps/services/ai-agent"))
 sys.path.insert(0, os.path.abspath("apps/services/rag"))
+
+# Provide a TestModel for the legacy ai-agent modules.
+# get_llm_model() now raises RuntimeError instead of silently returning TestModel
+# (ADR-0025 / LO-04). Tests must explicitly opt-in to TestModel here so that the
+# production code path is fail-loud while the test harness remains functional.
+from pydantic_ai.models.test import TestModel  # noqa: E402
+
+_test_model_patcher = patch("ai_agent.models.get_llm_model", return_value=TestModel())
+_test_model_patcher.start()
 
 from agi_server.agents.contracts import (  # noqa: E402
     CompanyAnalysis,

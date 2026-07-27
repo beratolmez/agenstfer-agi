@@ -1,22 +1,31 @@
+from __future__ import annotations
+
 from pydantic_ai import Agent, RunContext
 from rag_service.retrieve import retrieve_knowledge
 
-from .agents.analyst import analyst_agent
-from .agents.reviewer import reviewer_agent
+from .agents.analyst import _get_analyst_agent
+from .agents.reviewer import _get_reviewer_agent
 from .long_term_memory import get_facts
 from .models import get_llm_model
 from .state import AgentState
 from .tools.web_scraper import scrape_web_page
 
-# Define the Pydantic AI Researcher Agent
-researcher_agent = Agent(
-    model=get_llm_model(),
-    system_prompt=(
-        "You are an intelligent research assistant built with OKF framework capabilities. "
-        "Use the provided `search_knowledge` tool to fetch OKF wiki knowledge when needed. "
-        "Gather all the raw data for the Analyst."
-    ),
-)
+
+def _make_researcher_agent() -> Agent:
+    """Create the researcher agent, deferring Model Gateway resolution to call time."""
+    return Agent(
+        model=get_llm_model(),
+        system_prompt=(
+            "You are an intelligent research assistant built with OKF framework capabilities. "
+            "Use the provided `search_knowledge` tool to fetch OKF wiki knowledge when needed. "
+            "Gather all the raw data for the Analyst."
+        ),
+    )
+
+
+# Module-level agent — instantiated at import time.
+# In test environments, mock ai_agent.models.get_llm_model before importing this module.
+researcher_agent: Agent = _make_researcher_agent()
 
 
 @researcher_agent.tool
@@ -46,7 +55,10 @@ def search_knowledge(ctx: RunContext[None], query: str) -> str:
 @researcher_agent.tool
 def scrape_web(ctx: RunContext[None], url: str) -> str:
     """Scrape the content of a public URL. Use this for market research or company analysis."""
-    return scrape_web_page(url)
+    try:
+        return scrape_web_page(url)
+    except NotImplementedError as exc:
+        return f"Web scraping is not available in this service: {exc}"
 
 
 def researcher_node(state: AgentState):
@@ -78,7 +90,7 @@ def analyst_node(state: AgentState):
     prompt = f"User Query: {query}\n\nRaw Research Data:\n{research_data}\n\nPlease analyze this data."
 
     try:
-        result = analyst_agent.run_sync(prompt)
+        result = _get_analyst_agent().run_sync(prompt)
         analysis_data = getattr(result, "output", getattr(result, "data", str(result)))
     except Exception as e:
         analysis_data = f"LLM Error (Analyst): {str(e)}"
@@ -159,7 +171,7 @@ def reviewer_node(state: AgentState):
     )
 
     try:
-        result = reviewer_agent.run_sync(prompt)
+        result = _get_reviewer_agent().run_sync(prompt)
         final_review = getattr(result, "output", getattr(result, "data", str(result)))
     except Exception as e:
         final_review = f"LLM Error (Reviewer): {str(e)}"

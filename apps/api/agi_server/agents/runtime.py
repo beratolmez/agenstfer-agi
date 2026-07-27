@@ -19,11 +19,11 @@ from agi_server.agents.contracts import (
 from agi_server.agents.model_gateway import build_pydantic_ai_agent, resolve_model_profile
 from agi_server.agents.registry import AgentRegistry, ManagedAgentSpec
 from agi_server.config import Settings
-from agi_server.logging_utils import logger
 from agi_server.context import ExecutionContext
 from agi_server.db import CanonicalEntity, EvidenceItem
 from agi_server.domain.metrics import MetricSnapshot
 from agi_server.ingestion import resolve_evidence_excerpt
+from agi_server.logging_utils import logger
 from agi_server.okf import FileSystemOKFBundle
 
 OUTPUT_TYPES = {

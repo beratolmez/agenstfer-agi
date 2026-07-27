@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import httpx
-from sqlalchemy import select
 
 from agi_server.okf.bundle import FileSystemOKFBundle
 

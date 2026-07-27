@@ -653,6 +653,7 @@ async def run_growth_diagnostic(
             "candidate_id": candidate.id,
         }
         run.token_usage = _usage_total(executions)
+        evidence_ids = sorted(list(evidence_catalog.keys()))
         run.evidence_ids = evidence_ids
         run.completed_at = datetime.now(UTC)
         db.commit()

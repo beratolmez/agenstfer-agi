@@ -10,7 +10,7 @@ from agi_server.workflow.validator import validate_workflow
 
 
 def execute_node_logic(node: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
-    """Deterministic node dispatcher; DBOS step wrapper checkpoints each return value."""
+    """Deterministic node dispatcher for dry-run / visual-editor execution paths."""
     result = deepcopy(state)
     kind = NodeKind(node["kind"])
     node_id = str(node["id"])

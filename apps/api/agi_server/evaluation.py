@@ -15,6 +15,7 @@ from agi_server.agents.model_gateway import (
     CONTROL_PLANE_POLICY_REVISION,
     effective_system_prompt,
 )
+from agi_server.config import Settings
 from agi_server.db import AgentDefinitionRow, WorkflowDefinitionRow, WorkflowRun
 from agi_server.schemas import GrowthDiagnostic
 from agi_server.workflow.default import build_default_workflow
@@ -32,8 +33,7 @@ QUALIFICATION_PATH = "published-persistent-workflow-v1"
 
 
 def prepare_qualification_workflow(
-    db: Session,
-    profile_id: str,
+    db: Session, profile_id: str, settings: Settings | None = None
 ) -> WorkflowDefinitionRow:
     """Create the exact immutable workflow version exercised by a qualification attempt."""
     ensure_platform_registry(db)
@@ -53,7 +53,7 @@ def prepare_qualification_workflow(
         if node.kind == NodeKind.AGENT_RUN:
             node.config["model_profile"] = profile_id
     save_workflow_draft(db, definition, actor_id=None)
-    return publish_workflow(db, draft)
+    return publish_workflow(db, draft, settings=settings)
 
 
 def summarize_qualification_run(run: WorkflowRun) -> dict[str, Any]:

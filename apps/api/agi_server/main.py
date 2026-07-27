@@ -43,6 +43,7 @@ from agi_server.db import (
     CapabilityDefinitionRow,
     DataSource,
     InstallationState,
+    MCPProfile,
     OKFCandidate,
     SourceMapping,
     SourceSyncRun,
@@ -1472,6 +1473,7 @@ def source_test_db(
 ) -> dict[str, Any]:
     import socket
     import time
+
     from sqlalchemy import create_engine, inspect, text
 
     start_time = time.time()
@@ -1545,7 +1547,6 @@ def source_test_mcp(
     db: Annotated[Session | None, Depends(get_db)] = None,
     actor: Annotated[User | None, Depends(require_role("admin"))] = None,
 ) -> dict[str, Any]:
-    import time
     import httpx
 
     if db is not None:

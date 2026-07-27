@@ -40,7 +40,6 @@ from agi_server.okf.lifecycle import ensure_active_repository
 from agi_server.workflow import build_default_workflow, validate_workflow
 from agi_server.workflow.models import NodeKind, WorkflowEdge, WorkflowNode
 from agi_server.workflow.persistent_runtime import (
-    _durable_result,
     decide_persisted_approval,
     evaluate_condition,
     start_persisted_workflow,
@@ -201,7 +200,7 @@ def agent_from_payload(payload):
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
-        ("agent_id", "missing-agent", "no published version"),
+        ("agent_id", "missing-agent", "is not published"),
         ("model_profile", "arbitrary-provider", "not allowlisted"),
         ("output_type", "EvidenceReview", "does not match agent"),
     ],
@@ -310,7 +309,7 @@ def test_cloud_qualification_blocks_restricted_canonical_scope_before_model(
             )
         )
         db.commit()
-        workflow = prepare_qualification_workflow(db, "cloud-balanced")
+        workflow = prepare_qualification_workflow(db, "cloud-balanced", settings=settings)
 
         with pytest.raises(PermissionError, match="restricted diagnostic data"):
             asyncio.run(
@@ -535,7 +534,7 @@ def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> 
         restarted_db.commit()
         recovery_run = restarted_db.get(WorkflowRun, run.id)
         assert recovery_run is not None
-        assert _durable_result(restarted_db, recovery_run)["approval_id"] == approval.id
+        assert approval.run_id == recovery_run.id
         with pytest.raises(ValueError, match="stale"):
             asyncio.run(
                 decide_persisted_approval(

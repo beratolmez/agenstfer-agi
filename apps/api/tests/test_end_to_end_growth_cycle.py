@@ -2,7 +2,7 @@
 import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 # Mock optional dependencies before importing agent modules if needed
 mock_rag = MagicMock()
@@ -14,6 +14,13 @@ mock_rag.retrieve.retrieve_knowledge.return_value = {
 sys.modules.setdefault("rag_service", mock_rag)
 sys.modules.setdefault("rag_service.retrieve", mock_rag.retrieve)
 sys.modules.setdefault("rag_service.ingest", mock_rag.ingest)
+
+# Provide a TestModel for legacy ai-agent modules (ADR-0025 / LO-04).
+# get_llm_model() is now fail-loud; tests must explicitly opt-in to TestModel.
+from pydantic_ai.models.test import TestModel as _TestModel  # noqa: E402
+
+_test_model_patcher = patch("ai_agent.models.get_llm_model", return_value=_TestModel())
+_test_model_patcher.start()
 
 from agi_server.agents.contracts import (
     CompanyAnalysis,

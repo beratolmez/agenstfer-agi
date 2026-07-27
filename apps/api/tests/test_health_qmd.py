@@ -1,7 +1,6 @@
-import pytest
-from fastapi.testclient import TestClient
 from agi_server.config import Settings
 from agi_server.main import app, get_settings
+from fastapi.testclient import TestClient
 
 
 def test_health_qmd_disabled_when_qmd_url_is_empty():

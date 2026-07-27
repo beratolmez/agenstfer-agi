@@ -1,7 +1,8 @@
 import os
 from contextlib import contextmanager
-from langgraph.checkpoint.postgres import PostgresSaver
+
 import psycopg
+from langgraph.checkpoint.postgres import PostgresSaver
 
 # In a real app, this should come from a secure config/env
 DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/agi_db")

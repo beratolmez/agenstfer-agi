@@ -252,7 +252,10 @@ class LangGraphWorkflowEngine:
                 "step_history": [],
             }
 
-            final_state = await self.graph.ainvoke(initial_state)
+            final_state = await self.graph.ainvoke(
+                initial_state,
+                {"configurable": {"thread_id": self.run.id}},
+            )
 
             if final_state.get("status") == "awaiting_approval":
                 self.run.status = "awaiting_approval"

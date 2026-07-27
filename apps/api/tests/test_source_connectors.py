@@ -1,9 +1,9 @@
 from pathlib import Path
-import pytest
-from fastapi import HTTPException
 
+import pytest
+from agi_server.db import Base, create_engine
 from agi_server.main import DBTestRequest, MCPTestRequest, source_test_db, source_test_mcp
-from agi_server.db import Base, create_engine, sessionmaker
+from fastapi import HTTPException
 
 
 def test_source_test_db_unreachable_host_raises_400():

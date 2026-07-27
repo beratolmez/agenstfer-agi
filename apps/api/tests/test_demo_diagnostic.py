@@ -34,10 +34,9 @@ def test_score_is_deterministic_not_a_probability():
 
 
 def test_diagnostic_uses_installation_state_company_name_and_objective():
-    from agi_server.db import InstallationState
+    from agi_server.db import Base, InstallationState
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    from agi_server.db import Base
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)

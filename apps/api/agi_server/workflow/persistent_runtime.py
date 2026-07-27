@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from copy import deepcopy
@@ -339,6 +340,7 @@ async def _execute_node(
                 evidence_catalog[evidence_id] = _evidence_prompt_view(
                     row, tools.read_evidence(evidence_id)
                 )
+        node_caps = node.config.get("capabilities")
         capability_allowlist = (
             frozenset(node_caps) if node_caps is not None else None
         )
@@ -351,6 +353,7 @@ async def _execute_node(
             bounded_evidence_ids=list((evidence_catalog or {}).keys()),
             model_policy_revision=profile.id,
         )
+        model_override = (model_overrides or {}).get(agent_id)
         if spec.output_type == "EvidenceReview" and evidence_claims is not None:
             execution = await _run_evidence_reviewer(
                 evidence_claims,
@@ -591,82 +594,10 @@ async def resume_persisted_workflow(
         raise
 
 
-def _durable_result(db: Session, run: WorkflowRun) -> dict[str, Any]:
-    approval = db.scalar(
-        select(ApprovalRequest).where(
-            ApprovalRequest.run_id == run.id,
-            ApprovalRequest.status.in_(["pending", "decision_submitted"]),
-        )
-    )
-    timeout_seconds = 7 * 24 * 60 * 60
-    if approval is not None:
-        expires_at = approval.expires_at
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=UTC)
-        timeout_seconds = max(1, int((expires_at - datetime.now(UTC)).total_seconds()))
-    return {
-        "run_id": run.id,
-        "status": run.status,
-        "approval_id": None if approval is None else approval.id,
-        "approval_timeout_seconds": timeout_seconds,
-    }
 
 
-async def durable_resume_step(run_id: str) -> dict[str, Any]:
-    settings = Settings()
-    with SessionLocal() as db:
-        run = db.get(WorkflowRun, run_id)
-        if run is None:
-            raise LookupError("Workflow run not found")
-        row = db.get(WorkflowDefinitionRow, (run.workflow_id, run.workflow_version))
-        if row is None:
-            raise LookupError("Published workflow version not found")
-        run = await resume_persisted_workflow(db, settings, run, workflow_from_row(row))
-        return _durable_result(db, run)
 
 
-async def durable_decision_step(run_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-    settings = Settings()
-    with SessionLocal() as db:
-        approval = db.get(ApprovalRequest, payload["approval_id"])
-        if approval is None or approval.run_id != run_id:
-            raise LookupError("Approval request not found")
-        run, qmd = await decide_persisted_approval(
-            db,
-            settings,
-            approval,
-            decision=payload["decision"],
-            reason=payload["reason"],
-            actor_id=payload.get("actor_id"),
-            idempotency_key=payload["idempotency_key"],
-        )
-        return {**_durable_result(db, run), "qmd": qmd}
-
-
-def durable_expiry_step(run_id: str, approval_id: str) -> dict[str, Any]:
-    with SessionLocal() as db:
-        approval = db.scalar(
-            select(ApprovalRequest).where(ApprovalRequest.id == approval_id).with_for_update()
-        )
-        run = db.get(WorkflowRun, run_id)
-        if approval is None or run is None or approval.run_id != run_id:
-            raise LookupError("Approval request or workflow run not found")
-        if expire_approval_state(db, approval, utcnow()):
-            db.commit()
-        return _durable_result(db, run)
-
-
-async def durable_persisted_workflow(run_id: str) -> dict[str, Any]:
-    state = await durable_resume_step(run_id)
-    if state["status"] != "awaiting_approval" or not state["approval_id"]:
-        return state
-    # Simulated wait removed without DBOS
-    return durable_expiry_step(run_id, state["approval_id"])
-
-
-async def _ensure_durable_workflow(run_id: str) -> None:
-    """No-op seam reserved for state checkpoint validation in post-DBOS persistent runtime."""
-    _ = run_id
 
 
 async def _execute_workflow_in_background(
@@ -676,7 +607,6 @@ async def _execute_workflow_in_background(
     settings: Settings,
     model_overrides: dict[str, Any] | None = None,
 ) -> None:
-    from agi_server.db import SessionLocal
     try:
         with SessionLocal() as db:
             run = db.get(WorkflowRun, run_id)

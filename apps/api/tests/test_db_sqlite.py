@@ -1,7 +1,7 @@
 from pathlib import Path
+
+from agi_server.db import Base, create_engine
 from sqlalchemy.engine import make_url
-from agi_server.config import Settings
-from agi_server.db import create_engine, SessionLocal, Base
 
 
 def test_sqlite_url_parent_directory_resolution(tmp_path: Path):

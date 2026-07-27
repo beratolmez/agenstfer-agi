@@ -185,9 +185,9 @@ def test_egress_squid_conf_includes_all_supported_cloud_providers() -> None:
 
 
 def test_model_configure_persists_settings_across_db_reloads(tmp_path: Path) -> None:
+    from agi_server.db import Base, load_persisted_settings
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    from agi_server.db import Base, load_persisted_settings
 
     db_path = tmp_path / "test_persist.db"
     engine = create_engine(f"sqlite:///{db_path}")

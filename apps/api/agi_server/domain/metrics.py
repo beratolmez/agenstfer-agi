@@ -132,6 +132,7 @@ def _clamp(value: float, minimum: float = 0, maximum: float = 100) -> float:
 
 
 def calculate_growth_metrics(db: Session) -> MetricSnapshot:
+    data_gaps: list[str] = []
     entities = list(db.scalars(select(CanonicalEntity)))
     grouped: dict[str, list[CanonicalEntity]] = defaultdict(list)
     for entity in entities:

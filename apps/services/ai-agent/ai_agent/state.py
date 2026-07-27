@@ -1,5 +1,6 @@
 import operator
-from typing import Annotated, Sequence, TypedDict
+from collections.abc import Sequence
+from typing import Annotated, TypedDict
 
 
 class AgentState(TypedDict, total=False):

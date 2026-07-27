@@ -1,7 +1,8 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
+from datetime import UTC, datetime
+
+from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
-from datetime import datetime, timezone
 
 # We use the same DB as the checkpointer
 DB_URI = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/agi_db")
@@ -14,7 +15,7 @@ class UserFact(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(String, index=True)
     fact = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
 engine = create_engine(DB_URI.replace("postgresql://", "postgresql+psycopg://"))
 SessionLocal = sessionmaker(bind=engine)
