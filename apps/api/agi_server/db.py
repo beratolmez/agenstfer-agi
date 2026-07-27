@@ -26,7 +26,10 @@ from sqlalchemy.orm import (
     sessionmaker,
 )
 
+from sqlalchemy.engine import make_url
+
 from agi_server.config import get_settings
+from agi_server.logging_utils import logger
 
 
 def utcnow() -> datetime:
@@ -371,9 +374,14 @@ class EventDispatchQueue(Base):
 
 settings = get_settings()
 if settings.database_url.startswith("sqlite"):
-    raw_path = settings.database_url.split("sqlite:///", 1)[-1]
-    if raw_path and raw_path != ":memory:":
-        Path(raw_path).parent.mkdir(parents=True, exist_ok=True)
+    try:
+        url = make_url(settings.database_url)
+        if url.database and url.database != ":memory:":
+            db_path = Path(url.database)
+            if db_path.parent and str(db_path.parent) != ".":
+                db_path.parent.mkdir(parents=True, exist_ok=True)
+    except Exception as exc:
+        logger.warning("Could not ensure parent directory for SQLite database: %s", exc)
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,
