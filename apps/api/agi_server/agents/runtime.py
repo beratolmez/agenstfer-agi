@@ -152,23 +152,32 @@ class ScopedCapabilityTools:
         """Scrape public URL for competitor or market intelligence."""
         return {
             "url": url,
-            "status": "success",
-            "content_summary": f"Public web snapshot for {url}",
+            "status": "rejected",
+            "reason": "planned_capability_not_implemented",
         }
 
     def read_crm(self, account_id: str) -> dict[str, Any]:
         """Read CRM account signals and activity history."""
-        return {"account_id": account_id, "status": "active", "lead_score": 85}
+        return {
+            "account_id": account_id,
+            "status": "rejected",
+            "reason": "planned_capability_not_implemented",
+        }
 
     def read_erp(self, customer_id: str) -> dict[str, Any]:
         """Read ERP sales metrics and invoice history."""
-        return {"customer_id": customer_id, "status": "verified", "total_revenue": 150000.0}
+        return {
+            "customer_id": customer_id,
+            "status": "rejected",
+            "reason": "planned_capability_not_implemented",
+        }
 
     def generate_battlecard(self, competitor_name: str) -> dict[str, Any]:
         """Generate competitor objection handling battlecard."""
         return {
             "competitor": competitor_name,
-            "talk_track": f"Counter-positioning strategy for {competitor_name}",
+            "status": "rejected",
+            "reason": "planned_capability_not_implemented",
         }
 
     def for_spec(
@@ -176,8 +185,14 @@ class ScopedCapabilityTools:
         spec: ManagedAgentSpec,
         capability_allowlist: frozenset[str] | Iterable[str] | None = None,
     ) -> list[Any]:
-        capabilities = set(spec.capabilities)
-        if capability_allowlist is not None and len(capability_allowlist) > 0:
+        from agi_server.agents.capabilities import BUILTIN_CAPABILITIES
+
+        capabilities = {
+            cap
+            for cap in spec.capabilities
+            if cap in BUILTIN_CAPABILITIES and BUILTIN_CAPABILITIES[cap].status == "available"
+        }
+        if capability_allowlist is not None:
             capabilities.intersection_update(capability_allowlist)
         tools: list[Any] = []
         if "knowledge.search" in capabilities:
@@ -188,14 +203,6 @@ class ScopedCapabilityTools:
             tools.append(self.calculate_metric)
         if "wiki.propose_update" in capabilities:
             tools.append(self.propose_okf_patch)
-        if "web.scrape" in capabilities:
-            tools.append(self.scrape_web)
-        if "crm.read" in capabilities:
-            tools.append(self.read_crm)
-        if "erp.read" in capabilities:
-            tools.append(self.read_erp)
-        if "battlecard.generate" in capabilities:
-            tools.append(self.generate_battlecard)
         return tools
 
 

@@ -138,6 +138,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
 
   const goToStep = (step: number) => {
     setActiveStep(step);
+    const computedProfile = selectedProvider && selectedProvider !== "local" && probeSuccess ? "cloud-balanced" : "local-balanced";
     api.saveSetupProgress({
       current_step: step,
       completed_steps: Array.from({ length: step }, (_, i) => i + 1),
@@ -147,7 +148,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
         objective: objective,
         provider: selectedProvider,
         model: modelName,
-        model_profile: selectedProvider ? "cloud-balanced" : "local-balanced",
+        model_profile: computedProfile,
         source_mode: connectorTab === "demo" ? "synthetic-demo" : "file-upload",
         locale: "tr-TR",
       },
@@ -919,6 +920,8 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             <button
               type="button"
               onClick={async () => {
+                setError(null);
+                const computedProfile = selectedProvider && selectedProvider !== "local" && probeSuccess ? "cloud-balanced" : "local-balanced";
                 try {
                   await api.saveSetupProgress({
                     current_step: 5,
@@ -929,16 +932,17 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                       objective: objective,
                       provider: selectedProvider,
                       model: modelName,
-                      model_profile: selectedProvider ? "cloud-balanced" : "local-balanced",
+                      model_profile: computedProfile,
                       source_mode: connectorTab === "demo" ? "synthetic-demo" : "file-upload",
                       locale: "tr-TR",
                     },
                     status: "completed",
                   });
-                } catch (err) {
+                  onComplete();
+                } catch (err: any) {
                   console.error("Final setup progress save failed:", err);
+                  setError(err.message || "Kurulum kaydedilirken bir hata oluştu");
                 }
-                onComplete();
               }}
               style={{
                 background: "#059669",

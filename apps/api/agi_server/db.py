@@ -371,7 +371,9 @@ class EventDispatchQueue(Base):
 
 settings = get_settings()
 if settings.database_url.startswith("sqlite"):
-    Path("data").mkdir(exist_ok=True)
+    raw_path = settings.database_url.split("sqlite:///", 1)[-1]
+    if raw_path and raw_path != ":memory:":
+        Path(raw_path).parent.mkdir(parents=True, exist_ok=True)
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,
@@ -380,6 +382,34 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
 
+def load_persisted_settings(db: Session, settings: Settings) -> Settings:
+    from pydantic import SecretStr
+
+    try:
+        row = db.get(InstallationState, "default")
+        if row and row.configuration:
+            config = row.configuration
+            if config.get("cloud_models_enabled") or config.get("provider"):
+                settings.cloud_models_enabled = True
+            if config.get("provider"):
+                settings.cloud_provider = config["provider"]
+            if config.get("model"):
+                settings.cloud_model = config["model"]
+            if config.get("model_profile"):
+                settings.model_profile = config["model_profile"]
+            api_key_val = config.get("cloud_api_key")
+            if api_key_val and (
+                settings.cloud_api_key is None
+                or not settings.cloud_api_key.get_secret_value()
+            ):
+                settings.cloud_api_key = SecretStr(api_key_val)
+    except Exception:
+        pass
+    return settings
+
+
 def get_db() -> Generator[Session, None, None]:
     with SessionLocal() as session:
+        load_persisted_settings(session, get_settings())
         yield session
+

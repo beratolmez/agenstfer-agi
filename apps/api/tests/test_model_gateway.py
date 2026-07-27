@@ -14,8 +14,16 @@ from fastapi import HTTPException
 from pydantic import SecretStr
 
 
+@pytest.fixture(autouse=True)
+def _isolate_env(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("AGI_CLOUD_MODELS_ENABLED", raising=False)
+    monkeypatch.delenv("AGI_CLOUD_MODEL", raising=False)
+    monkeypatch.delenv("AGI_CLOUD_PROVIDER", raising=False)
+    monkeypatch.delenv("AGI_CLOUD_API_KEY", raising=False)
+
+
 def test_base_local_settings_run_without_cloud_provider_or_key() -> None:
-    settings = Settings()
+    settings = Settings(_env_file=None)
     assert settings.cloud_models_enabled is False
     assert not settings.cloud_provider
     assert settings.cloud_api_key is None
@@ -23,6 +31,7 @@ def test_base_local_settings_run_without_cloud_provider_or_key() -> None:
 
 def test_explicit_cloud_groq_profile_is_resolved_and_pinned() -> None:
     settings = Settings(
+        _env_file=None,
         model_profile="cloud-balanced",
         cloud_models_enabled=True,
         cloud_provider="groq",
@@ -39,6 +48,7 @@ def test_explicit_cloud_groq_profile_is_resolved_and_pinned() -> None:
 
 def test_cloud_profile_requires_explicit_opt_in() -> None:
     settings = Settings(
+        _env_file=None,
         model_profile="cloud-balanced",
         cloud_provider="mistral",
         cloud_api_key=SecretStr("test-key"),
@@ -92,8 +102,24 @@ def test_cloud_profile_does_not_inherit_ollama_reasoning_controls() -> None:
     }
 
 
+def test_gemini_reasoning_and_tool_settings() -> None:
+    settings = Settings(
+        cloud_models_enabled=True,
+        cloud_provider="gemini",
+        cloud_api_key=SecretStr("test-key"),
+    )
+
+    assert model_settings_for_profile("cloud-balanced", settings, max_tokens=900) == {
+        "max_tokens": 900,
+        "openai_reasoning_effort": "minimal",
+        "parallel_tool_calls": False,
+        "temperature": 0,
+    }
+
+
 def test_profile_catalog_is_allowlisted_and_never_exposes_cloud_secret() -> None:
     settings = Settings(
+        _env_file=None,
         model_profile="cloud-balanced",
         cloud_models_enabled=True,
         cloud_provider="groq",
@@ -156,3 +182,38 @@ def test_egress_squid_conf_includes_all_supported_cloud_providers() -> None:
     assert ".api.groq.com" in content
     assert ".api.mistral.ai" in content
     assert ".openrouter.ai" in content
+
+
+def test_model_configure_persists_settings_across_db_reloads(tmp_path: Path) -> None:
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from agi_server.db import Base, load_persisted_settings
+
+    db_path = tmp_path / "test_persist.db"
+    engine = create_engine(f"sqlite:///{db_path}")
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+
+    settings = Settings(_env_file=None, environment="development", cloud_models_enabled=False, cloud_api_key=None)
+    payload = ModelConfigRequest(
+        provider="gemini",
+        api_key="persistent-test-api-key",
+        model="gemini-3.6-flash",
+        profile_id="cloud-balanced",
+    )
+
+    with Session() as db:
+        model_configure(payload, settings, db=db, actor=None)
+
+    fresh_settings = Settings(_env_file=None, environment="development", cloud_models_enabled=False, cloud_api_key=None)
+    assert fresh_settings.cloud_api_key is None
+
+    with Session() as db:
+        load_persisted_settings(db, fresh_settings)
+
+    assert fresh_settings.cloud_models_enabled is True
+    assert fresh_settings.cloud_provider == "gemini"
+    assert fresh_settings.cloud_model == "gemini-3.6-flash"
+    assert fresh_settings.model_profile == "cloud-balanced"
+    assert fresh_settings.cloud_api_key is not None
+    assert fresh_settings.cloud_api_key.get_secret_value() == "persistent-test-api-key"

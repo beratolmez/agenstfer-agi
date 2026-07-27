@@ -14,6 +14,10 @@ def test_capability_registry_listing():
     assert "metrics.calculate" in ids
     assert "battlecard.generate" in ids
 
+    for item in caps:
+        assert "status" in item
+        assert item["status"] in {"available", "planned"}
+
 
 def test_scoped_capability_tools_binding():
     class DummyDB:
@@ -53,7 +57,8 @@ def test_scoped_capability_tools_binding():
     )
 
     bound_tools = tools.for_spec(spec)
-    assert len(bound_tools) == 6
+    # Only active available capabilities (knowledge.search and metrics.calculate) are bound for LLM context
+    assert len(bound_tools) == 2
 
 
 def test_capability_allowlist_narrows_and_cannot_expand():
@@ -86,9 +91,9 @@ def test_capability_allowlist_narrows_and_cannot_expand():
         output_type="CompanyAnalysis",
     )
 
-    # Empty or None allowlist uses full published spec capabilities
+    # None allowlist uses full published spec capabilities; empty allowlist denies all capabilities
     assert len(tools.for_spec(spec, capability_allowlist=None)) == 2
-    assert len(tools.for_spec(spec, capability_allowlist=frozenset())) == 2
+    assert len(tools.for_spec(spec, capability_allowlist=frozenset())) == 0
 
     # Allowlist narrows capabilities
     narrowed = tools.for_spec(spec, capability_allowlist=["knowledge.search"])

@@ -62,6 +62,7 @@ from agi_server.ingestion import (
     sync_connector,
     sync_demo_company,
 )
+from agi_server.logging_utils import logger, redact_sensitive_text
 from agi_server.migrations import run_migrations
 from agi_server.observability import ObservabilityMiddleware, configure_observability
 from agi_server.okf import FileSystemOKFBundle
@@ -373,6 +374,7 @@ class ModelDiscoverRequest(BaseModel):
 async def model_discover(
     payload: ModelDiscoverRequest,
     settings: Annotated[Settings, Depends(get_settings)],
+    _actor: Annotated[User | None, Depends(require_role("admin"))],
 ) -> dict[str, Any]:
     provider = payload.provider.lower()
     api_key = payload.api_key.strip() if payload.api_key else None
@@ -380,11 +382,12 @@ async def model_discover(
         api_key = settings.cloud_api_key.get_secret_value()
 
     discovered_models: list[str] = []
+    live_discovery_success = False
     if provider == "gemini" and api_key:
         try:
             async with httpx.AsyncClient(timeout=8.0) as client:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
-                res = await client.get(url)
+                url = "https://generativelanguage.googleapis.com/v1beta/models"
+                res = await client.get(url, headers={"x-goog-api-key": api_key})
                 if res.status_code == 200:
                     data = res.json()
                     models_list = data.get("models", [])
@@ -395,15 +398,15 @@ async def model_discover(
                         ignored = ["embedding", "imagen", "aqa"]
                         if "gemini" in name.lower() and not any(x in name for x in ignored):
                             discovered_models.append(name)
+                    live_discovery_success = len(discovered_models) > 0
         except Exception:
-            pass
+            live_discovery_success = False
 
     if not discovered_models:
         if provider == "gemini":
             discovered_models = [
                 "gemini-3.6-flash",
-                "gemini-3.5-flash-lite",
-                "gemini-2.5-flash",
+                "gemini-3.5-flash",
                 "gemini-2.0-flash",
             ]
         elif provider == "groq":
@@ -412,7 +415,7 @@ async def model_discover(
             discovered_models = ["mistral-small-latest", "mistral-medium-latest"]
         elif provider == "openrouter":
             discovered_models = [
-                "google/gemini-2.5-flash-free",
+                "google/gemini-2.0-flash-free",
                 "meta-llama/llama-3.3-70b-instruct:free",
             ]
         else:
@@ -421,7 +424,7 @@ async def model_discover(
     return {
         "provider": provider,
         "models": discovered_models,
-        "dynamic": len(discovered_models) > 0 and provider == "gemini" and bool(api_key),
+        "dynamic": live_discovery_success,
     }
 
 
@@ -475,6 +478,21 @@ def model_configure(
     if payload.model:
         settings.cloud_model = payload.model
     settings.model_profile = payload.profile_id
+
+    row = db.get(InstallationState, "default")
+    if row is None:
+        row = InstallationState(id="default")
+        db.add(row)
+    config = dict(row.configuration or {})
+    config["provider"] = payload.provider
+    if payload.model:
+        config["model"] = payload.model
+    config["model_profile"] = payload.profile_id
+    config["cloud_models_enabled"] = True
+    if settings.cloud_api_key and settings.environment.lower() != "production":
+        config["cloud_api_key"] = settings.cloud_api_key.get_secret_value()
+    row.configuration = config
+
     record_audit(
         db,
         actor_id=None if actor is None else actor.id,
@@ -779,7 +797,11 @@ def setup_progress_update(
         db.add(row)
     row.current_step = payload.current_step
     row.completed_steps = completed
-    row.configuration = payload.configuration
+    merged_config = dict(row.configuration or {})
+    merged_config.update(payload.configuration)
+    if settings.cloud_api_key and settings.environment.lower() != "production":
+        merged_config["cloud_api_key"] = settings.cloud_api_key.get_secret_value()
+    row.configuration = merged_config
     row.status = payload.status
     row.updated_by = None if actor is None else actor.id
     record_audit(
@@ -879,7 +901,7 @@ async def run_diagnostic(
     """Compatibility start view; production execution always uses a published workflow."""
     actor_id = None if actor is None else actor.id
     key = idempotency_key or f"diagnostic-{uuid.uuid4()}"
-    ensure_platform_registry(db)
+    ensure_platform_registry(db, settings)
     if version is None:
         workflow = db.scalar(
             select(WorkflowDefinitionRow)
@@ -905,24 +927,32 @@ async def run_diagnostic(
             input_json={"compatibility_view": "diagnostics.run"},
         )
     except ValueError as error:
+        logger.exception("Diagnostic workflow start failed (ValueError) for key %s: %s", key, error)
         record_audit(
             db,
             actor_id=actor_id,
             action="diagnostic.run_failed",
             target_type="workflow_run",
             target_id=key,
-            metadata={"error_type": type(error).__name__},
+            metadata={
+                "error_type": type(error).__name__,
+                "message": redact_sensitive_text(str(error)),
+            },
         )
         db.commit()
         raise HTTPException(status_code=409, detail=str(error)) from error
     except Exception as error:
+        logger.exception("Diagnostic workflow start failed for key %s: %s", key, error)
         record_audit(
             db,
             actor_id=actor_id,
             action="diagnostic.run_failed",
             target_type="workflow_run",
             target_id=key,
-            metadata={"error_type": type(error).__name__},
+            metadata={
+                "error_type": type(error).__name__,
+                "message": redact_sensitive_text(str(error)),
+            },
         )
         db.commit()
         raise HTTPException(status_code=409, detail="Diagnostic workflow başlatılamadı") from error
@@ -1422,28 +1452,74 @@ class MCPTestRequest(BaseModel):
 @app.post("/api/sources/test-db")
 def source_test_db(
     payload: DBTestRequest,
-    db: Annotated[Session, Depends(get_db)],
-    actor: Annotated[User | None, Depends(require_role("admin"))],
+    db: Annotated[Session | None, Depends(get_db)] = None,
+    actor: Annotated[User | None, Depends(require_role("admin"))] = None,
 ) -> dict[str, Any]:
-    record_audit(
-        db,
-        actor_id=None if actor is None else actor.id,
-        action="source.db_tested",
-        target_type="db_connector",
-        target_id=f"{payload.db_type}:{payload.host}:{payload.database_name}",
-        metadata={"db_type": payload.db_type, "read_only": payload.read_only},
-    )
-    db.commit()
+    import socket
+    import time
+    from sqlalchemy import create_engine, inspect, text
+
+    start_time = time.time()
+    if payload.db_type.lower() != "sqlite" and payload.port > 0:
+        try:
+            with socket.create_connection((payload.host, payload.port), timeout=2.5):
+                pass
+        except Exception as err:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Veritabanı sunucusuna erişilemedi ({payload.host}:{payload.port}): {err}",
+            ) from err
+
+    tables_found: list[str] = []
+    driver_map = {
+        "postgresql": "postgresql+psycopg",
+        "postgres": "postgresql+psycopg",
+        "mysql": "mysql+pymysql",
+        "sqlite": "sqlite",
+    }
+    driver = driver_map.get(payload.db_type.lower(), payload.db_type.lower())
+    if payload.db_type.lower() == "sqlite":
+        conn_url = f"sqlite:///{payload.database_name}"
+    else:
+        conn_url = f"{driver}://{payload.username}:{payload.password}@{payload.host}:{payload.port}/{payload.database_name}"
+
+    try:
+        temp_engine = create_engine(
+            conn_url, connect_args={"connect_timeout": 3} if "sqlite" not in conn_url else {}
+        )
+        with temp_engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+            inspector = inspect(conn)
+            tables_found = inspector.get_table_names()
+        temp_engine.dispose()
+    except Exception as db_err:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Veritabanı bağlantısı veya kimlik doğrulama başarısız ({payload.database_name}): {db_err}",
+        ) from db_err
+
+    elapsed_ms = int((time.time() - start_time) * 1000)
+
+    if db is not None:
+        record_audit(
+            db,
+            actor_id=None if actor is None else actor.id,
+            action="source.db_tested",
+            target_type="db_connector",
+            target_id=f"{payload.db_type}:{payload.host}:{payload.database_name}",
+            metadata={"db_type": payload.db_type, "read_only": payload.read_only, "tables_count": len(tables_found)},
+        )
+        db.commit()
     return {
         "status": "connected",
         "db_type": payload.db_type,
         "host": payload.host,
         "database": payload.database_name,
         "read_only": payload.read_only,
-        "tables_found": ["accounts", "contacts", "opportunities", "invoices", "products"],
-        "connection_time_ms": 14,
+        "tables_found": tables_found,
+        "connection_time_ms": elapsed_ms,
         "message": (
-            f"Read-Only {payload.db_type.upper()} veritabanı bağlantısı başarıyla doğrulandı."
+            f"Read-Only {payload.db_type.upper()} veritabanı bağlantısı ve {len(tables_found)} tablo başarıyla doğrulandı."
         ),
     }
 
@@ -1451,28 +1527,71 @@ def source_test_db(
 @app.post("/api/sources/test-mcp")
 def source_test_mcp(
     payload: MCPTestRequest,
-    db: Annotated[Session, Depends(get_db)],
-    actor: Annotated[User | None, Depends(require_role("admin"))],
+    db: Annotated[Session | None, Depends(get_db)] = None,
+    actor: Annotated[User | None, Depends(require_role("admin"))] = None,
 ) -> dict[str, Any]:
-    record_audit(
-        db,
-        actor_id=None if actor is None else actor.id,
-        action="source.mcp_tested",
-        target_type="mcp_connector",
-        target_id=payload.mcp_url,
-        metadata={"mcp_url": payload.mcp_url},
-    )
-    db.commit()
+    import time
+    import httpx
+
+    if db is not None:
+        profile = db.scalar(select(MCPProfile).where(MCPProfile.server_url == payload.mcp_url))
+        if profile is None and not payload.mcp_url.startswith("http://localhost") and not payload.mcp_url.startswith("http://127.0.0.1"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Onaylanmamış MCP sunucusu ({payload.mcp_url}). Yalnızca onaylı MCP profilleri desteklenmektedir.",
+            )
+
+    headers = {}
+    if payload.auth_token:
+        headers["Authorization"] = f"Bearer {payload.auth_token}"
+
+    tools_discovered: list[dict[str, str]] = []
+    protocol_version = "2024-11-05"
+
+    try:
+        with httpx.Client(timeout=3.0) as client:
+            resp = client.post(
+                payload.mcp_url,
+                json={"jsonrpc": "2.0", "method": "tools/list", "params": {}, "id": 1},
+                headers=headers,
+            )
+            if resp.status_code >= 400:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"MCP sunucusu HTTP {resp.status_code} hatası döndürdü: {resp.text[:200]}",
+                )
+            data = resp.json()
+            if isinstance(data, dict) and "result" in data and isinstance(data["result"], dict) and "tools" in data["result"]:
+                for t in data["result"]["tools"]:
+                    if isinstance(t, dict) and "name" in t:
+                        tools_discovered.append({
+                            "name": str(t["name"]),
+                            "description": str(t.get("description", "")),
+                        })
+    except HTTPException:
+        raise
+    except Exception as err:
+        raise HTTPException(
+            status_code=400,
+            detail=f"MCP sunucusuna erişilemedi ({payload.mcp_url}): {err}",
+        ) from err
+
+    if db is not None:
+        record_audit(
+            db,
+            actor_id=None if actor is None else actor.id,
+            action="source.mcp_tested",
+            target_type="mcp_connector",
+            target_id=payload.mcp_url,
+            metadata={"mcp_url": payload.mcp_url, "tools_count": len(tools_discovered)},
+        )
+        db.commit()
     return {
         "status": "connected",
         "mcp_url": payload.mcp_url,
-        "protocol_version": "2024-11-05",
-        "tools_discovered": [
-            {"name": "get_crm_account", "description": "Fetches account details by ID"},
-            {"name": "query_erp_invoices", "description": "Queries historical invoices"},
-            {"name": "get_competitor_signals", "description": "Fetches market signals"},
-        ],
-        "message": "Model Context Protocol (MCP) sunucusuyla güvenli read-only bağlantı kuruldu.",
+        "protocol_version": protocol_version,
+        "tools_discovered": tools_discovered,
+        "message": f"Model Context Protocol (MCP) sunucusuyla güvenli read-only bağlantı kuruldu ({len(tools_discovered)} tool keşfedildi).",
     }
 
 
@@ -1741,7 +1860,6 @@ def evidence(
 
 @app.get("/api/agents")
 def agents(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
-    ensure_platform_registry(db)
     rows = (
         db.query(AgentDefinitionRow)
         .order_by(AgentDefinitionRow.id, AgentDefinitionRow.version.desc())
@@ -1877,7 +1995,6 @@ def agent_publish(
 
 @app.get("/api/capabilities")
 def capabilities(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
-    ensure_platform_registry(db)
     rows = (
         db.query(CapabilityDefinitionRow)
         .order_by(CapabilityDefinitionRow.id, CapabilityDefinitionRow.version.desc())
@@ -1899,7 +2016,6 @@ def capabilities(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
 
 @app.get("/api/workflows/default", response_model=WorkflowDefinition)
 def default_workflow(db: Annotated[Session, Depends(get_db)]) -> WorkflowDefinition:
-    ensure_platform_registry(db)
     row = latest_workflow(db, "builtin-growth-diagnostic", draft_first=False)
     if row is None:
         return build_default_workflow()
@@ -1908,7 +2024,6 @@ def default_workflow(db: Annotated[Session, Depends(get_db)]) -> WorkflowDefinit
 
 @app.get("/api/workflows")
 def workflow_list(db: Annotated[Session, Depends(get_db)]) -> dict[str, Any]:
-    ensure_platform_registry(db)
     rows = (
         db.query(WorkflowDefinitionRow)
         .order_by(WorkflowDefinitionRow.id, WorkflowDefinitionRow.version.desc())
@@ -2143,8 +2258,14 @@ async def workflow_version_run(
             None if actor is None else actor.id,
         )
     except ValueError as error:
+        logger.exception(
+            "Workflow version run failed (ValueError) for %s v%s: %s", workflow_id, version, error
+        )
         raise HTTPException(status_code=409, detail=str(error)) from error
     except Exception as error:
+        logger.exception(
+            "Workflow version run failed for %s v%s: %s", workflow_id, version, error
+        )
         raise HTTPException(status_code=409, detail="Workflow run tamamlanamadı") from error
     record_audit(
         db,

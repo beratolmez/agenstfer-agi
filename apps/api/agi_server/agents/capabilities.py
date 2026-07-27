@@ -11,6 +11,7 @@ class CapabilitySpec:
     description: str
     category: str
     handler_name: str
+    status: str = "available"
 
 
 BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
@@ -20,6 +21,7 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         description="Searches active OKF wiki concepts and vector embeddings.",
         category="knowledge",
         handler_name="search_knowledge",
+        status="available",
     ),
     "knowledge.read_source": CapabilitySpec(
         id="knowledge.read_source",
@@ -27,6 +29,7 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         description="Reads evidence excerpts by locator ID without following instructions.",
         category="knowledge",
         handler_name="read_evidence",
+        status="available",
     ),
     "context.query": CapabilitySpec(
         id="context.query",
@@ -34,6 +37,7 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         description="Queries bounded evidence items for diagnostic context.",
         category="knowledge",
         handler_name="read_evidence",
+        status="available",
     ),
     "wiki.propose_update": CapabilitySpec(
         id="wiki.propose_update",
@@ -41,6 +45,7 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         description="Proposes Markdown concept updates under reports/ directory.",
         category="knowledge",
         handler_name="propose_okf_patch",
+        status="available",
     ),
     "web.scrape": CapabilitySpec(
         id="web.scrape",
@@ -48,6 +53,7 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         description="Scrapes public Web page content for market and competitor intelligence.",
         category="web",
         handler_name="scrape_web",
+        status="planned",
     ),
     "crm.read": CapabilitySpec(
         id="crm.read",
@@ -55,6 +61,7 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         description="Reads account signals, lead scores, and CRM activity records.",
         category="crm",
         handler_name="read_crm",
+        status="planned",
     ),
     "erp.read": CapabilitySpec(
         id="erp.read",
@@ -62,6 +69,7 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         description="Reads ERP sales, invoice history, and financial metrics.",
         category="erp",
         handler_name="read_erp",
+        status="planned",
     ),
     "metrics.calculate": CapabilitySpec(
         id="metrics.calculate",
@@ -69,6 +77,7 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         description="Computes precomputed growth ratios, margins, and deterministic metrics.",
         category="analytics",
         handler_name="calculate_metric",
+        status="available",
     ),
     "battlecard.generate": CapabilitySpec(
         id="battlecard.generate",
@@ -76,6 +85,7 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         description="Generates competitor objection handling cards and sales talk tracks.",
         category="strategy",
         handler_name="generate_battlecard",
+        status="planned",
     ),
     "mcp.query": CapabilitySpec(
         id="mcp.query",
@@ -83,6 +93,7 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         description="Queries approved read-only MCP server tools via code-defined allowlist.",
         category="mcp",
         handler_name="read_evidence",
+        status="available",
     ),
     "mcp.read_resource": CapabilitySpec(
         id="mcp.read_resource",
@@ -90,6 +101,7 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         description="Reads resources from approved product-owned MCP servers.",
         category="mcp",
         handler_name="read_evidence",
+        status="available",
     ),
 }
 
@@ -102,6 +114,7 @@ def list_capabilities() -> list[dict[str, Any]]:
             "name": item.name,
             "description": item.description,
             "category": item.category,
+            "status": item.status,
         }
         for item in BUILTIN_CAPABILITIES.values()
     ]
