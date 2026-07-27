@@ -27,6 +27,7 @@ from agi_server.db import (
     AgentDefinitionRow,
     ApprovalRequest,
     EvidenceItem,
+    InstallationState,
     OKFCandidate,
     SessionLocal,
     WorkflowDefinitionRow,
@@ -50,6 +51,7 @@ from agi_server.domain.metrics import (
     calculate_verified_growth_metrics,
 )
 from agi_server.ingestion import sync_demo_company
+from agi_server.logging_utils import build_error_details, logger
 from agi_server.okf.lifecycle import (
     approve_candidate,
     create_demo_candidate,
@@ -288,7 +290,7 @@ async def _execute_node(
             raise ValueError(f"Run has no pinned agent version: {agent_id}")
         agent_row = _published_agent_version(db, agent_id, pinned_version)
         spec = agent_from_row(agent_row)
-        profile_id = str(node.config.get("model_profile") or spec.model_profile)
+        profile_id = str(node.config.get("model_profile") or run.model_profile or settings.model_profile or spec.model_profile)
         profile = resolve_model_profile(profile_id, settings)
         step.agent_id = agent_id
         step.agent_version = agent_row.version
@@ -333,6 +335,10 @@ async def _execute_node(
                     row, tools.read_evidence(evidence_id)
                 )
         model_override = (model_overrides or {}).get(agent_id)
+        node_caps = node.config.get("capabilities")
+        capability_allowlist = (
+            frozenset(node_caps) if node_caps is not None else None
+        )
         if spec.output_type == "EvidenceReview" and evidence_claims is not None:
             execution = await _run_evidence_reviewer(
                 evidence_claims,
@@ -342,6 +348,7 @@ async def _execute_node(
                 profile_id,
                 model_override=model_override,
                 spec_override=spec,
+                capability_allowlist=capability_allowlist,
             )
         else:
             execution = await run_managed_agent(
@@ -358,7 +365,7 @@ async def _execute_node(
                 profile_id=profile_id,
                 model_override=model_override,
                 spec_override=spec,
-                capability_allowlist=frozenset(),
+                capability_allowlist=capability_allowlist,
             )
         result.setdefault("agent_results", {})[agent_id] = execution.output.model_dump(mode="json")
         step.model_profile = execution.profile_id
@@ -382,7 +389,19 @@ async def _execute_node(
             raise ValueError("Wiki Curator proposed a path outside reports/")
         claims = _material_claims(metrics, company, hypotheses)
         evidence_ids = _enforce_evidence_gate(db, claims, review)
-        diagnostic = build_computed_diagnostic(db, run.id, metrics, company, hypotheses)
+        inst_row = db.get(InstallationState, "default")
+        inst_config = dict(inst_row.configuration or {}) if inst_row else {}
+        company_name = inst_config.get("company_name") or (run.input_json or {}).get("company_name")
+        objective = inst_config.get("objective") or (run.input_json or {}).get("objective")
+        diagnostic = build_computed_diagnostic(
+            db,
+            run.id,
+            metrics,
+            company,
+            hypotheses,
+            company_name=company_name,
+            objective=objective,
+        )
         artifact_uri, _ = _write_report_artifacts(db, settings, run.id, diagnostic)
         candidate, _ = create_demo_candidate(
             db,
@@ -521,21 +540,38 @@ async def resume_persisted_workflow(
         db.commit()
         return run
     except Exception as error:
-        run.status = "failed"
-        run.error_json = {"code": type(error).__name__, "message": "Workflow execution failed"}
-        run.completed_at = utcnow()
         active_step = db.scalar(
             select(WorkflowStepRun).where(
                 WorkflowStepRun.run_id == run.id,
                 WorkflowStepRun.status == "running",
             )
         )
+        failed_node_id = active_step.node_id if active_step else (run.current_step or None)
+        failed_node = (
+            nodes.get(failed_node_id)
+            if failed_node_id and failed_node_id in nodes
+            else None
+        )
+        node_profile = (
+            failed_node.config.get("model_profile")
+            if failed_node and isinstance(failed_node.config, dict)
+            else None
+        )
+        profile_id = str(node_profile or run.model_profile or "")
+
+        logger.exception("Workflow execution failed for run %s (node: %s)", run.id, failed_node_id)
+        error_details = build_error_details(
+            error,
+            settings=settings,
+            profile_id=profile_id,
+            node_id=failed_node_id,
+        )
+        run.status = "failed"
+        run.error_json = error_details
+        run.completed_at = utcnow()
         if active_step is not None:
             active_step.status = "failed"
-            active_step.error_json = {
-                "code": type(error).__name__,
-                "message": "Workflow step failed",
-            }
+            active_step.error_json = error_details
             active_step.completed_at = utcnow()
         db.commit()
         raise
@@ -619,6 +655,32 @@ async def _ensure_durable_workflow(run_id: str) -> None:
     _ = run_id
 
 
+async def _execute_workflow_in_background(
+    run_id: str,
+    workflow_id: str,
+    workflow_version: int,
+    settings: Settings,
+    model_overrides: dict[str, Any] | None = None,
+) -> None:
+    from agi_server.db import SessionLocal
+    try:
+        with SessionLocal() as db:
+            run = db.get(WorkflowRun, run_id)
+            row = db.get(WorkflowDefinitionRow, (workflow_id, workflow_version))
+            if run is None or row is None:
+                return
+            workflow = workflow_from_row(row)
+            await resume_persisted_workflow(
+                db,
+                settings,
+                run,
+                workflow,
+                model_overrides=model_overrides,
+            )
+    except Exception as err:
+        logger.exception("Background workflow execution failed for run %s: %s", run_id, err)
+
+
 async def start_persisted_workflow(
     db: Session,
     settings: Settings,
@@ -628,6 +690,7 @@ async def start_persisted_workflow(
     *,
     input_json: dict[str, Any] | None = None,
     model_overrides: dict[str, Any] | None = None,
+    execute_async: bool = False,
 ) -> WorkflowRun:
     existing = db.scalar(select(WorkflowRun).where(WorkflowRun.idempotency_key == idempotency_key))
     if existing is not None:
@@ -667,6 +730,17 @@ async def start_persisted_workflow(
     )
     db.add(run)
     db.commit()
+    if execute_async:
+        asyncio.create_task(
+            _execute_workflow_in_background(
+                run.id,
+                row.id,
+                row.version,
+                settings,
+                model_overrides=model_overrides,
+            )
+        )
+        return run
     return await resume_persisted_workflow(
         db,
         settings,

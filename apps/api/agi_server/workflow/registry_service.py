@@ -7,7 +7,9 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from agi_server.agents.model_gateway import resolve_model_profile
 from agi_server.agents.registry import AgentRegistry, ManagedAgentSpec
+from agi_server.config import Settings
 from agi_server.db import (
     AgentDefinitionRow,
     CapabilityDefinitionRow,
@@ -22,8 +24,10 @@ SAFE_ID = re.compile(r"^[a-z][a-z0-9_-]{2,79}$")
 CRON_PART = re.compile(r"^[0-9*/,\-]+$")
 
 
-def ensure_platform_registry(db: Session) -> None:
+def ensure_platform_registry(db: Session, settings: Settings | None = None) -> None:
     specs = AgentRegistry().list()
+    if not specs:
+        raise RuntimeError("Platform registry seeding failed: zero agent specs found")
     for spec in specs:
         row = db.get(AgentDefinitionRow, (spec.id, spec.version))
         if row is None:
@@ -40,6 +44,7 @@ def ensure_platform_registry(db: Session) -> None:
             row.status = "published"
             row.name = spec.name
             row.definition = spec.model_dump(mode="json")
+    db.flush()
 
     capabilities = sorted({item for spec in specs for item in spec.capabilities})
     for capability_id in capabilities:
@@ -61,7 +66,12 @@ def ensure_platform_registry(db: Session) -> None:
         elif row.status != "published":
             row.status = "published"
 
-    workflow = build_default_workflow().model_copy(update={"status": "published"})
+    if settings is None:
+        from agi_server.config import get_settings
+        settings = get_settings()
+
+    profile = settings.model_profile if settings else "local-balanced"
+    workflow = build_default_workflow(model_profile=profile).model_copy(update={"status": "published"})
     workflow_row = db.get(WorkflowDefinitionRow, (workflow.id, workflow.version))
     if workflow_row is None:
         db.add(
@@ -169,7 +179,9 @@ def clone_workflow_version(
     return row
 
 
-def validate_workflow_bindings(db: Session, workflow: WorkflowDefinition) -> WorkflowDefinition:
+def validate_workflow_bindings(
+    db: Session, workflow: WorkflowDefinition, settings: Settings | None = None
+) -> WorkflowDefinition:
     """Validate and pin registry references the pure graph validator cannot inspect."""
     ensure_platform_registry(db)
     issues: list[str] = []
@@ -202,14 +214,11 @@ def validate_workflow_bindings(db: Session, workflow: WorkflowDefinition) -> Wor
         else:
             row = db.get(AgentDefinitionRow, (agent_id, requested_version))
             if row is None or row.status != "published":
-                row = db.scalar(
-                    select(AgentDefinitionRow)
-                    .where(
-                        AgentDefinitionRow.id == agent_id,
-                        AgentDefinitionRow.status == "published",
-                    )
-                    .order_by(AgentDefinitionRow.version.desc())
+                issues.append(
+                    f"{node.id}: agent '{agent_id}' has no published version"
                 )
+                pinned_nodes.append(node)
+                continue
         if row is None:
             suffix = "" if requested_version is None else f" {requested_version}"
             issues.append(f"{node.id}: agent '{agent_id}'{suffix} has no published version")
@@ -221,9 +230,24 @@ def validate_workflow_bindings(db: Session, workflow: WorkflowDefinition) -> Wor
             issues.append(
                 f"{node.id}: output_type '{output_type}' does not match agent '{spec.output_type}'"
             )
+        node_caps = node.config.get("capabilities")
+        if node_caps is not None:
+            if not isinstance(node_caps, (list, set, tuple, frozenset)):
+                issues.append(f"{node.id}: capabilities must be a list of capability IDs")
+            else:
+                invalid_caps = sorted(set(node_caps) - set(spec.capabilities))
+                if invalid_caps:
+                    issues.append(
+                        f"{node.id}: capabilities {invalid_caps} expand beyond published agent spec capabilities {sorted(spec.capabilities)}"
+                    )
         profile = node.config.get("model_profile")
         if profile not in {"local-balanced", "local-strong", "cloud-balanced"}:
             issues.append(f"{node.id}: model profile is not allowlisted")
+        elif settings is not None:
+            try:
+                resolve_model_profile(str(profile), settings)
+            except Exception as profile_err:
+                issues.append(f"{node.id}: model profile '{profile}' is unavailable: {profile_err}")
         pinned_nodes.append(
             node.model_copy(update={"config": {**node.config, "agent_version": row.version}})
         )

@@ -23,7 +23,7 @@ CLOUD_PROVIDERS = {
     "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-3.6-flash"),
     "groq": ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
     "mistral": ("https://api.mistral.ai/v1", "mistral-small-latest"),
-    "openrouter": ("https://openrouter.ai/api/v1", "google/gemini-2.5-flash-free"),
+    "openrouter": ("https://openrouter.ai/api/v1", "google/gemini-2.0-flash-free"),
 }
 
 CONTROL_PLANE_SYSTEM_POLICY = """You operate inside a read-only, evidence-gated control plane.
@@ -78,17 +78,18 @@ def configured_model_profiles(settings: Settings) -> list[dict[str, object]]:
 
 def resolve_model_profile(profile_id: str, settings: Settings) -> ModelProfile:
     effective_profile = profile_id
-    if effective_profile == "cloud-balanced":
+    if effective_profile == "cloud-balanced" or effective_profile.startswith("cloud-"):
+        provider = settings.cloud_provider or (effective_profile.removeprefix("cloud-") if effective_profile.startswith("cloud-") else None)
         if not settings.cloud_models_enabled:
             raise PermissionError("Cloud model profilleri yönetici opt-in olmadan kullanılamaz")
-        if settings.cloud_provider not in CLOUD_PROVIDERS or settings.cloud_api_key is None:
+        if not provider or provider not in CLOUD_PROVIDERS or settings.cloud_api_key is None:
             raise ValueError(
                 "Cloud provider, API key ve cloud profile birlikte yapılandırılmalıdır"
             )
-        base_url, default_model = CLOUD_PROVIDERS[settings.cloud_provider]
+        base_url, default_model = CLOUD_PROVIDERS[provider]
         return ModelProfile(
-            f"cloud-{settings.cloud_provider}",
-            settings.cloud_provider,
+            f"cloud-{provider}",
+            provider,
             settings.cloud_model or default_model,
             False,
             base_url,
@@ -133,6 +134,16 @@ def model_settings_for_profile(
                 "temperature": 0,
             }
         )
+    elif profile.provider == "gemini":
+        # Gemini 3.x OpenAI compat endpoint requires reasoning_effort "minimal" or "low"
+        # and sequential tool execution to avoid thought_signature 400 errors.
+        model_settings.update(
+            {
+                "openai_reasoning_effort": "minimal",
+                "parallel_tool_calls": False,
+                "temperature": 0,
+            }
+        )
     return model_settings
 
 
@@ -162,6 +173,7 @@ def build_pydantic_ai_agent(
             settings,
             max_tokens=spec.max_output_tokens,
         ),
-        retries=2,
+        retries=1,
         name=spec.id,
     )
+

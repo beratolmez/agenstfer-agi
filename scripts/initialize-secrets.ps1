@@ -13,7 +13,7 @@ function New-SecureValue {
     return [Convert]::ToBase64String($bytes)
 }
 
-foreach ($name in @("bootstrap_token", "session_secret", "master_key")) {
+foreach ($name in @("bootstrap_token", "session_secret", "master_key", "cloud_model_api_key")) {
     $path = Join-Path $Directory $name
     if (Test-Path -LiteralPath $path) {
         Write-Host "Preserved existing secret: $path"

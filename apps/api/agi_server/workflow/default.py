@@ -1,7 +1,8 @@
 from agi_server.workflow.models import NodeKind, WorkflowDefinition, WorkflowEdge, WorkflowNode
 
 
-def build_default_workflow() -> WorkflowDefinition:
+def build_default_workflow(model_profile: str | None = None) -> WorkflowDefinition:
+    profile = model_profile or "local-balanced"
     rows = [
         ("trigger", NodeKind.MANUAL_TRIGGER, "Manual Trigger", 20, 60, {}, "control"),
         (
@@ -33,7 +34,7 @@ def build_default_workflow() -> WorkflowDefinition:
             {
                 "agent_id": "company-analyst",
                 "agent_version": 3,
-                "model_profile": "local-balanced",
+                "model_profile": profile,
                 "output_type": "CompanyAnalysis",
             },
             "agent_result",
@@ -47,7 +48,7 @@ def build_default_workflow() -> WorkflowDefinition:
             {
                 "agent_id": "growth-opportunity-analyst",
                 "agent_version": 3,
-                "model_profile": "local-balanced",
+                "model_profile": profile,
                 "output_type": "OpportunityHypotheses",
             },
             "hypotheses",
@@ -70,7 +71,7 @@ def build_default_workflow() -> WorkflowDefinition:
             {
                 "agent_id": "evidence-reviewer",
                 "agent_version": 3,
-                "model_profile": "local-balanced",
+                "model_profile": profile,
                 "output_type": "EvidenceReview",
             },
             "agent_result",
@@ -84,7 +85,7 @@ def build_default_workflow() -> WorkflowDefinition:
             {
                 "agent_id": "wiki-curator",
                 "agent_version": 2,
-                "model_profile": "local-balanced",
+                "model_profile": profile,
                 "output_type": "OKFChangeSet",
             },
             "agent_result",

@@ -17,6 +17,7 @@ from agi_server.db import (
     WorkflowStepRun,
     utcnow,
 )
+from agi_server.logging_utils import build_error_details, logger
 from agi_server.workflow.models import NodeKind, WorkflowDefinition
 from agi_server.workflow.validator import validate_workflow
 
@@ -92,67 +93,69 @@ class LangGraphWorkflowEngine:
             if state.get("status") in {"awaiting_approval", "failed"}:
                 return state
 
-            node = self.nodes[node_id]
-            state_data = deepcopy(state.get("state_data", {}))
-            active_edges = set(state_data.get("_active_edges", []))
-
-            completed_steps = {
-                item.sequence: item
-                for item in self.db.scalars(
-                    select(WorkflowStepRun).where(WorkflowStepRun.run_id == self.run.id)
-                )
-            }
-            prior = completed_steps.get(sequence)
-            if prior is not None and prior.status in {"completed", "skipped"}:
-                return state
-
-            is_trigger = node.kind in {
-                NodeKind.MANUAL_TRIGGER,
-                NodeKind.ONBOARDING_TRIGGER,
-                NodeKind.SCHEDULE_TRIGGER,
-            }
-            active = is_trigger or any(edge.id in active_edges for edge in self.incoming[node_id])
-            step = prior or _step(self.db, self.run, node, sequence, state_data)
-            self.run.current_step = node.id
-
-            if not active:
-                step.status = "skipped"
-                step.completed_at = utcnow()
-                self.db.commit()
-                return state
-
-            if node.kind == NodeKind.APPROVAL:
-                if step.status == "awaiting_approval":
-                    self.run.status = "awaiting_approval"
-                    state["status"] = "awaiting_approval"
-                    return state
-                candidate_id = state_data.get("candidate_id")
-                if not candidate_id or self.db.get(OKFCandidate, candidate_id) is None:
-                    raise ValueError("Approval requires a persisted OKF candidate")
-                approval = ApprovalRequest(
-                    run_id=self.run.id,
-                    kind="okf-candidate-merge",
-                    status="pending",
-                    artifact_uri=self.run.artifact_uri or "",
-                    requested_role=str(node.config.get("role", "approver")),
-                    candidate_id=candidate_id,
-                    expires_at=datetime.now(UTC)
-                    + timedelta(days=int(node.config.get("timeout_days", 7))),
-                )
-                self.db.add(approval)
-                step.status = "awaiting_approval"
-                step.output_json = {"approval_id": approval.id, "candidate_id": candidate_id}
-                self.run.status = "awaiting_approval"
-                state_data["_active_edges"] = sorted(active_edges)
-                self.run.output_json = state_data
-                _aggregate_usage(self.db, self.run)
-                self.db.commit()
-                state["status"] = "awaiting_approval"
-                state["state_data"] = state_data
-                return state
-
-            before_state = deepcopy(state_data)
             try:
+                node = self.nodes[node_id]
+                state_data = deepcopy(state.get("state_data", {}))
+                active_edges = set(state_data.get("_active_edges", []))
+
+                completed_steps = {
+                    item.sequence: item
+                    for item in self.db.scalars(
+                        select(WorkflowStepRun).where(WorkflowStepRun.run_id == self.run.id)
+                    )
+                }
+                prior = completed_steps.get(sequence)
+                if prior is not None and prior.status in {"completed", "skipped"}:
+                    return state
+
+                is_trigger = node.kind in {
+                    NodeKind.MANUAL_TRIGGER,
+                    NodeKind.ONBOARDING_TRIGGER,
+                    NodeKind.SCHEDULE_TRIGGER,
+                }
+                active = is_trigger or any(
+                    edge.id in active_edges for edge in self.incoming[node_id]
+                )
+                step = prior or _step(self.db, self.run, node, sequence, state_data)
+                self.run.current_step = node.id
+
+                if not active:
+                    step.status = "skipped"
+                    step.completed_at = utcnow()
+                    self.db.commit()
+                    return state
+
+                if node.kind == NodeKind.APPROVAL:
+                    if step.status == "awaiting_approval":
+                        self.run.status = "awaiting_approval"
+                        state["status"] = "awaiting_approval"
+                        return state
+                    candidate_id = state_data.get("candidate_id")
+                    if not candidate_id or self.db.get(OKFCandidate, candidate_id) is None:
+                        raise ValueError("Approval requires a persisted OKF candidate")
+                    approval = ApprovalRequest(
+                        run_id=self.run.id,
+                        kind="okf-candidate-merge",
+                        status="pending",
+                        artifact_uri=self.run.artifact_uri or "",
+                        requested_role=str(node.config.get("role", "approver")),
+                        candidate_id=candidate_id,
+                        expires_at=datetime.now(UTC)
+                        + timedelta(days=int(node.config.get("timeout_days", 7))),
+                    )
+                    self.db.add(approval)
+                    step.status = "awaiting_approval"
+                    step.output_json = {"approval_id": approval.id, "candidate_id": candidate_id}
+                    self.run.status = "awaiting_approval"
+                    state_data["_active_edges"] = sorted(active_edges)
+                    self.run.output_json = state_data
+                    _aggregate_usage(self.db, self.run)
+                    self.db.commit()
+                    state["status"] = "awaiting_approval"
+                    state["state_data"] = state_data
+                    return state
+
+                before_state = deepcopy(state_data)
                 state_data = await _execute_node(
                     self.db,
                     self.settings,
@@ -163,21 +166,30 @@ class LangGraphWorkflowEngine:
                     model_overrides=self.model_overrides,
                 )
             except Exception as error:
+                node_profile = str(
+                    node.config.get("model_profile") or self.run.model_profile or ""
+                )
+                logger.exception(
+                    "LangGraph node execution failed for run %s at node %s",
+                    self.run.id,
+                    node_id,
+                )
+                error_details = build_error_details(
+                    error,
+                    settings=self.settings,
+                    profile_id=node_profile,
+                    node_id=node_id,
+                )
                 self.run.status = "failed"
-                self.run.error_json = {
-                    "code": type(error).__name__,
-                    "message": "Workflow execution failed",
-                }
+                self.run.error_json = error_details
                 self.run.completed_at = utcnow()
-                step.status = "failed"
-                step.error_json = {
-                    "code": type(error).__name__,
-                    "message": "Workflow step failed",
-                }
-                step.completed_at = utcnow()
+                if 'step' in locals() and step is not None:
+                    step.status = "failed"
+                    step.error_json = error_details
+                    step.completed_at = utcnow()
                 self.db.commit()
                 state["status"] = "failed"
-                state["error"] = str(error)
+                state["error"] = error_details["message"]
                 raise error
 
             if node.kind == NodeKind.CONDITION:

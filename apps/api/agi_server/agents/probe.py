@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic_ai import Agent, PromptedOutput
 
-from agi_server.agents.contracts import StructuredOutputProbe
+from agi_server.agents.contracts import CompanyAnalysis
 from agi_server.agents.model_gateway import (
     build_pydantic_ai_model,
     model_settings_for_profile,
@@ -27,25 +27,29 @@ async def probe_model_profile(
     profile = resolve_model_profile(profile_id, settings)
     nonce = _new_probe_nonce()
     output_type = (
-        StructuredOutputProbe
+        CompanyAnalysis
         if model_override is not None
-        else PromptedOutput(StructuredOutputProbe)
+        else PromptedOutput(CompanyAnalysis)
     )
     agent = Agent(
         model_override or build_pydantic_ai_model(profile_id, settings),
         output_type=output_type,
-        system_prompt="Return the requested typed probe only. Do not call tools.",
+        system_prompt=(
+            "Return a typed CompanyAnalysis for the requested test company. "
+            "Include summary, segments, strengths, weaknesses, data_gaps. Do not call tools."
+        ),
         model_settings=model_settings_for_profile(
             profile_id,
             settings,
-            max_tokens=512,
+            max_tokens=900,
         ),
         retries=1,
     )
-    result = await agent.run(f"Return status='ok' and nonce='{nonce}'.")
-    output = StructuredOutputProbe.model_validate(result.output)
-    if output.nonce != nonce:
-        raise ValueError("Structured-output probe returned the wrong nonce")
+    result = await agent.run(
+        f"Return a CompanyAnalysis for Test Company '{nonce}'. "
+        "Include 1 strength with id='st-1', text='High growth', evidence_ids=['ev-1']."
+    )
+    output = CompanyAnalysis.model_validate(result.output)
     return {
         "ready": True,
         "profile": profile.id,
@@ -53,9 +57,11 @@ async def probe_model_profile(
         "model": profile.model_name,
         "local": profile.local,
         "structured_output": True,
+        "summary_snippet": output.summary[:100],
         "usage": {
             "input_tokens": result.usage.input_tokens,
             "output_tokens": result.usage.output_tokens,
             "requests": result.usage.requests,
         },
     }
+

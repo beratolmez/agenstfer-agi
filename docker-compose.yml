@@ -13,8 +13,12 @@ services:
       AGI_KNOWLEDGE_ROOT: /data/knowledge
       AGI_OLLAMA_BASE_URL: http://ollama:11434/v1
       AGI_MODEL_PROFILE: ${AGI_MODEL_PROFILE:-local-balanced}
-      AGI_QMD_URL: http://qmd:8181
+      AGI_QMD_URL: ${AGI_QMD_URL:-}
       AGI_CLOUD_MODELS_ENABLED: ${AGI_CLOUD_MODELS_ENABLED:-false}
+      AGI_CLOUD_PROVIDER: ${AGI_CLOUD_PROVIDER:-}
+      AGI_CLOUD_API_KEY: ${AGI_CLOUD_API_KEY:-}
+      AGI_CLOUD_API_KEY_FILE: ${AGI_CLOUD_API_KEY_FILE:-}
+      AGI_CLOUD_MODEL: ${AGI_CLOUD_MODEL:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-http://egress-gateway:3128}
       HTTP_PROXY: ${HTTP_PROXY:-http://egress-gateway:3128}
       NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,postgres,ollama,qmd,egress-gateway,web-proxy}
@@ -89,6 +93,15 @@ services:
       - ./infra/egress/squid.conf:/etc/squid/squid.conf:ro
     networks: [core, egress]
 
+  ollama:
+    image: ollama/ollama:0.5.7
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks: [core]
+    restart: unless-stopped
+
 networks:
   core:
     internal: true
@@ -99,3 +112,5 @@ volumes:
   postgres_data:
   knowledge_data:
   qmd_data:
+  ollama_data:
+

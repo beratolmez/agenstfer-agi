@@ -4,13 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-SignalId = Literal[
-    "energy-retrofit",
-    "predictive-maintenance",
-    "oem-export",
-    "spare-parts-subscription",
-    "digital-twin-commissioning",
-]
+SignalId = str
 
 
 class MaterialClaim(BaseModel):
@@ -31,20 +25,20 @@ class CompanyAnalysis(BaseModel):
 
 # 2. Potansiyel Müşteriler (Opportunity / Lead Analysis)
 class OpportunityHypothesis(BaseModel):
-    signal_id: SignalId
+    signal_id: str = Field(min_length=2, max_length=120)
     title: str = Field(min_length=3, max_length=180)
     rationale: str = Field(min_length=10, max_length=800)
     evidence_ids: list[str] = Field(min_length=1, max_length=50)
 
 
 class OpportunityHypotheses(BaseModel):
-    hypotheses: list[OpportunityHypothesis] = Field(min_length=5, max_length=5)
+    hypotheses: list[OpportunityHypothesis] = Field(min_length=1, max_length=20)
 
     @model_validator(mode="after")
-    def require_all_signals_once(self):
+    def require_unique_signals(self):
         ids = [item.signal_id for item in self.hypotheses]
-        if len(set(ids)) != 5:
-            raise ValueError("Each deterministic opportunity signal must appear exactly once")
+        if len(set(ids)) != len(ids):
+            raise ValueError("Opportunity signal IDs must be unique across hypotheses")
         return self
 
 

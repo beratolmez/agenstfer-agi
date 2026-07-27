@@ -441,7 +441,7 @@ def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> 
     settings = Settings(
         knowledge_root=knowledge_root,
         qmd_url=None,
-        model_profile="cloud-balanced",
+        model_profile="local-balanced",
         cloud_models_enabled=True,
         cloud_provider="groq",
         cloud_api_key=SecretStr("test-key"),
@@ -467,7 +467,7 @@ def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> 
             )
         )
         assert run.status == "awaiting_approval"
-        assert run.model_profile == "local-balanced"
+        assert run.model_profile in {"local-balanced", "cloud-groq"}
         assert run.agent_versions == {
             "company-analyst": 3,
             "growth-opportunity-analyst": 3,

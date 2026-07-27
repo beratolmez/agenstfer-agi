@@ -33,7 +33,7 @@ def test_diagnostic_compatibility_view_starts_only_the_published_pinned_workflow
     settings = Settings(knowledge_root=tmp_path / "knowledge")
     captured: dict[str, object] = {}
 
-    async def fake_start(db, received_settings, workflow, key, actor_id, *, input_json):
+    async def fake_start(db, received_settings, workflow, key, actor_id, *, input_json, **kwargs):
         captured.update(
             {
                 "settings": received_settings,
@@ -123,7 +123,7 @@ def test_setup_rejects_unknown_or_disabled_model_profiles(
     tmp_path: Path, profile: str
 ) -> None:
     engine, local_session = _database(tmp_path)
-    settings = Settings(knowledge_root=tmp_path / "knowledge")
+    settings = Settings(_env_file=None, environment="development", cloud_models_enabled=False, knowledge_root=tmp_path / "knowledge")
     payload = SetupProgressUpdate(
         current_step=2,
         completed_steps=[0, 1],

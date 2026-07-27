@@ -18,7 +18,7 @@ def get_llm_model():
     Uses Gemini API or OpenAI/Ollama model if available, else TestModel for testing.
     """
     gemini_key = os.getenv("GEMINI_API_KEY")
-    gemini_model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash")
+    gemini_model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-3.6-flash")
     if gemini_key and GeminiModel is not None:
         return GeminiModel(model_name=gemini_model_name, api_key=gemini_key)
 

@@ -6,8 +6,8 @@ output_type: OpportunityHypotheses
 capabilities:
   - knowledge.search
   - context.query
-  - demo_crm.read
-  - erp_file.read
+  - crm.read
+  - erp.read
   - metrics.calculate
 timeout_seconds: 360
 max_output_tokens: 900

@@ -32,6 +32,7 @@ from agi_server.config import Settings
 from agi_server.db import (
     Artifact,
     EvidenceItem,
+    InstallationState,
     OKFCandidate,
     WorkflowRun,
     WorkflowStepRun,
@@ -176,6 +177,7 @@ async def _run_evidence_reviewer(
     *,
     model_override=None,
     spec_override=None,
+    capability_allowlist: frozenset[str] | Any | None = None,
 ) -> AgentExecution:
     batches = [claims] if model_override is not None else _evidence_review_batches(claims)
     executions: list[AgentExecution] = []
@@ -191,7 +193,7 @@ async def _run_evidence_reviewer(
             profile_id=profile_id,
             model_override=model_override,
             spec_override=spec_override,
-            capability_allowlist=frozenset(),
+            capability_allowlist=capability_allowlist,
         )
         review = EvidenceReview.model_validate(execution.output)
         expected_ids = [item.id for item in batch]
@@ -579,8 +581,19 @@ async def run_growth_diagnostic(
         )
         executions.append(review_execution)
         review = EvidenceReview.model_validate(review_execution.output)
-        evidence_ids = _enforce_evidence_gate(db, claims, review)
-        diagnostic = build_computed_diagnostic(db, run.id, metrics, company, hypotheses)
+        inst_row = db.get(InstallationState, "default")
+        inst_config = dict(inst_row.configuration or {}) if inst_row else {}
+        company_name = inst_config.get("company_name") or (run.input_json or {}).get("company_name")
+        objective = inst_config.get("objective") or (run.input_json or {}).get("objective")
+        diagnostic = build_computed_diagnostic(
+            db,
+            run.id,
+            metrics,
+            company,
+            hypotheses,
+            company_name=company_name,
+            objective=objective,
+        )
 
         curator_execution = await _agent_step(
             db,

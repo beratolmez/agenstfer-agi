@@ -50,13 +50,14 @@ class Settings(BaseSettings):
                     raise ValueError(f"{label} secret file is empty")
                 setattr(self, value_field, secret)
         if self.cloud_api_key_file is not None:
+            if self.cloud_api_key_file.is_dir():
+                raise ValueError("Cloud API key secret file is a directory")
             try:
                 secret = self.cloud_api_key_file.read_text(encoding="utf-8").strip()
             except OSError as error:
                 raise ValueError("Cloud API key secret file cannot be read") from error
-            if not secret:
-                raise ValueError("Cloud API key secret file is empty")
-            self.cloud_api_key = SecretStr(secret)
+            if secret:
+                self.cloud_api_key = SecretStr(secret)
         if self.cloud_models_enabled and (
             self.cloud_provider is None or self.cloud_api_key is None
         ):

@@ -26,7 +26,7 @@ describe("SetupWizard", () => {
         {
           id: "cloud-balanced",
           provider: "gemini",
-          model: "gemini-2.5-flash",
+          model: "gemini-3.6-flash",
           local: false,
           enabled: true,
           configured: true,

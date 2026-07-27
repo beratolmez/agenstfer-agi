@@ -113,7 +113,19 @@ def _hydrate_evidence(diagnostic: GrowthDiagnostic, db: Session) -> GrowthDiagno
     return diagnostic
 
 
-def build_growth_diagnostic(db: Session | None = None) -> GrowthDiagnostic:
+def build_growth_diagnostic(
+    db: Session | None = None,
+    company_name: str | None = None,
+    objective: str | None = None,
+) -> GrowthDiagnostic:
+    if db is not None and (company_name is None or objective is None):
+        from agi_server.db import InstallationState
+
+        inst_row = db.get(InstallationState, "default")
+        if inst_row and inst_row.configuration:
+            company_name = company_name or inst_row.configuration.get("company_name")
+            objective = objective or inst_row.configuration.get("objective")
+
     dataset = build_demo_dataset()
     crm = "src-crm-001"
     erp = "src-erp-001"
@@ -214,8 +226,8 @@ def build_growth_diagnostic(db: Session | None = None) -> GrowthDiagnostic:
     ]
     opportunities.sort(key=lambda item: item.score, reverse=True)
     diagnostic = GrowthDiagnostic(
-        company=DEMO_COMPANY,
-        objective="90 gün içinde mevcut müşteri tabanından kârlı büyüme",
+        company=company_name or DEMO_COMPANY,
+        objective=objective or "90 gün içinde mevcut müşteri tabanından kârlı büyüme",
         data_readiness=89,
         evidence_coverage=76,
         open_approvals=3,

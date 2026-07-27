@@ -31,3 +31,26 @@ def test_score_is_deterministic_not_a_probability():
     diagnostic = build_growth_diagnostic()
     assert all(item.score == item.factors.total() for item in diagnostic.opportunities)
     assert "olasılık" in diagnostic.disclaimer
+
+
+def test_diagnostic_uses_installation_state_company_name_and_objective():
+    from agi_server.db import InstallationState
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from agi_server.db import Base
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    with Session() as db:
+        inst = InstallationState(
+            id="default",
+            configuration={"company_name": "Test AŞ", "objective": "Yıllık %30 Büyüme"},
+        )
+        db.add(inst)
+        db.commit()
+
+        diagnostic = build_growth_diagnostic(db)
+        assert diagnostic.company == "Test AŞ"
+        assert diagnostic.objective == "Yıllık %30 Büyüme"
+    engine.dispose()

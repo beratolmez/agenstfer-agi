@@ -20,6 +20,8 @@ def build_computed_diagnostic(
     metrics: MetricSnapshot,
     company: CompanyAnalysis,
     hypotheses: OpportunityHypotheses,
+    company_name: str | None = None,
+    objective: str | None = None,
 ) -> GrowthDiagnostic:
     hypothesis_by_signal = {item.signal_id: item for item in hypotheses.hypotheses}
     recommendations: list[OpportunityRecommendation] = []
@@ -78,8 +80,8 @@ def build_computed_diagnostic(
     recommendations.sort(key=lambda item: item.score, reverse=True)
     return GrowthDiagnostic(
         id=run_id,
-        company=DEMO_COMPANY,
-        objective="90 gün içinde mevcut müşteri tabanından kârlı büyüme",
+        company=company_name or DEMO_COMPANY,
+        objective=objective or "90 gün içinde mevcut müşteri tabanından kârlı büyüme",
         data_readiness=metrics.data_readiness,
         evidence_coverage=metrics.evidence_coverage,
         open_approvals=1,

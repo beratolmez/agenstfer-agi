@@ -925,6 +925,7 @@ async def run_diagnostic(
             key,
             actor_id,
             input_json={"compatibility_view": "diagnostics.run"},
+            execute_async=True,
         )
     except ValueError as error:
         logger.exception("Diagnostic workflow start failed (ValueError) for key %s: %s", key, error)

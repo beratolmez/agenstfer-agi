@@ -95,7 +95,7 @@ class SourceMappingRequest(BaseModel):
 
 
 class SetupProgressUpdate(BaseModel):
-    current_step: int = Field(ge=0, le=9)
-    completed_steps: list[int] = Field(max_length=10)
+    current_step: int = Field(ge=1, le=5)
+    completed_steps: list[int] = Field(max_length=5)
     configuration: dict[str, str | bool | int] = Field(default_factory=dict)
     status: Literal["in_progress", "completed"] = "in_progress"

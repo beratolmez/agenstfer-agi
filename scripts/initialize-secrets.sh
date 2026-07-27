@@ -4,7 +4,7 @@ set -euo pipefail
 directory="${1:-.secrets}"
 mkdir -p "${directory}"
 chmod 700 "${directory}"
-for name in bootstrap_token session_secret master_key; do
+for name in bootstrap_token session_secret master_key cloud_model_api_key; do
   path="${directory}/${name}"
   if [[ -e "${path}" ]]; then
     echo "Preserved existing secret: ${path}"

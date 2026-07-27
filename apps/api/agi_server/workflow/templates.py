@@ -256,16 +256,58 @@ GROWTH_WORKFLOW_TEMPLATES: list[dict[str, Any]] = [
 ]
 
 
+def template_to_workflow_definition(template: dict[str, Any]) -> WorkflowDefinition:
+    """Convert UI template node/edge graph to canonical WorkflowDefinition model."""
+    from agi_server.workflow.models import NodeKind, WorkflowDefinition, WorkflowEdge, WorkflowNode
+
+    nodes = []
+    for n in template.get("nodes", []):
+        data = n.get("data", {})
+        kind_str = data.get("kind", "agent_run")
+        nodes.append(
+            WorkflowNode(
+                id=n["id"],
+                kind=NodeKind(kind_str),
+                label=data.get("label", n["id"]),
+                position=n.get("position", {"x": 0, "y": 0}),
+                config=data.get("config", {}),
+                output_type=data.get("config", {}).get("output_type"),
+            )
+        )
+    edges = []
+    for e in template.get("edges", []):
+        edges.append(
+            WorkflowEdge(
+                id=e["id"],
+                source=e["source"],
+                target=e["target"],
+                data_type=e.get("label", "control"),
+            )
+        )
+    return WorkflowDefinition(
+        id=template["id"],
+        name=template["name"],
+        version=1,
+        nodes=nodes,
+        edges=edges,
+    )
+
+
 def list_workflow_templates() -> list[dict[str, Any]]:
     """Return serializable growth workflow templates."""
     return GROWTH_WORKFLOW_TEMPLATES
 
 
 def get_executable_templates() -> list[dict[str, Any]]:
-    """Return only templates flagged as executable."""
-    return [item for item in GROWTH_WORKFLOW_TEMPLATES if item.get("executable") is True]
+    """Return only templates flagged as executable as valid WorkflowDefinition dicts."""
+    return [
+        template_to_workflow_definition(item).model_dump(mode="json")
+        for item in GROWTH_WORKFLOW_TEMPLATES
+        if item.get("executable") is True
+    ]
 
 
 def get_catalog_templates() -> list[dict[str, Any]]:
     """Return catalog-only UI reference templates."""
     return [item for item in GROWTH_WORKFLOW_TEMPLATES if item.get("executable") is False]
+
