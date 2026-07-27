@@ -226,49 +226,63 @@ class LangGraphWorkflowEngine:
         from agi_server.context import ExecutionContext
         from agi_server.workflow.persistent_runtime import _aggregate_usage
 
-        state_data = deepcopy(
-            self.run.output_json or {"_active_edges": [], "input": self.run.input_json or {}}
-        )
-        data_classification = classify_model_data_scope(self.db)
-        exec_ctx = ExecutionContext(
-            run_id=self.run.id,
-            workflow_id=self.workflow.id,
-            workflow_version=self.workflow.version,
-            actor_id=self.run.created_by,
-            data_classification=data_classification,
-            bounded_evidence_ids=list(state_data.get("evidence_ids", [])),
-            model_policy_revision=self.run.model_profile or "v1",
-        )
+        try:
+            state_data = deepcopy(
+                self.run.output_json or {"_active_edges": [], "input": self.run.input_json or {}}
+            )
+            data_classification = classify_model_data_scope(self.db)
+            exec_ctx = ExecutionContext(
+                run_id=self.run.id,
+                workflow_id=self.workflow.id,
+                workflow_version=self.workflow.version,
+                actor_id=self.run.created_by,
+                data_classification=data_classification,
+                bounded_evidence_ids=list(state_data.get("evidence_ids", [])),
+                model_policy_revision=self.run.model_profile or "v1",
+            )
 
-        initial_state: LangGraphWorkflowState = {
-            "run_id": self.run.id,
-            "workflow_id": self.workflow.id,
-            "workflow_version": self.workflow.version,
-            "status": self.run.status,
-            "current_node": None,
-            "state_data": state_data,
-            "execution_context": exec_ctx.model_dump(mode="json"),
-            "step_history": [],
-        }
+            initial_state: LangGraphWorkflowState = {
+                "run_id": self.run.id,
+                "workflow_id": self.workflow.id,
+                "workflow_version": self.workflow.version,
+                "status": self.run.status,
+                "current_node": None,
+                "state_data": state_data,
+                "execution_context": exec_ctx.model_dump(mode="json"),
+                "step_history": [],
+            }
 
-        final_state = await self.graph.ainvoke(initial_state)
+            final_state = await self.graph.ainvoke(initial_state)
 
-        if final_state.get("status") == "awaiting_approval":
-            self.run.status = "awaiting_approval"
+            if final_state.get("status") == "awaiting_approval":
+                self.run.status = "awaiting_approval"
+                _aggregate_usage(self.db, self.run)
+                self.db.commit()
+                return self.run
+
+            if final_state.get("status") == "failed":
+                return self.run
+
+            self.run.status = "completed"
+            self.run.current_step = None
+            self.run.completed_at = utcnow()
+            self.run.output_json = final_state.get("state_data", {})
             _aggregate_usage(self.db, self.run)
             self.db.commit()
             return self.run
-
-        if final_state.get("status") == "failed":
-            return self.run
-
-        self.run.status = "completed"
-        self.run.current_step = None
-        self.run.completed_at = utcnow()
-        self.run.output_json = final_state.get("state_data", {})
-        _aggregate_usage(self.db, self.run)
-        self.db.commit()
-        return self.run
+        except Exception as exc:
+            error_details = build_error_details(
+                exc,
+                settings=self.settings,
+                profile_id=self.run.model_profile,
+                node_id=self.run.current_step,
+            )
+            self.run.status = "failed"
+            self.run.error_json = error_details
+            self.run.completed_at = utcnow()
+            _aggregate_usage(self.db, self.run)
+            self.db.commit()
+            raise
 
 
 def build_langgraph_workflow(
