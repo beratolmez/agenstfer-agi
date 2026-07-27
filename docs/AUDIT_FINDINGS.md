@@ -893,3 +893,62 @@ Repodaki mevcut stub sahte bir string döndürüyordu — egress ihlali yok ama 
 `durable_persisted_workflow` fonksiyonu Phase 20 / ADR-0022'de zaten kaldırılmıştı; bu commit son DBOS metin artefaktını da temizledi.
 
 *Tur 2 sonu.*
+
+---
+
+# Tur 3 — İlk Tanı Blocker'larının Çözümü (28 Temmuz 2026)
+
+**Yöntem:** Canlı Gemini API + Docker. Her düzeltme, izole tek-kullanımlık konteynerde gerçek model
+çağrısıyla doğrulandı. İlgili karar kaydı: **ADR-0026**.
+
+## Çözülenler
+
+| ID | Bulgu | Durum | Doğrulama |
+|---|---|---|---|
+| **BLK-05** | Gemini 3.x `thought_signature` tool round-trip'te düşüyordu | ✅ ÇÖZÜLDÜ | Native `GoogleModel` transport'a geçildi. `company-analyst` iki istekli tool round-trip ile şemaya uygun `CompanyAnalysis` üretti. |
+| **BLK-04** | Gizli reasoning, çıktı bütçesini tüketip JSON'u kesiyordu | ✅ ÇÖZÜLDÜ | Model ailesine göre `thinking_level: MINIMAL` / `thinking_budget: 0`. |
+| **BLK-06** | `logger.exception` çıktısı hiçbir yere ulaşmıyordu | ✅ ÇÖZÜLDÜ | `configure_logging()` + Alembic `disable_existing_loggers=False`. Artık tam traceback stdout'a düşüyor. |
+| **ME-03** | Sağlayıcı retry'ları kotayı çarpanlıyordu | ✅ ÇÖZÜLDÜ | `HttpRetryOptions(attempts=1)`. |
+| **ME-09** | LangGraph checkpointer `thread_id` olmadan çağrılıyordu | ✅ ÇÖZÜLDÜ | `execute()` artık thread kimliği geçiyor; test yeşil. |
+
+### Yeni tespit edilenler (Tur 1'de görünmüyordu, blocker'lar kalkınca ortaya çıktı)
+
+| ID | Bulgu | Durum |
+|---|---|---|
+| **T3-01** | `parallel_tool_calls: False` azaltıcısı **etkisiz** — Gemini parametreyi yok sayıyor (1 çağrı istendi, 3 döndü) | ✅ Kaldırıldı, yerine native transport |
+| **T3-02** | `growth-opportunity-analyst` bütçesi 900 token; gerçek ihtiyaç **ölçülen 1357** token | ✅ v4 / 2000 token |
+| **T3-03** | `wiki-curator`'ın `reports/*.md` kuralı runtime'da zorunlu ama prompt'ta hiç yazmıyordu; hata mesajı da yanıltıcıydı (`.md` eksikken "outside reports/" diyordu) | ✅ v3 prompt + hata mesajı ihlal eden yolları listeliyor |
+| **T3-04** | `company-analyst` prompt'u "claim başına en fazla bir evidence ID" derken gate kanıtın yeterli olmasını istiyordu — yapısal çelişki | ✅ Tüm destekleyici ID'ler bağlanıyor; desteksiz sayısal iddia yasak |
+| **T3-05** | `run_growth_diagnostic` içinde `_enforce_evidence_gate` **hiç çağrılmıyordu** — bu yol tamamen kapısızdı (fail-open) | ✅ Gate rapor üretiminden önce eklendi |
+| **T3-06** | Probe `CompanyAnalysis`'e taşınırken **nonce doğrulaması kaybolmuştu**; testin adı hâlâ onu iddia ediyordu | ✅ Canlılık kontrolü geri geldi + negatif test eklendi |
+
+## Mevcut durum
+
+İlk tanı, canlı Gemini modeliyle **11 node'un 10'unu** tamamlıyor: ingestion, knowledge,
+`company-analyst`, `growth-opportunity-analyst`, deterministik skorlama, `evidence-reviewer` ve
+`wiki-curator`. Testler tamamen yeşil.
+
+## Açık karar — evidence gate politikası
+
+Kalan tek durak gate'in kendisi. `evidence-reviewer`, analistlerin hipotez gerekçelerini demo veri
+setindeki kanıtla desteklenmemiş buluyor ve gate all-or-nothing çalışıyor
+(`if failures or not review.approved: raise`). Analist prompt'larını sıkılaştırmak reddedilen claim
+sayısını düşürdü ama sıfırlamadı.
+
+Bu **mekanik bir hata değil**, ürün politikası kararıdır. İki seçenek:
+
+- **(A) Sert gate (bugünkü davranış).** Desteklenmeyen tek bir claim tüm run'ı düşürür. Kanıt
+  garantisi en güçlü hâlinde; ancak demo veri setiyle ilk tanı çoğu zaman tamamlanamaz.
+- **(B) Filtreleyen gate.** Desteklenmeyen claim'ler rapordan çıkarılır ve `data_gaps` /
+  "doğrulanamadı" olarak sunulur; run tamamlanır. PRD 6.2'nin "eksik veri uyarıları" ve
+  "alternatif yorumlar" maddeleriyle daha uyumlu, ürünü gösterilebilir kılar. Yayımlanan içerik
+  için gate yine fail-closed kalır.
+
+Öneri: **(B)**, çünkü PRD'nin kanıt sözleşmesi "kanıtsız claim yayımlanmasın" der, "kanıtsız claim
+varsa hiçbir şey üretilmesin" demez. Uygulanırsa ayrı bir ADR gerekir.
+
+## Not — ücretsiz kota
+
+`gemini-3.6-flash` günlük ücretsiz kotası (model başına 20 istek) denetim sırasında tükendi;
+doğrulamalar `gemini-3.1-flash-lite` ile tamamlandı. Tek tanı koşusu 4 agent adımı harcadığından
+sunum öncesi kota planlaması gerekir.

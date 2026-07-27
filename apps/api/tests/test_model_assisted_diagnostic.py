@@ -411,7 +411,17 @@ def test_structured_output_probe_checks_the_nonce(monkeypatch) -> None:
             "local-balanced",
             model_override=TestModel(
                 call_tools=[],
-                custom_output_args={"status": "ok", "nonce": nonce},
+                custom_output_args={
+                    "summary": f"Test Company '{nonce}' shows evidence-backed growth headroom.",
+                    "segments": ["Industrial automation"],
+                    "strengths": [
+                        {"id": "st-1", "text": "High growth", "evidence_ids": ["ev-1"]}
+                    ],
+                    "weaknesses": [
+                        {"id": "wk-1", "text": "Thin contact data", "evidence_ids": ["ev-1"]}
+                    ],
+                    "data_gaps": ["Consent status is unavailable."],
+                },
             ),
         )
     )
@@ -419,6 +429,33 @@ def test_structured_output_probe_checks_the_nonce(monkeypatch) -> None:
     assert result["ready"] is True
     assert result["structured_output"] is True
     assert result["usage"]["requests"] == 1
+
+
+def test_structured_output_probe_rejects_a_stale_nonce() -> None:
+    """A cached or canned response must not be reported as a healthy model profile."""
+    from agi_server.agents.probe import probe_model_profile
+
+    with pytest.raises(ValueError, match="wrong nonce"):
+        asyncio.run(
+            probe_model_profile(
+                Settings(model_profile="local-balanced"),
+                "local-balanced",
+                model_override=TestModel(
+                    call_tools=[],
+                    custom_output_args={
+                        "summary": "A cached summary that never saw this probe request.",
+                        "segments": ["Industrial automation"],
+                        "strengths": [
+                            {"id": "st-1", "text": "High growth", "evidence_ids": ["ev-1"]}
+                        ],
+                        "weaknesses": [
+                            {"id": "wk-1", "text": "Thin contact data", "evidence_ids": ["ev-1"]}
+                        ],
+                        "data_gaps": ["Consent status is unavailable."],
+                    },
+                ),
+            )
+        )
 
 
 def test_invalid_model_tool_arguments_return_bounded_rejections(tmp_path: Path) -> None:

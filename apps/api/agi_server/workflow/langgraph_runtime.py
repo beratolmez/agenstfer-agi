@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from typing import Any, TypedDict
+from uuid import uuid4
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
@@ -331,7 +332,10 @@ class LangGraphWorkflowRuntime:
         self.graph = build_langgraph_workflow(self.definition)
 
     def execute(
-        self, initial_state: LangGraphWorkflowState | None = None
+        self,
+        initial_state: LangGraphWorkflowState | None = None,
+        *,
+        thread_id: str | None = None,
     ) -> LangGraphWorkflowState:
         state: LangGraphWorkflowState = initial_state or {
             "workflow_id": self.definition.id,
@@ -339,5 +343,9 @@ class LangGraphWorkflowRuntime:
             "state_data": {},
             "step_history": [],
         }
-        output = self.graph.invoke(state)
-        return output
+        # The graph is compiled with a checkpointer, which refuses to run without a thread
+        # identity. Keep each execution on its own thread so checkpoints never interleave.
+        resolved_thread = (
+            thread_id or str(state.get("workflow_id") or self.definition.id) + f"-{uuid4()}"
+        )
+        return self.graph.invoke(state, {"configurable": {"thread_id": resolved_thread}})

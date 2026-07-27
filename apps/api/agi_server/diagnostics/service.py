@@ -596,6 +596,9 @@ async def run_growth_diagnostic(
         )
         executions.append(review_execution)
         review = EvidenceReview.model_validate(review_execution.output)
+        # Fail closed before anything is built from the claims: an unsupported or missing
+        # decision must stop the run rather than reach the report and the OKF candidate.
+        _enforce_evidence_gate(db, _material_claims(metrics, company, hypotheses), review)
         inst_row = db.get(InstallationState, "default")
         inst_config = dict(inst_row.configuration or {}) if inst_row else {}
         company_name = inst_config.get("company_name") or (run.input_json or {}).get("company_name")
@@ -626,11 +629,16 @@ async def run_growth_diagnostic(
         )
         executions.append(curator_execution)
         change_set = OKFChangeSet.model_validate(curator_execution.output)
-        if any(
-            not path.startswith("reports/") or not path.endswith(".md")
+        rejected_paths = [
+            path
             for path in change_set.concept_paths
-        ):
-            raise ValueError("Wiki Curator proposed a path outside reports/")
+            if not path.startswith("reports/") or not path.endswith(".md")
+        ]
+        if rejected_paths:
+            raise ValueError(
+                "Wiki Curator proposed concept paths that are not 'reports/*.md': "
+                f"{rejected_paths}"
+            )
 
         artifact_uri, _ = _write_report_artifacts(db, settings, run.id, diagnostic)
         candidate, _ = create_demo_candidate(

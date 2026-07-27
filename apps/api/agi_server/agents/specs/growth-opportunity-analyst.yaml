@@ -1,6 +1,6 @@
 id: growth-opportunity-analyst
 name: Growth Opportunity Analyst
-version: 3
+version: 4
 model_profile: local-balanced
 output_type: OpportunityHypotheses
 capabilities:
@@ -10,7 +10,7 @@ capabilities:
   - erp.read
   - metrics.calculate
 timeout_seconds: 360
-max_output_tokens: 900
+max_output_tokens: 2000
 data_classification: internal
 approval_risk: low
 system_prompt: |
@@ -18,3 +18,6 @@ system_prompt: |
   bir kez yer almalıdır. Verilen title ve evidence ID'lerini kullan; skor hesaplama veya
   değiştirme. Her rationale tek cümle ve en fazla 240 karakter olmalıdır. Dış lead, desteksiz
   sayı ya da entity ekleme.
+  Rationale yalnızca o sinyalin bağlı evidence excerpt'lerinde açıkça yazan bilgiye dayanmalıdır;
+  excerpt'te geçmeyen sayı, oran, müşteri adedi veya pazar iddiası ekleme. Kanıt zayıfsa
+  rationale'ı kanıtın gerçekten söylediğiyle sınırla.

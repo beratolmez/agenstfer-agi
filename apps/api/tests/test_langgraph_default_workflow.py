@@ -62,10 +62,10 @@ def test_langgraph_engine_execution_and_pause_resume(tmp_path: Path) -> None:
 
         assert run.status == "awaiting_approval"
         assert run.agent_versions == {
-            "company-analyst": 3,
-            "growth-opportunity-analyst": 3,
+            "company-analyst": 4,
+            "growth-opportunity-analyst": 4,
             "evidence-reviewer": 3,
-            "wiki-curator": 2,
+            "wiki-curator": 3,
         }
 
         approval = db.scalar(select(ApprovalRequest).where(ApprovalRequest.run_id == run.id))

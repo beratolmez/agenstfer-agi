@@ -63,7 +63,7 @@ from agi_server.ingestion import (
     sync_connector,
     sync_demo_company,
 )
-from agi_server.logging_utils import logger, redact_sensitive_text
+from agi_server.logging_utils import configure_logging, logger, redact_sensitive_text
 from agi_server.migrations import run_migrations
 from agi_server.observability import ObservabilityMiddleware, configure_observability
 from agi_server.okf import FileSystemOKFBundle
@@ -125,6 +125,7 @@ from agi_server.workflow.templates import list_workflow_templates
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    configure_logging()
     run_migrations()
     settings = get_settings()
     ensure_active_repository(settings.company_bundle)

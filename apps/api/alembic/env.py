@@ -7,7 +7,9 @@ from sqlalchemy import engine_from_config, pool
 
 config = context.config
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # disable_existing_loggers defaults to True, which would silently tear down the
+    # already-configured "agi_server" logger and discard every later runtime error.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 database_url = config.attributes.get("database_url") or get_settings().database_url
 config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 target_metadata = Base.metadata

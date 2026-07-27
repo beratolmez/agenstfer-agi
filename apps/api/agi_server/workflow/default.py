@@ -33,7 +33,7 @@ def build_default_workflow(model_profile: str | None = None) -> WorkflowDefiniti
             220,
             {
                 "agent_id": "company-analyst",
-                "agent_version": 3,
+                "agent_version": 4,
                 "model_profile": profile,
                 "output_type": "CompanyAnalysis",
             },
@@ -47,7 +47,7 @@ def build_default_workflow(model_profile: str | None = None) -> WorkflowDefiniti
             380,
             {
                 "agent_id": "growth-opportunity-analyst",
-                "agent_version": 3,
+                "agent_version": 4,
                 "model_profile": profile,
                 "output_type": "OpportunityHypotheses",
             },
@@ -84,7 +84,7 @@ def build_default_workflow(model_profile: str | None = None) -> WorkflowDefiniti
             540,
             {
                 "agent_id": "wiki-curator",
-                "agent_version": 2,
+                "agent_version": 3,
                 "model_profile": profile,
                 "output_type": "OKFChangeSet",
             },

@@ -1,13 +1,32 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
+import sys
 from typing import Any
 
 from agi_server.agents.model_gateway import resolve_model_profile
 from agi_server.config import Settings
 
 logger = logging.getLogger("agi_server")
+
+
+def configure_logging() -> None:
+    """Give the control-plane logger its own stdout handler.
+
+    Uvicorn only configures its own loggers, so without this every ``logger.exception``
+    in the workflow runtime is discarded and a failed diagnostic leaves no trace at all.
+    """
+    logger.setLevel(os.getenv("AGI_LOG_LEVEL", "INFO").upper())
+    if not logger.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(
+            logging.Formatter("%(levelname)s [%(name)s] %(asctime)s %(message)s")
+        )
+        logger.addHandler(handler)
+    # Records are emitted once here rather than also bubbling to the root logger.
+    logger.propagate = False
 
 
 def redact_sensitive_text(text: str) -> str:

@@ -109,10 +109,27 @@ def test_gemini_reasoning_and_tool_settings() -> None:
         cloud_api_key=SecretStr("test-key"),
     )
 
+    # Gemini bills hidden reasoning against the same output budget, so typed extraction
+    # must cap it or the JSON comes back truncated (ADR-0026).
     assert model_settings_for_profile("cloud-balanced", settings, max_tokens=900) == {
         "max_tokens": 900,
-        "openai_reasoning_effort": "minimal",
-        "parallel_tool_calls": False,
+        "google_thinking_config": {"thinking_level": "MINIMAL"},
+        "temperature": 0,
+    }
+
+
+def test_gemini_2x_uses_numeric_thinking_budget() -> None:
+    settings = Settings(
+        _env_file=None,
+        cloud_models_enabled=True,
+        cloud_provider="gemini",
+        cloud_model="gemini-2.0-flash",
+        cloud_api_key=SecretStr("test-key"),
+    )
+
+    assert model_settings_for_profile("cloud-balanced", settings, max_tokens=900) == {
+        "max_tokens": 900,
+        "google_thinking_config": {"thinking_budget": 0},
         "temperature": 0,
     }
 
@@ -219,8 +236,24 @@ def test_model_configure_persists_settings_across_db_reloads(tmp_path: Path) -> 
     assert fresh_settings.cloud_api_key.get_secret_value() == "persistent-test-api-key"
 
 
-def test_cloud_provider_sets_max_retries_zero() -> None:
+def test_openai_compatible_cloud_provider_sets_max_retries_zero() -> None:
     from agi_server.agents.model_gateway import build_pydantic_ai_model
+    settings = Settings(
+        _env_file=None,
+        cloud_models_enabled=True,
+        cloud_provider="groq",
+        cloud_api_key=SecretStr("test-key"),
+        model_profile="cloud-balanced",
+    )
+    model = build_pydantic_ai_model("cloud-balanced", settings)
+    assert model.provider.client.max_retries == 0
+
+
+def test_gemini_uses_native_transport_with_retries_disabled() -> None:
+    """Gemini 3.x drops thought_signature over the OpenAI shim, breaking every tool call."""
+    from agi_server.agents.model_gateway import build_pydantic_ai_model
+    from pydantic_ai.models.google import GoogleModel
+
     settings = Settings(
         _env_file=None,
         cloud_models_enabled=True,
@@ -229,7 +262,10 @@ def test_cloud_provider_sets_max_retries_zero() -> None:
         model_profile="cloud-balanced",
     )
     model = build_pydantic_ai_model("cloud-balanced", settings)
-    assert model.provider.client.max_retries == 0
+    assert isinstance(model, GoogleModel)
+    # Retry budget stays with the agent layer so one run cannot burn a daily quota.
+    http_options = model.client._api_client._http_options
+    assert http_options.retry_options.attempts == 1
 
 
 @pytest.mark.anyio

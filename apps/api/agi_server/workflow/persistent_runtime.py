@@ -232,7 +232,11 @@ def _agent_prompt(
             "already supplied on that claim and return at most five short contradictions."
         )
     else:
-        instruction = "Propose report paths under reports/ without writing active knowledge."
+        instruction = (
+            "Propose report paths without writing active knowledge. Every concept_path must "
+            "start with 'reports/' and end with '.md', for example "
+            "'reports/energy-retrofit-analysis.md'."
+        )
         safe_state = {
             "company_analysis": state.get("agent_results", {}).get("company-analyst"),
             "hypotheses": state.get("agent_results", {}).get("growth-opportunity-analyst"),
@@ -399,11 +403,16 @@ async def _execute_node(
         )
         review = EvidenceReview.model_validate(result["agent_results"]["evidence-reviewer"])
         change_set = OKFChangeSet.model_validate(result["agent_results"]["wiki-curator"])
-        if any(
-            not path.startswith("reports/") or not path.endswith(".md")
+        rejected_paths = [
+            path
             for path in change_set.concept_paths
-        ):
-            raise ValueError("Wiki Curator proposed a path outside reports/")
+            if not path.startswith("reports/") or not path.endswith(".md")
+        ]
+        if rejected_paths:
+            raise ValueError(
+                "Wiki Curator proposed concept paths that are not 'reports/*.md': "
+                f"{rejected_paths}"
+            )
         claims = _material_claims(metrics, company, hypotheses)
         evidence_ids = _enforce_evidence_gate(db, claims, review)
         inst_row = db.get(InstallationState, "default")

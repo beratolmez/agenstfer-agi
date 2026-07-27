@@ -36,7 +36,8 @@ async def probe_model_profile(
         output_type=output_type,
         system_prompt=(
             "Return a typed CompanyAnalysis for the requested test company. "
-            "Include summary, segments, strengths, weaknesses, data_gaps. Do not call tools."
+            "Include summary, segments, strengths, weaknesses, data_gaps. "
+            "The summary must repeat the supplied company name verbatim. Do not call tools."
         ),
         model_settings=model_settings_for_profile(
             profile_id,
@@ -50,6 +51,10 @@ async def probe_model_profile(
         "Include 1 strength with id='st-1', text='High growth', evidence_ids=['ev-1']."
     )
     output = CompanyAnalysis.model_validate(result.output)
+    # The nonce is unique per probe, so echoing it back proves the provider actually served
+    # this request instead of replaying a cached or canned structured response.
+    if nonce not in output.summary:
+        raise ValueError("Structured-output probe returned the wrong nonce")
     return {
         "ready": True,
         "profile": profile.id,
