@@ -220,13 +220,14 @@ async def validation_exception_handler(
 
 @app.get("/api/health", response_model=HealthResponse)
 async def health(settings: Annotated[Settings, Depends(get_settings)]) -> HealthResponse:
-    components = {"api": "ok", "postgres": "unavailable", "okf": "ok"}
+    db_component = "sqlite" if settings.database_url.startswith("sqlite") else "postgres"
+    components = {"api": "ok", db_component: "unavailable", "okf": "ok"}
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
-        components["postgres"] = "ok"
+        components[db_component] = "ok"
     except Exception:
-        components["postgres"] = "unavailable"
+        components[db_component] = "unavailable"
     try:
         async with httpx.AsyncClient(timeout=1) as client:
             response = await client.get(settings.ollama_base_url.removesuffix("/v1") + "/api/tags")
@@ -244,11 +245,16 @@ async def health(settings: Annotated[Settings, Depends(get_settings)]) -> Health
             components["qmd"] = "unavailable; lexical fallback active"
     else:
         components["qmd"] = "disabled; lexical fallback active"
-    status_value = "ok" if components["postgres"] == "ok" else "degraded"
+    status_value = "ok" if components[db_component] == "ok" else "degraded"
+    mode_value = (
+        "cloud-hybrid"
+        if (settings.cloud_models_enabled or "cloud" in settings.model_profile)
+        else "local-first"
+    )
     return HealthResponse(
         status=status_value,
         version=__version__,
-        mode="local-first",
+        mode=mode_value,
         components=components,
     )
 
