@@ -36,8 +36,10 @@ def ensure_platform_registry(db: Session) -> None:
                     definition=spec.model_dump(mode="json"),
                 )
             )
-        elif row.status != "published":
+        else:
             row.status = "published"
+            row.name = spec.name
+            row.definition = spec.model_dump(mode="json")
 
     capabilities = sorted({item for spec in specs for item in spec.capabilities})
     for capability_id in capabilities:
@@ -168,6 +170,7 @@ def clone_workflow_version(
 
 def validate_workflow_bindings(db: Session, workflow: WorkflowDefinition) -> WorkflowDefinition:
     """Validate and pin registry references the pure graph validator cannot inspect."""
+    ensure_platform_registry(db)
     issues: list[str] = []
     agent_ids: set[str] = set()
     pinned_nodes = []

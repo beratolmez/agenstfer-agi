@@ -772,6 +772,7 @@ def setup_progress_update(
     completed = sorted(set(payload.completed_steps))
     if payload.status == "completed":
         completed = list(range(1, 6))
+        ensure_platform_registry(db)
     row = db.get(InstallationState, "default")
     if row is None:
         row = InstallationState(id="default")
@@ -2105,6 +2106,7 @@ def workflow_publish(
     if row is None:
         raise HTTPException(status_code=404, detail="Workflow draft bulunamadı")
     try:
+        ensure_platform_registry(db)
         publish_workflow(db, row)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
