@@ -160,11 +160,20 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   };
 
   useEffect(() => {
-    if (selectedProvider) {
+    if (!selectedProvider) return;
+
+    const trimmedKey = apiKey.trim();
+    if (trimmedKey.length > 0 && trimmedKey.length < 10) {
+      return;
+    }
+
+    let isMounted = true;
+    const timer = setTimeout(() => {
       setIsDiscovering(true);
       api
-        .discoverModels(selectedProvider, apiKey.trim() || undefined)
+        .discoverModels(selectedProvider, trimmedKey || undefined)
         .then((res) => {
+          if (!isMounted) return;
           if (res.models && res.models.length > 0) {
             setDynamicModels(res.models);
             if (!res.models.includes(modelName)) {
@@ -173,8 +182,15 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
           }
         })
         .catch(() => {})
-        .finally(() => setIsDiscovering(false));
-    }
+        .finally(() => {
+          if (isMounted) setIsDiscovering(false);
+        });
+    }, 600);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [selectedProvider, apiKey]);
 
   const handleConfigureAndProbe = async () => {
