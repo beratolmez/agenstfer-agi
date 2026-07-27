@@ -225,7 +225,9 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
     try {
       const res = await api.setupDemo();
       setRagSuccess(true);
-      setSyncDetails(`${res.records_persisted || 42} kayıt OKF Wiki & RAG koleksiyonuna yüklendi.`);
+      const count = typeof res.records_persisted === "number" ? res.records_persisted : 0;
+      const candidateId = res.candidate_id || "demo-candidate";
+      setSyncDetails(`${count} kayıt ingest edildi; OKF candidate '${candidateId}' oluşturuldu ve onay bekliyor.`);
     } catch (e: any) {
       setError(e.message || "RAG veri yüklemesi tamamlanamadı");
     } finally {
