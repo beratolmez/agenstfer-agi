@@ -378,12 +378,14 @@ async def model_discover(
 ) -> dict[str, Any]:
     provider = payload.provider.lower()
     api_key = payload.api_key.strip() if payload.api_key else None
-    if not api_key and settings.cloud_api_key:
-        api_key = settings.cloud_api_key.get_secret_value()
 
     discovered_models: list[str] = []
     live_discovery_success = False
-    if provider == "gemini" and api_key:
+    discovery_error: str | None = None
+
+    if not settings.cloud_models_enabled and provider != "local":
+        discovery_error = "Cloud modelleri yönetici tarafından devre dışı bırakılmış."
+    elif provider == "gemini" and api_key:
         try:
             async with httpx.AsyncClient(timeout=8.0) as client:
                 url = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -399,8 +401,13 @@ async def model_discover(
                         if "gemini" in name.lower() and not any(x in name for x in ignored):
                             discovered_models.append(name)
                     live_discovery_success = len(discovered_models) > 0
-        except Exception:
+                    if not live_discovery_success:
+                        discovery_error = "Sağlayıcıdan uygun model bulunamadı."
+                else:
+                    discovery_error = f"Sağlayıcı hatası: HTTP {res.status_code}"
+        except Exception as exc:
             live_discovery_success = False
+            discovery_error = f"Bağlantı hatası: {exc}"
 
     if not discovered_models:
         if provider == "gemini":
@@ -425,6 +432,7 @@ async def model_discover(
         "provider": provider,
         "models": discovered_models,
         "dynamic": live_discovery_success,
+        "discovery_error": discovery_error,
     }
 
 

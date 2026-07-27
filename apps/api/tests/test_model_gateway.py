@@ -230,3 +230,30 @@ def test_cloud_provider_sets_max_retries_zero() -> None:
     )
     model = build_pydantic_ai_model("cloud-balanced", settings)
     assert model.provider.client.max_retries == 0
+
+
+@pytest.mark.anyio
+async def test_model_discover_handles_errors_and_opt_in_transparently() -> None:
+    from agi_server.main import ModelDiscoverRequest, model_discover
+
+    # 1. Cloud models disabled
+    settings_disabled = Settings(_env_file=None, cloud_models_enabled=False)
+    res_disabled = await model_discover(
+        ModelDiscoverRequest(provider="gemini", api_key="INVALID_KEY"),
+        settings_disabled,
+        _actor=None,
+    )
+    assert res_disabled["dynamic"] is False
+    assert "devre dışı" in res_disabled["discovery_error"]
+    assert "gemini-3.6-flash" in res_disabled["models"]
+
+    # 2. Invalid API key with cloud models enabled (HTTP error from provider)
+    settings_enabled = Settings(_env_file=None, cloud_models_enabled=True, cloud_provider="gemini", cloud_api_key=SecretStr("test-key"))
+    res_invalid = await model_discover(
+        ModelDiscoverRequest(provider="gemini", api_key="INVALID_KEY"),
+        settings_enabled,
+        _actor=None,
+    )
+    assert res_invalid["dynamic"] is False
+    assert res_invalid["discovery_error"] is not None
+    assert "gemini-3.6-flash" in res_invalid["models"]
