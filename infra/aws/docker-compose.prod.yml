@@ -11,9 +11,10 @@ services:
       AGI_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       AGI_DEMO_NO_AUTH: "false"
       AGI_KNOWLEDGE_ROOT: /data/knowledge
-      AGI_CLOUD_MODELS_ENABLED: "true"
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      GEMINI_MODEL_NAME: ${GEMINI_MODEL_NAME:-gemini-2.0-flash}
+      AGI_CLOUD_MODELS_ENABLED: "${AGI_CLOUD_MODELS_ENABLED:-true}"
+      AGI_CLOUD_PROVIDER: ${AGI_CLOUD_PROVIDER:-gemini}
+      AGI_CLOUD_MODEL: ${AGI_CLOUD_MODEL:-gemini-2.5-flash}
+      AGI_CLOUD_API_KEY: ${AGI_CLOUD_API_KEY}
     volumes:
       - knowledge_data:/data/knowledge
     depends_on:
@@ -36,7 +37,7 @@ services:
       - "443:443"
       - "80:80"
     volumes:
-      - ./nginx-prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ssl_certs:/etc/nginx/certs:ro
     networks: [core, ingress]
     restart: always

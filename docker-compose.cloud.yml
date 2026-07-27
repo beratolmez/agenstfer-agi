@@ -11,7 +11,7 @@ services:
       AGI_CLOUD_API_KEY_FILE: /run/secrets/cloud_model_api_key
       HTTPS_PROXY: http://egress-gateway:3128
       HTTP_PROXY: http://egress-gateway:3128
-      NO_PROXY: localhost,127.0.0.1,postgres,ollama,qmd,egress-gateway
+      NO_PROXY: localhost,127.0.0.1,postgres,ollama,qmd,egress-gateway,web-proxy
 
 secrets:
   cloud_model_api_key:

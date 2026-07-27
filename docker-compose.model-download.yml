@@ -1,7 +1,15 @@
 services:
   ollama:
     image: ollama/ollama:0.5.7
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
     networks: [core, model-download]
+    restart: unless-stopped
 
 networks:
   model-download: {}
+
+volumes:
+  ollama_data:

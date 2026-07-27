@@ -417,7 +417,10 @@ async def resume_persisted_workflow(
     *,
     model_overrides: dict[str, Any] | None = None,
 ) -> WorkflowRun:
-    if workflow.id in {"builtin-growth-diagnostic"} or workflow.id.startswith("qualification-"):
+    if (
+        workflow.id in {"builtin-growth-diagnostic", "growth-diagnostic"}
+        or workflow.id.startswith("qualification-")
+    ):
         from agi_server.workflow.langgraph_runtime import LangGraphWorkflowEngine
 
         engine = LangGraphWorkflowEngine(
@@ -612,7 +615,8 @@ async def durable_persisted_workflow(run_id: str) -> dict[str, Any]:
 
 
 async def _ensure_durable_workflow(run_id: str) -> None:
-    pass
+    """No-op seam reserved for state checkpoint validation in post-DBOS persistent runtime."""
+    _ = run_id
 
 
 async def start_persisted_workflow(

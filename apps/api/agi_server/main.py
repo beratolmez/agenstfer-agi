@@ -2292,11 +2292,6 @@ async def approval_decision(
     )
     if approval is None:
         raise HTTPException(status_code=404, detail="Approval bulunamadı")
-    if settings.enable_dbos:
-        raise HTTPException(
-            status_code=501,
-            detail="DBOS engine is deprecated; use LangGraph persistent runtime",
-        )
     try:
         run, qmd = await decide_persisted_approval(
             db,

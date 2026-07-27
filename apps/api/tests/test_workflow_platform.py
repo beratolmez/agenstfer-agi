@@ -299,7 +299,6 @@ def test_cloud_qualification_blocks_restricted_canonical_scope_before_model(
         cloud_models_enabled=True,
         cloud_provider="groq",
         cloud_api_key=SecretStr("test-key"),
-        enable_dbos=False,
     )
     with local_session() as db:
         sync_demo_company(db, settings.raw_root)
