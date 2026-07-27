@@ -155,6 +155,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
       status: step >= 5 ? "completed" : "in_progress",
     }).catch((err) => {
       console.error("Setup progress auto-save failed:", err);
+      setError(err.message || "Kurulum ilerlemesi kaydedilemedi");
     });
   };
 
@@ -386,7 +387,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             <div style={{ marginTop: "28px", display: "flex", justifyContent: "flex-end" }}>
               <button
                 type="button"
-                onClick={() => setActiveStep(2)}
+                onClick={() => goToStep(2)}
                 style={{
                   background: "#2563eb",
                   color: "#ffffff",
@@ -550,7 +551,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             <div style={{ marginTop: "28px", display: "flex", justifyContent: "space-between" }}>
               <button
                 type="button"
-                onClick={() => setActiveStep(1)}
+                onClick={() => goToStep(1)}
                 style={{ background: "#f1f5f9", color: "#475569", padding: "10px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}
               >
                 ← Geri
@@ -559,7 +560,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                 type="button"
                 onClick={() => {
                   handleConfigureAndProbe();
-                  setActiveStep(3);
+                  goToStep(3);
                 }}
                 style={{ background: "#2563eb", color: "#ffffff", padding: "10px 24px", borderRadius: "8px", border: "none", fontWeight: 600, cursor: "pointer" }}
               >
@@ -835,14 +836,14 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             <div style={{ marginTop: "28px", display: "flex", justifyContent: "space-between" }}>
               <button
                 type="button"
-                onClick={() => setActiveStep(2)}
+                onClick={() => goToStep(2)}
                 style={{ background: "#f1f5f9", color: "#475569", padding: "10px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}
               >
                 ← Geri
               </button>
               <button
                 type="button"
-                onClick={() => setActiveStep(4)}
+                onClick={() => goToStep(4)}
                 style={{ background: "#2563eb", color: "#ffffff", padding: "10px 24px", borderRadius: "8px", border: "none", fontWeight: 600, cursor: "pointer" }}
               >
                 Sonraki Adım: RAG İndeksleme →
@@ -890,14 +891,14 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             <div style={{ marginTop: "28px", display: "flex", justifyContent: "space-between" }}>
               <button
                 type="button"
-                onClick={() => setActiveStep(3)}
+                onClick={() => goToStep(3)}
                 style={{ background: "#f1f5f9", color: "#475569", padding: "10px 20px", borderRadius: "8px", border: "none", cursor: "pointer" }}
               >
                 ← Geri
               </button>
               <button
                 type="button"
-                onClick={() => setActiveStep(5)}
+                onClick={() => goToStep(5)}
                 style={{ background: "#2563eb", color: "#ffffff", padding: "10px 24px", borderRadius: "8px", border: "none", fontWeight: 600, cursor: "pointer" }}
               >
                 Sonraki Adım: Kurulumu Tamamla →
