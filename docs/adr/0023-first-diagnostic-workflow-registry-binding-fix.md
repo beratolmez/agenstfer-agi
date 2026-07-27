@@ -14,6 +14,7 @@ During `workflow_publish` and `validate_workflow_bindings`, validation verifies 
    - Invoke `ensure_platform_registry(db)` at the start of `validate_workflow_bindings(db, workflow)`.
 2. In `apps/api/agi_server/main.py`:
    - Invoke `ensure_platform_registry(db)` in `setup_progress_update` when `payload.status == 'completed'`.
+   - Invoke `ensure_platform_registry(db)` in `workflow_clone` before executing `clone_workflow_version`.
    - Invoke `ensure_platform_registry(db)` in `workflow_publish` before executing `publish_workflow(db, row)`.
 
 ## Consequences

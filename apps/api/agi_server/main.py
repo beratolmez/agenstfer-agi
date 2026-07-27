@@ -2026,6 +2026,7 @@ def workflow_clone(
     if target_id and target_id.startswith("builtin-"):
         raise HTTPException(status_code=422, detail="Built-in workflow IDs are reserved")
     try:
+        ensure_platform_registry(db)
         row = clone_workflow_version(
             db,
             source,
