@@ -390,14 +390,36 @@ def _material_claims(
     return claims
 
 
+DETERMINISTIC_CLAIM_PREFIX = "metric-"
+
+
+@dataclass(frozen=True)
+class EvidenceGateResult:
+    """Outcome of the evidence gate: what survived, and what was withheld and why."""
+
+    evidence_ids: list[str]
+    rejected_claim_ids: list[str]
+    data_gaps: list[str]
+
+
 def _enforce_evidence_gate(
     db: Session,
     claims: list[MaterialClaim],
     review: EvidenceReview,
-) -> list[str]:
+) -> EvidenceGateResult:
+    """Gate material claims on persisted evidence.
+
+    Deterministic ``metric-*`` claims carry a verification receipt, so a rejected one means
+    the computation itself is untrustworthy and the run must fail. Narrative claims come from
+    a model and are withheld rather than fatal: they are dropped from the report and surfaced
+    as data gaps, so an unsupported sentence never blocks an otherwise evidence-backed
+    diagnostic and is never published as if it were evidence-backed (ADR-0027).
+    """
     decisions = {item.claim_id: item for item in review.decisions}
     evidence_ids: list[str] = []
-    failures: list[str] = []
+    deterministic_failures: list[str] = []
+    narrative_failures: list[str] = []
+    gaps: list[str] = []
     for claim in claims:
         missing = [
             evidence_id
@@ -405,16 +427,33 @@ def _enforce_evidence_gate(
             if db.get(EvidenceItem, evidence_id) is None
         ]
         decision = decisions.get(claim.id)
-        if missing or decision is None or not decision.supported:
-            failures.append(claim.id)
+        rejected = (
+            bool(missing)
+            or decision is None
+            or not decision.supported
+            or not set(decision.evidence_ids).intersection(claim.evidence_ids)
+        )
+        if not rejected:
+            evidence_ids.extend(claim.evidence_ids)
             continue
-        if not set(decision.evidence_ids).intersection(claim.evidence_ids):
-            failures.append(claim.id)
+        if claim.id.startswith(DETERMINISTIC_CLAIM_PREFIX):
+            deterministic_failures.append(claim.id)
             continue
-        evidence_ids.extend(claim.evidence_ids)
-    if failures or not review.approved:
-        raise ValueError(f"Evidence review rejected material claims: {sorted(set(failures))}")
-    return list(dict.fromkeys(evidence_ids))
+        narrative_failures.append(claim.id)
+        reason = decision.reason if decision is not None else "no evidence decision returned"
+        gaps.append(f"Doğrulanamayan iddia ({claim.id}): {reason}")
+
+    if deterministic_failures:
+        raise ValueError(
+            "Evidence review rejected deterministic material claims: "
+            f"{sorted(set(deterministic_failures))}"
+        )
+    gaps.extend(f"Kanıt çelişkisi: {item}" for item in review.contradictions)
+    return EvidenceGateResult(
+        evidence_ids=list(dict.fromkeys(evidence_ids)),
+        rejected_claim_ids=sorted(set(narrative_failures)),
+        data_gaps=gaps,
+    )
 
 
 def _write_report_artifacts(
@@ -596,9 +635,11 @@ async def run_growth_diagnostic(
         )
         executions.append(review_execution)
         review = EvidenceReview.model_validate(review_execution.output)
-        # Fail closed before anything is built from the claims: an unsupported or missing
-        # decision must stop the run rather than reach the report and the OKF candidate.
-        _enforce_evidence_gate(db, _material_claims(metrics, company, hypotheses), review)
+        # Gate the claims before anything is built from them, so an unsupported claim can
+        # never reach the report or the OKF candidate as if it were evidence-backed.
+        gate = _enforce_evidence_gate(
+            db, _material_claims(metrics, company, hypotheses), review
+        )
         inst_row = db.get(InstallationState, "default")
         inst_config = dict(inst_row.configuration or {}) if inst_row else {}
         company_name = inst_config.get("company_name") or (run.input_json or {}).get("company_name")
@@ -611,6 +652,8 @@ async def run_growth_diagnostic(
             hypotheses,
             company_name=company_name,
             objective=objective,
+            withheld_claim_ids=set(gate.rejected_claim_ids),
+            extra_data_gaps=gate.data_gaps,
         )
 
         curator_execution = await _agent_step(

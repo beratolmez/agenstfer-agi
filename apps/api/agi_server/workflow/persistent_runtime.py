@@ -414,7 +414,8 @@ async def _execute_node(
                 f"{rejected_paths}"
             )
         claims = _material_claims(metrics, company, hypotheses)
-        evidence_ids = _enforce_evidence_gate(db, claims, review)
+        gate = _enforce_evidence_gate(db, claims, review)
+        evidence_ids = gate.evidence_ids
         inst_row = db.get(InstallationState, "default")
         inst_config = dict(inst_row.configuration or {}) if inst_row else {}
         company_name = inst_config.get("company_name") or (run.input_json or {}).get("company_name")
@@ -427,6 +428,8 @@ async def _execute_node(
             hypotheses,
             company_name=company_name,
             objective=objective,
+            withheld_claim_ids=set(gate.rejected_claim_ids),
+            extra_data_gaps=gate.data_gaps,
         )
         artifact_uri, _ = _write_report_artifacts(db, settings, run.id, diagnostic)
         candidate, _ = create_demo_candidate(

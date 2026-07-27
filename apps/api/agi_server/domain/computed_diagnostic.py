@@ -13,6 +13,11 @@ from agi_server.schemas import (
     PlanItem,
 )
 
+UNVERIFIED_RATIONALE = (
+    "Bu fırsat deterministik sinyal ve kanıtla üretildi. Model gerekçesi kanıt incelemesinde "
+    "doğrulanamadığı için yayımlanmadı; ayrıntı için veri boşluklarına bakın."
+)
+
 
 def build_computed_diagnostic(
     db: Session,
@@ -22,6 +27,8 @@ def build_computed_diagnostic(
     hypotheses: OpportunityHypotheses,
     company_name: str | None = None,
     objective: str | None = None,
+    withheld_claim_ids: set[str] | None = None,
+    extra_data_gaps: list[str] | None = None,
 ) -> GrowthDiagnostic:
     hypothesis_by_signal = {item.signal_id: item for item in hypotheses.hypotheses}
     recommendations: list[OpportunityRecommendation] = []
@@ -74,7 +81,14 @@ def build_computed_diagnostic(
                 score=signal.factors.total(),
                 status="İncelendi" if index == 0 else "Onay bekliyor" if index == 1 else "Taslak",
                 evidence=evidence,
-                rationale=hypothesis.rationale,
+                # The deterministic signal, its score and its evidence stand on their own. Only
+                # the model's narrative rationale is withheld when the evidence review could not
+                # support it, so nothing unverified is published as evidence-backed (ADR-0027).
+                rationale=(
+                    UNVERIFIED_RATIONALE
+                    if f"hypothesis-{signal.id}" in (withheld_claim_ids or set())
+                    else hypothesis.rationale
+                ),
             )
         )
     recommendations.sort(key=lambda item: item.score, reverse=True)
@@ -120,6 +134,6 @@ def build_computed_diagnostic(
                 ],
             ),
         ],
-        data_gaps=[*metrics.data_gaps, *company.data_gaps],
+        data_gaps=[*metrics.data_gaps, *company.data_gaps, *(extra_data_gaps or [])],
         detected_planted_insights=metrics.planted_insights,
     )

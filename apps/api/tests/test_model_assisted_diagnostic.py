@@ -34,7 +34,10 @@ from agi_server.diagnostics.service import (
     _signal_prompt_view,
     run_growth_diagnostic,
 )
-from agi_server.domain.computed_diagnostic import build_computed_diagnostic
+from agi_server.domain.computed_diagnostic import (
+    UNVERIFIED_RATIONALE,
+    build_computed_diagnostic,
+)
 from agi_server.domain.metrics import (
     calculate_growth_metrics,
     calculate_verified_growth_metrics,
@@ -568,7 +571,8 @@ def test_model_assisted_diagnostic_persists_run_steps_evidence_and_artifacts(
     engine.dispose()
 
 
-def test_evidence_rejection_fails_without_creating_candidate(tmp_path: Path) -> None:
+def test_deterministic_claim_rejection_fails_without_creating_candidate(tmp_path: Path) -> None:
+    """A rejected metric-* claim means the computation is untrustworthy: fail the run."""
     engine, local_session = _session(tmp_path)
     knowledge_root = tmp_path / "knowledge"
     settings = Settings(knowledge_root=knowledge_root, model_profile="local-balanced")
@@ -577,7 +581,10 @@ def test_evidence_rejection_fails_without_creating_candidate(tmp_path: Path) -> 
         ensure_active_repository(settings.company_bundle)
         _, company, hypotheses, review, change_set = _typed_outputs(db)
         review.approved = False
-        review.decisions[0].supported = False
+        deterministic = next(
+            item for item in review.decisions if item.claim_id.startswith("metric-")
+        )
+        deterministic.supported = False
         overrides = {
             "company-analyst": TestModel(
                 call_tools=[], custom_output_args=company.model_dump(mode="json")
@@ -604,13 +611,65 @@ def test_evidence_rejection_fails_without_creating_candidate(tmp_path: Path) -> 
                 )
             )
         except ValueError as error:
-            assert "Evidence review rejected" in str(error)
+            assert "deterministic material claims" in str(error)
         else:
-            raise AssertionError("Evidence rejection must fail the diagnostic run")
+            raise AssertionError("Deterministic evidence rejection must fail the diagnostic run")
 
         run = db.scalar(
             select(WorkflowRun).where(WorkflowRun.idempotency_key == "test-diagnostic-rejected")
         )
         assert run is not None and run.status == "failed"
         assert db.scalar(select(OKFCandidate).where(OKFCandidate.run_id == run.id)) is None
+    engine.dispose()
+
+
+def test_narrative_claim_rejection_is_withheld_not_fatal(tmp_path: Path) -> None:
+    """An unsupported model sentence is withheld and reported, never published as evidence."""
+    engine, local_session = _session(tmp_path)
+    knowledge_root = tmp_path / "knowledge"
+    settings = Settings(knowledge_root=knowledge_root, model_profile="local-balanced")
+    with local_session() as db:
+        sync_demo_company(db, settings.raw_root)
+        ensure_active_repository(settings.company_bundle)
+        _, company, hypotheses, review, change_set = _typed_outputs(db)
+        # The reviewer flags a model-authored hypothesis rationale as unsupported.
+        review.approved = False
+        narrative = next(
+            item for item in review.decisions if item.claim_id.startswith("hypothesis-")
+        )
+        narrative.supported = False
+        narrative.reason = "Sunulan kanıt bu gerekçeyi desteklemiyor."
+        withheld_signal = narrative.claim_id.removeprefix("hypothesis-")
+        overrides = {
+            "company-analyst": TestModel(
+                call_tools=[], custom_output_args=company.model_dump(mode="json")
+            ),
+            "growth-opportunity-analyst": TestModel(
+                call_tools=[], custom_output_args=hypotheses.model_dump(mode="json")
+            ),
+            "evidence-reviewer": TestModel(
+                call_tools=[], custom_output_args=review.model_dump(mode="json")
+            ),
+            "wiki-curator": TestModel(
+                call_tools=[], custom_output_args=change_set.model_dump(mode="json")
+            ),
+        }
+
+        result = asyncio.run(
+            run_growth_diagnostic(
+                db,
+                settings,
+                actor_id=None,
+                idempotency_key="test-diagnostic-withheld",
+                model_overrides=overrides,
+            )
+        )
+
+        assert result.run.status == "awaiting_approval"
+        withheld = next(
+            item for item in result.diagnostic.opportunities if item.id == withheld_signal
+        )
+        assert withheld.rationale == UNVERIFIED_RATIONALE
+        assert withheld.evidence, "The deterministic signal keeps its own evidence"
+        assert any(narrative.claim_id in gap for gap in result.diagnostic.data_gaps)
     engine.dispose()

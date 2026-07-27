@@ -952,3 +952,30 @@ varsa hiçbir şey üretilmesin" demez. Uygulanırsa ayrı bir ADR gerekir.
 `gemini-3.6-flash` günlük ücretsiz kotası (model başına 20 istek) denetim sırasında tükendi;
 doğrulamalar `gemini-3.1-flash-lite` ile tamamlandı. Tek tanı koşusu 4 agent adımı harcadığından
 sunum öncesi kota planlaması gerekir.
+
+### Tur 3 — Açık kararın sonucu (28 Temmuz 2026)
+
+Evidence gate politikası için **hibrit** seçenek onaylandı ve uygulandı (**ADR-0027**):
+
+- Deterministik `metric-*` claim'leri **bloklayıcı** kaldı — doğrulama makbuzu olan sayısal iddia
+  reddedilirse run düşer, OKF candidate üretilmez.
+- Model üretimi anlatısal claim'ler (company strength/weakness, `hypothesis-*`) **yayımlanmıyor**
+  ama run'ı düşürmüyor: rapordan çıkarılıp reviewer'ın kendi gerekçesiyle `data_gaps`'e yazılıyor.
+  İlgili fırsat deterministik skorunu ve kanıt referanslarını koruyor; yalnız doğrulanamayan
+  gerekçe yerine açık bir "doğrulanamadı" ifadesi konuyor.
+- `review.contradictions` artık atılmıyor, okuyucuya veri boşluğu olarak sunuluyor.
+
+**Sonuç — ilk tanı uçtan uca çalışıyor.** Canlı Gemini modeliyle doğrulandı:
+
+```
+12/12 node tamamlandı -> awaiting_approval -> onay -> run_status: completed
+5 deterministik fırsat, her biri 2-3 çözümlenmiş kanıt referansıyla yayımlandı
+14 veri boşluğu (withheld claim + çelişki) gerekçeleriyle raporlandı
+OKF candidate onaylanıp aktif bundle'a birleşti
+```
+
+Test paketi: **169 passed, 0 failed** (Tur 3 başında 162 passed / 3 failed).
+
+**Kalan zayıf halka veri tarafında:** demo veri seti sipariş/hesap kayıtlarından ibaret olduğu için
+anlatısal gerekçelerin çoğu doğrulanamıyor. Gerçek müşteri kaynakları bağlandıkça bu boşluklar
+kendiliğinden kapanır — bu gate işi değil, veri işi.
