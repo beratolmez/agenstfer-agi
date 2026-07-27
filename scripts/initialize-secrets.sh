@@ -6,7 +6,10 @@ mkdir -p "${directory}"
 chmod 700 "${directory}"
 for name in bootstrap_token session_secret master_key cloud_model_api_key; do
   path="${directory}/${name}"
-  if [[ -e "${path}" ]]; then
+  if [[ -d "${path}" ]]; then
+    rm -rf "${path}"
+    echo "Removed leftover directory secret artifact: ${path}"
+  elif [[ -f "${path}" ]]; then
     echo "Preserved existing secret: ${path}"
     continue
   fi

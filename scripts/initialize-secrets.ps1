@@ -16,8 +16,14 @@ function New-SecureValue {
 foreach ($name in @("bootstrap_token", "session_secret", "master_key", "cloud_model_api_key")) {
     $path = Join-Path $Directory $name
     if (Test-Path -LiteralPath $path) {
-        Write-Host "Preserved existing secret: $path"
-        continue
+        $item = Get-Item -LiteralPath $path
+        if ($item.PSIsContainer) {
+            Remove-Item -LiteralPath $path -Recurse -Force
+            Write-Host "Removed leftover directory secret artifact: $path"
+        } else {
+            Write-Host "Preserved existing secret: $path"
+            continue
+        }
     }
     [System.IO.File]::WriteAllText($path, (New-SecureValue))
     Write-Host "Created secret: $path"
