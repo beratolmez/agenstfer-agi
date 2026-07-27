@@ -40,10 +40,6 @@ def ensure_platform_registry(db: Session, settings: Settings | None = None) -> N
                     definition=spec.model_dump(mode="json"),
                 )
             )
-        else:
-            row.status = "published"
-            row.name = spec.name
-            row.definition = spec.model_dump(mode="json")
     db.flush()
 
     from agi_server.agents.capabilities import BUILTIN_CAPABILITIES
@@ -67,8 +63,6 @@ def ensure_platform_registry(db: Session, settings: Settings | None = None) -> N
                     },
                 )
             )
-        elif row.status != "published":
-            row.status = "published"
 
     if settings is None:
         from agi_server.config import get_settings
@@ -87,9 +81,6 @@ def ensure_platform_registry(db: Session, settings: Settings | None = None) -> N
                 definition=workflow.model_dump(mode="json"),
             )
         )
-    else:
-        workflow_row.status = "published"
-        workflow_row.definition = workflow.model_dump(mode="json")
     db.commit()
 
 

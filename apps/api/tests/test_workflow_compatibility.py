@@ -230,3 +230,34 @@ def test_publish_workflow_rejects_unavailable_model_profile_when_cloud_disabled(
             validate_workflow_bindings(db, wf_cloud, settings=settings)
 
     engine.dispose()
+
+
+def test_ensure_platform_registry_preserves_archived_status_on_existing_rows(tmp_path: Path) -> None:
+    from agi_server.db import AgentDefinitionRow, WorkflowDefinitionRow
+    from agi_server.workflow.registry_service import ensure_platform_registry
+
+    engine, local_session = _database(tmp_path)
+    with local_session() as db:
+        ensure_platform_registry(db)
+
+        # Archive an agent and workflow row
+        agent_row = db.get(AgentDefinitionRow, ("company-analyst", 3))
+        assert agent_row is not None
+        agent_row.status = "archived"
+
+        wf_row = db.get(WorkflowDefinitionRow, ("builtin-growth-diagnostic", 3))
+        assert wf_row is not None
+        wf_row.status = "archived"
+        db.commit()
+
+        # Re-run ensure_platform_registry
+        ensure_platform_registry(db)
+
+        # Verify status remained archived and was not overwritten
+        re_agent = db.get(AgentDefinitionRow, ("company-analyst", 3))
+        assert re_agent.status == "archived"
+
+        re_wf = db.get(WorkflowDefinitionRow, ("builtin-growth-diagnostic", 3))
+        assert re_wf.status == "archived"
+
+    engine.dispose()
