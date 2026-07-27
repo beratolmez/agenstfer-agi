@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from typing import Any, TypedDict
 
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy import select
@@ -80,7 +81,8 @@ class LangGraphWorkflowEngine:
                 builder.add_edge(topological_order[i], topological_order[i + 1])
             builder.add_edge(topological_order[-1], END)
 
-        return builder.compile()
+        checkpointer = MemorySaver()
+        return builder.compile(checkpointer=checkpointer)
 
     def _make_node_executor(self, node_id: str, sequence: int):
         from agi_server.workflow.persistent_runtime import (
@@ -298,7 +300,8 @@ def build_langgraph_workflow(
             builder.add_edge(order[i], order[i + 1])
         builder.add_edge(order[-1], END)
 
-    return builder.compile()
+    checkpointer = MemorySaver()
+    return builder.compile(checkpointer=checkpointer)
 
 
 class LangGraphWorkflowRuntime:

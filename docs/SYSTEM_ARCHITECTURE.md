@@ -109,7 +109,7 @@ flowchart TD
 
 | Domain | Current Active State (`agi_server`) | Target Architecture (ADR-0016) | Status / Roadmap |
 |---|---|---|---|
-| **Orchestrator** | LangGraph `StateGraph` active for diagnostic workflows (`langgraph_runtime.py`) | Native LangGraph engine with PostgreSQL checkpointer | Phase 2-3 Completed |
+| **Orchestrator** | LangGraph `StateGraph` active with MemorySaver checkpointer (`langgraph_runtime.py`) | Native LangGraph engine (PostgreSQL checkpointer in subsequent phase) | Phase 2-3 Active |
 | **Agent Nodes** | Pydantic AI probes & contracts | Native Pydantic AI LangGraph nodes | Active Baseline |
 | **Vector Store** | ChromaDB vector search with automatic lexical fallback (`okf/search.py`) | Integrated ChromaDB Vector Database | Phase 6 Completed |
 | **MCP Connectors** | Product-owned read-only MCP Client Gateway (`mcp.py`) | Standardized MCP Gateway | Phase 7 Completed |
