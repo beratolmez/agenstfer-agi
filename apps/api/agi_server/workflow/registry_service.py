@@ -107,6 +107,7 @@ def save_workflow_draft(
 ) -> WorkflowDefinitionRow:
     if not SAFE_ID.fullmatch(definition.id):
         raise ValueError("Workflow ID is invalid")
+    ensure_platform_registry(db)
     row = db.get(WorkflowDefinitionRow, (definition.id, definition.version))
     if row is not None and row.status != "draft":
         raise ValueError("Published workflow versions are immutable")
@@ -200,8 +201,15 @@ def validate_workflow_bindings(db: Session, workflow: WorkflowDefinition) -> Wor
             )
         else:
             row = db.get(AgentDefinitionRow, (agent_id, requested_version))
-            if row is not None and row.status != "published":
-                row = None
+            if row is None or row.status != "published":
+                row = db.scalar(
+                    select(AgentDefinitionRow)
+                    .where(
+                        AgentDefinitionRow.id == agent_id,
+                        AgentDefinitionRow.status == "published",
+                    )
+                    .order_by(AgentDefinitionRow.version.desc())
+                )
         if row is None:
             suffix = "" if requested_version is None else f" {requested_version}"
             issues.append(f"{node.id}: agent '{agent_id}'{suffix} has no published version")
