@@ -183,7 +183,11 @@ def validate_workflow_bindings(
     db: Session, workflow: WorkflowDefinition, settings: Settings | None = None
 ) -> WorkflowDefinition:
     """Validate and pin registry references the pure graph validator cannot inspect."""
-    ensure_platform_registry(db)
+    if settings is None:
+        from agi_server.config import get_settings
+        settings = get_settings()
+
+    ensure_platform_registry(db, settings=settings)
     issues: list[str] = []
     agent_ids: set[str] = set()
     pinned_nodes = []
@@ -242,7 +246,7 @@ def validate_workflow_bindings(
         profile = node.config.get("model_profile")
         if profile not in {"local-balanced", "local-strong", "cloud-balanced"}:
             issues.append(f"{node.id}: model profile is not allowlisted")
-        elif settings is not None:
+        else:
             try:
                 resolve_model_profile(str(profile), settings)
             except Exception as profile_err:
@@ -266,14 +270,16 @@ def validate_workflow_bindings(
     return workflow.model_copy(update={"nodes": pinned_nodes})
 
 
-def publish_workflow(db: Session, row: WorkflowDefinitionRow) -> WorkflowDefinitionRow:
+def publish_workflow(
+    db: Session, row: WorkflowDefinitionRow, settings: Settings | None = None
+) -> WorkflowDefinitionRow:
     if row.status != "draft":
         raise ValueError("Only a draft can be published")
     workflow = workflow_from_row(row)
     validation = validate_workflow(workflow)
     if not validation.valid:
         raise ValueError(f"Workflow validation failed: {[item.code for item in validation.issues]}")
-    workflow = validate_workflow_bindings(db, workflow)
+    workflow = validate_workflow_bindings(db, workflow, settings=settings)
     row.status = "published"
     row.definition = workflow.model_copy(update={"status": "published"}).model_dump(mode="json")
     db.commit()

@@ -2231,8 +2231,8 @@ def workflow_publish(
     if row is None:
         raise HTTPException(status_code=404, detail="Workflow draft bulunamadı")
     try:
-        ensure_platform_registry(db)
-        publish_workflow(db, row)
+        ensure_platform_registry(db, settings=settings)
+        publish_workflow(db, row, settings=settings)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     record_audit(
