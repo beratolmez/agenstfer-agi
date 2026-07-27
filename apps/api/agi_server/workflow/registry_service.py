@@ -46,20 +46,24 @@ def ensure_platform_registry(db: Session, settings: Settings | None = None) -> N
             row.definition = spec.model_dump(mode="json")
     db.flush()
 
-    capabilities = sorted({item for spec in specs for item in spec.capabilities})
-    for capability_id in capabilities:
-        row = db.get(CapabilityDefinitionRow, (capability_id, 1))
+    from agi_server.agents.capabilities import BUILTIN_CAPABILITIES
+
+    for cap_id, cap_spec in BUILTIN_CAPABILITIES.items():
+        row = db.get(CapabilityDefinitionRow, (cap_id, 1))
         if row is None:
             db.add(
                 CapabilityDefinitionRow(
-                    id=capability_id,
+                    id=cap_id,
                     version=1,
-                    name=capability_id.replace(".", " ").title(),
+                    name=cap_spec.name,
                     status="published",
                     definition={
                         "implementation": "code-defined",
                         "allowlisted": True,
                         "external_write": False,
+                        "description": cap_spec.description,
+                        "category": cap_spec.category,
+                        "handler_name": cap_spec.handler_name,
                     },
                 )
             )
