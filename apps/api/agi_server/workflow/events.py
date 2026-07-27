@@ -54,7 +54,8 @@ def ingest_webhook_event(
         )
         dispatches.append(dispatch)
 
-    status = "triggered" if dispatches else "no_match"
+    queued_dispatches = [d for d in dispatches if d.status == "queued"]
+    status = "triggered" if queued_dispatches else "no_match"
     inbox_row = EventInbox(
         id=event_id,
         source_id=source_id,
@@ -62,7 +63,7 @@ def ingest_webhook_event(
         idempotency_key=idempotency_key,
         payload=payload,
         status=status,
-        matched_rules_count=len(dispatches),
+        matched_rules_count=len(queued_dispatches),
     )
 
     db.add(inbox_row)

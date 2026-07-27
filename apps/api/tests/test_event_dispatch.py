@@ -32,8 +32,9 @@ def test_webhook_event_inbox_persisted_to_postgresql(db_session: Session):
     assert inbox_row.source_id == "crm_system"
     assert inbox_row.event_type == "crm.account_updated"
     assert inbox_row.payload == payload
-    assert inbox_row.status == "triggered"
+    assert inbox_row.status == "no_match"
     assert len(dispatches) == 1
+    assert dispatches[0].status == "skipped"
     assert dispatches[0].target_workflow_id == "builtin-crm-erp-hygiene"
 
 

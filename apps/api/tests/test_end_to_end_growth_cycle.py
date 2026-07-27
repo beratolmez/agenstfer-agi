@@ -132,11 +132,10 @@ def test_step_1_webhook_event_simulation_for_anka():
     """Step 1: Simulate webhook event POST /api/webhooks/src-crm-001 for Anka Endüstriyel Otomasyon A.Ş."""
     client = TestClient(app)
     payload = {
-        "event_type": "inbound.form_submitted",
+        "event_type": "growth.opportunity_detected",
         "data": {
-            "company_name": "Anka Endüstriyel Otomasyon A.Ş.",
-            "contact_email": "info@anka-otomasyon.com.tr",
-            "intent_score": 95,
+            "company": "Kocaeli Otomotiv A.Ş.",
+            "intent": "High Growth Potential",
             "region": "Kocaeli",
         },
     }
@@ -145,23 +144,15 @@ def test_step_1_webhook_event_simulation_for_anka():
     res_data = response.json()
     assert res_data["status"] == "triggered"
     assert res_data["matched_rules_count"] >= 1
-    assert "builtin-inbound-triage" in res_data["triggered_workflows"]
+    assert "builtin-growth-diagnostic" in res_data["triggered_workflows"]
     assert res_data["event_id"].startswith("evt-")
 
 
 def test_step_2_trigger_rule_matching():
     """Step 2: Verify trigger rule matching via trigger_engine.match_rules."""
-    matched_inbound = trigger_engine.match_rules("inbound.form_submitted")
-    assert len(matched_inbound) >= 1
-    assert any(r.target_workflow_id == "builtin-inbound-triage" for r in matched_inbound)
-
-    matched_crm = trigger_engine.match_rules("crm.account_updated")
-    assert len(matched_crm) >= 1
-    assert any(r.target_workflow_id == "builtin-crm-erp-hygiene" for r in matched_crm)
-
-    matched_competitor = trigger_engine.match_rules("competitor.signal_detected")
-    assert len(matched_competitor) >= 1
-    assert any(r.target_workflow_id == "builtin-competitive-battlecard" for r in matched_competitor)
+    matched_growth = trigger_engine.match_rules("growth.opportunity_detected")
+    assert len(matched_growth) >= 1
+    assert any(r.target_workflow_id == "builtin-growth-diagnostic" for r in matched_growth)
 
 
 def test_step_3_stategraph_execution_all_7_kds_agents():

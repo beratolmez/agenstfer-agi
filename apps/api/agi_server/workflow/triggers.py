@@ -17,6 +17,14 @@ class TriggerRule:
 
 DEFAULT_TRIGGER_RULES = [
     TriggerRule(
+        id="trig-growth-diagnostic",
+        name="Growth Opportunity Signal -> Built-in Diagnostic Workflow",
+        event_type="growth.opportunity_detected",
+        target_workflow_id="builtin-growth-diagnostic",
+        description="Fires standard growth diagnostic workflow on market opportunity signals.",
+        enabled=True,
+    ),
+    TriggerRule(
         id="trig-crm-hygiene",
         name="CRM Record Changed -> Data Hygiene Workflow",
         event_type="crm.account_updated",
@@ -25,6 +33,7 @@ DEFAULT_TRIGGER_RULES = [
             "Fires automatic entity reconciliation and data validation when a CRM account"
             " is updated."
         ),
+        enabled=True,
     ),
     TriggerRule(
         id="trig-inbound-triage",
@@ -32,6 +41,7 @@ DEFAULT_TRIGGER_RULES = [
         event_type="inbound.form_submitted",
         target_workflow_id="builtin-inbound-triage",
         description="Extracts buyer intent, computes lead score, and prepares sales routing.",
+        enabled=True,
     ),
     TriggerRule(
         id="trig-battlecard-gen",
@@ -42,6 +52,7 @@ DEFAULT_TRIGGER_RULES = [
             "Generates executive battlecard and objection handling matrix on new"
             " competitor moves."
         ),
+        enabled=True,
     ),
     TriggerRule(
         id="trig-lead-discovery",
@@ -49,6 +60,7 @@ DEFAULT_TRIGGER_RULES = [
         event_type="lead.opportunity_detected",
         target_workflow_id="builtin-lead-discovery",
         description="Discovers matching target B2B accounts and produces opportunity hypotheses.",
+        enabled=True,
     ),
 ]
 

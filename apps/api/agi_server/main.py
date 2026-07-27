@@ -574,7 +574,7 @@ def receive_webhook(
         "event_id": inbox_row.id,
         "status": inbox_row.status,
         "matched_rules_count": inbox_row.matched_rules_count,
-        "triggered_workflows": [d.target_workflow_id for d in dispatches],
+        "triggered_workflows": [d.target_workflow_id for d in dispatches if d.status == "queued"],
     }
 
 

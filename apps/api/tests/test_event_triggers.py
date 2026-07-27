@@ -6,6 +6,7 @@ def test_trigger_rule_registry():
     assert len(rules) >= 4
 
     event_types = {r["event_type"] for r in rules}
+    assert "growth.opportunity_detected" in event_types
     assert "inbound.form_submitted" in event_types
     assert "crm.account_updated" in event_types
     assert "competitor.signal_detected" in event_types
@@ -13,13 +14,13 @@ def test_trigger_rule_registry():
 
 
 def test_match_rules_and_record_event():
-    matched = trigger_engine.match_rules("inbound.form_submitted")
+    matched = trigger_engine.match_rules("growth.opportunity_detected")
     assert len(matched) == 1
-    assert matched[0].target_workflow_id == "builtin-inbound-triage"
+    assert matched[0].target_workflow_id == "builtin-growth-diagnostic"
 
     evt = trigger_engine.record_event(
         source_id="src-crm-001",
-        event_type="inbound.form_submitted",
+        event_type="growth.opportunity_detected",
         payload={"lead_name": "Test Co", "intent_score": 90},
         status="triggered",
     )
