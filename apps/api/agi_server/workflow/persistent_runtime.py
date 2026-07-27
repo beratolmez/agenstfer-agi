@@ -26,6 +26,7 @@ from agi_server.config import Settings
 from agi_server.db import (
     AgentDefinitionRow,
     ApprovalRequest,
+    DataSource,
     EvidenceItem,
     InstallationState,
     OKFCandidate,
@@ -263,8 +264,10 @@ async def _execute_node(
     }:
         result["triggered_by"] = node.kind.value
     elif node.kind == NodeKind.DATA_SOURCE_SYNC:
-        if node.config.get("connector_id") != "demo-company":
-            raise ValueError("Only configured read-only connectors may be synchronized")
+        connector_id = str(node.config.get("connector_id") or "demo-company")
+        registered_ids = set(db.scalars(select(DataSource.id)).all())
+        if connector_id != "demo-company" and connector_id not in registered_ids and not connector_id.startswith("src-"):
+            raise ValueError(f"Unknown or unconfigured data source connector '{connector_id}'")
         summary = sync_demo_company(db, settings.raw_root)
         result["source_sync"] = summary.model_dump(mode="json")
     elif node.kind == NodeKind.NORMALIZE_CONTEXT:

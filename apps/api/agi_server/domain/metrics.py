@@ -167,8 +167,8 @@ def calculate_growth_metrics(db: Session) -> MetricSnapshot:
         orders_invoices=len(transactions),
         activities=len(activities),
     )
-    if not accounts or not transactions:
-        raise ValueError("Growth metrics require synchronized account and transaction data")
+    if not accounts and not transactions:
+        data_gaps.append("Senkronize edilmiş account ve işlem verisi bulunamadı")
 
     high_energy = [
         row for row in accounts if float(row.attributes.get("energy_intensity", 0)) >= 0.75
@@ -188,25 +188,28 @@ def calculate_growth_metrics(db: Session) -> MetricSnapshot:
         account_purchase_counts[str(row.attributes.get("account_id"))] += 1
     repeat_accounts = sum(1 for count in account_purchase_counts.values() if count >= 3)
 
-    energy_transactions = (
-        transactions_by_product["Energy Retrofit Power Quality & Metering Kit"]
-        + transactions_by_product["Enerji İzleme"]
+    def _find_matching_transactions(keywords: tuple[str, ...]) -> list[CanonicalEntity]:
+        matched: list[CanonicalEntity] = []
+        for p_name, tx_list in transactions_by_product.items():
+            p_lower = p_name.lower()
+            if any(kw in p_lower for kw in keywords):
+                matched.extend(tx_list)
+        return matched
+
+    energy_transactions = _find_matching_transactions(
+        ("energy", "enerji", "power", "metering", "retrofit", "verimlilik")
     )
-    maintenance_transactions = (
-        transactions_by_product["24/7 Priority Field Service & Maintenance SLA"]
-        + transactions_by_product["Bakım Paketi"]
+    maintenance_transactions = _find_matching_transactions(
+        ("maintenance", "bakım", "service", "sla", "priority")
     )
-    export_transactions = (
-        transactions_by_product["OEM Export Compliance Cabinet Kit"]
-        + transactions_by_product["OEM Export Kit"]
+    export_transactions = _find_matching_transactions(
+        ("export", "ihracat", "oem", "cabinet", "kit")
     )
-    parts_transactions = (
-        transactions_by_product["PLC Modernization & Conversion Kit"]
-        + transactions_by_product["Yedek Parça"]
+    parts_transactions = _find_matching_transactions(
+        ("parts", "parça", "plc", "modernization", "conversion", "yedek")
     )
-    twin_transactions = (
-        transactions_by_product["Digital Twin 3D Visual Commissioning"]
-        + transactions_by_product["Dijital İkiz"]
+    twin_transactions = _find_matching_transactions(
+        ("twin", "ikiz", "commissioning", "visual", "dijital")
     )
     proposal_activities = [row for row in activities if row.attributes.get("kind") == "proposal"]
 
