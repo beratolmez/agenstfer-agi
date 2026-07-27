@@ -529,6 +529,7 @@ async def run_growth_diagnostic(
             settings.knowledge_root,
             settings.company_bundle,
             cloud=not profile.local,
+            qmd_url=settings.qmd_url,
         )
         metric_context = _metric_prompt_view(metrics)
         company_execution = await _agent_step(

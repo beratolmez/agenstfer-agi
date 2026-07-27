@@ -321,6 +321,7 @@ async def _execute_node(
             settings.knowledge_root,
             settings.company_bundle,
             cloud=not profile.local,
+            qmd_url=settings.qmd_url,
         )
         evidence_catalog = None
         evidence_claims = None

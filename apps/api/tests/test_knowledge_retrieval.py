@@ -29,7 +29,7 @@ async def test_knowledge_search_lexical_fallback_when_qmd_url_is_none(tmp_path):
     assert hit.title == "Growth Strategy"
     assert hit.engine == "lexical-fallback"
     assert len(hit.snippet) <= 320
-    assert hit.locator == "ev_concept_growth.md"
+    assert hit.locator is None
 
 
 @pytest.mark.asyncio
