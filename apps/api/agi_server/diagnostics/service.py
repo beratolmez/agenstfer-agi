@@ -29,6 +29,7 @@ from agi_server.agents.runtime import (
     run_managed_agent,
 )
 from agi_server.config import Settings
+from agi_server.context import ExecutionContext
 from agi_server.db import (
     Artifact,
     EvidenceItem,
@@ -178,6 +179,7 @@ async def _run_evidence_reviewer(
     model_override=None,
     spec_override=None,
     capability_allowlist: frozenset[str] | Any | None = None,
+    execution_context: ExecutionContext | None = None,
 ) -> AgentExecution:
     batches = [claims] if model_override is not None else _evidence_review_batches(claims)
     executions: list[AgentExecution] = []
@@ -194,6 +196,7 @@ async def _run_evidence_reviewer(
             model_override=model_override,
             spec_override=spec_override,
             capability_allowlist=capability_allowlist,
+            execution_context=execution_context,
         )
         review = EvidenceReview.model_validate(execution.output)
         expected_ids = [item.id for item in batch]
@@ -307,6 +310,15 @@ async def _agent_step(
         )
         step.redaction_applied = not profile.local
         db.commit()
+        exec_ctx = ExecutionContext(
+            run_id=run.id,
+            workflow_id=run.workflow_id,
+            workflow_version=run.workflow_version,
+            actor_id=run.created_by,
+            data_classification=step.data_classification,
+            bounded_evidence_ids=list((evidence_catalog or {}).keys()),
+            model_policy_revision=profile.id,
+        )
         model_override = (model_overrides or {}).get(agent_id)
         if agent_id == "evidence-reviewer" and evidence_claims is not None:
             execution = await _run_evidence_reviewer(
@@ -316,6 +328,7 @@ async def _agent_step(
                 tools,
                 profile_id,
                 model_override=model_override,
+                execution_context=exec_ctx,
             )
         else:
             execution = await run_managed_agent(
@@ -326,6 +339,7 @@ async def _agent_step(
                 profile_id=profile_id,
                 model_override=model_override,
                 capability_allowlist=capability_allowlist,
+                execution_context=exec_ctx,
             )
     except Exception as error:
         step.status = "failed"

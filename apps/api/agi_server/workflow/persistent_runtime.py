@@ -23,6 +23,7 @@ from agi_server.agents.runtime import (
     run_managed_agent,
 )
 from agi_server.config import Settings
+from agi_server.context import ExecutionContext
 from agi_server.db import (
     AgentDefinitionRow,
     ApprovalRequest,
@@ -337,10 +338,17 @@ async def _execute_node(
                 evidence_catalog[evidence_id] = _evidence_prompt_view(
                     row, tools.read_evidence(evidence_id)
                 )
-        model_override = (model_overrides or {}).get(agent_id)
-        node_caps = node.config.get("capabilities")
         capability_allowlist = (
             frozenset(node_caps) if node_caps is not None else None
+        )
+        exec_ctx = ExecutionContext(
+            run_id=run.id,
+            workflow_id=run.workflow_id,
+            workflow_version=run.workflow_version,
+            actor_id=run.created_by,
+            data_classification=step.data_classification,
+            bounded_evidence_ids=list((evidence_catalog or {}).keys()),
+            model_policy_revision=profile.id,
         )
         if spec.output_type == "EvidenceReview" and evidence_claims is not None:
             execution = await _run_evidence_reviewer(
@@ -352,6 +360,7 @@ async def _execute_node(
                 model_override=model_override,
                 spec_override=spec,
                 capability_allowlist=capability_allowlist,
+                execution_context=exec_ctx,
             )
         else:
             execution = await run_managed_agent(
@@ -369,6 +378,7 @@ async def _execute_node(
                 model_override=model_override,
                 spec_override=spec,
                 capability_allowlist=capability_allowlist,
+                execution_context=exec_ctx,
             )
         result.setdefault("agent_results", {})[agent_id] = execution.output.model_dump(mode="json")
         step.model_profile = execution.profile_id
