@@ -211,19 +211,18 @@ def validate_workflow_bindings(
                 )
                 .order_by(AgentDefinitionRow.version.desc())
             )
+            if row is None:
+                issues.append(f"{node.id}: agent '{agent_id}' has no published version")
+                pinned_nodes.append(node)
+                continue
         else:
             row = db.get(AgentDefinitionRow, (agent_id, requested_version))
             if row is None or row.status != "published":
                 issues.append(
-                    f"{node.id}: agent '{agent_id}' has no published version"
+                    f"{node.id}: pinned agent '{agent_id}' version {requested_version} is not published"
                 )
                 pinned_nodes.append(node)
                 continue
-        if row is None:
-            suffix = "" if requested_version is None else f" {requested_version}"
-            issues.append(f"{node.id}: agent '{agent_id}'{suffix} has no published version")
-            pinned_nodes.append(node)
-            continue
         spec = agent_from_row(row)
         output_type = node.config.get("output_type")
         if output_type is not None and output_type != spec.output_type:

@@ -180,3 +180,28 @@ def test_admin_can_disable_and_reenable_a_persisted_schedule_with_audit(
         )
         assert actions == ["workflow.schedule_disabled", "workflow.schedule_enabled"]
     engine.dispose()
+
+
+def test_validate_workflow_bindings_rejects_unpublished_pinned_agent_version(tmp_path: Path) -> None:
+    from agi_server.workflow.registry_service import validate_workflow_bindings
+    from agi_server.workflow.default import build_default_workflow
+    from agi_server.workflow.models import NodeKind
+
+    engine, local_session = _database(tmp_path)
+    with local_session() as db:
+        ensure_platform_registry(db)
+
+        # Build a workflow referencing non-existent pinned version 99 of company-analyst
+        wf = build_default_workflow()
+        updated_nodes = []
+        for node in wf.nodes:
+            if node.kind == NodeKind.AGENT_RUN and node.config.get("agent_id") == "company-analyst":
+                updated_nodes.append(node.model_copy(update={"config": {**node.config, "agent_version": 99}}))
+            else:
+                updated_nodes.append(node)
+        wf_invalid = wf.model_copy(update={"nodes": updated_nodes})
+
+        with pytest.raises(ValueError, match="is not published"):
+            validate_workflow_bindings(db, wf_invalid)
+
+    engine.dispose()
