@@ -217,3 +217,16 @@ def test_model_configure_persists_settings_across_db_reloads(tmp_path: Path) -> 
     assert fresh_settings.model_profile == "cloud-balanced"
     assert fresh_settings.cloud_api_key is not None
     assert fresh_settings.cloud_api_key.get_secret_value() == "persistent-test-api-key"
+
+
+def test_cloud_provider_sets_max_retries_zero() -> None:
+    from agi_server.agents.model_gateway import build_pydantic_ai_model
+    settings = Settings(
+        _env_file=None,
+        cloud_models_enabled=True,
+        cloud_provider="gemini",
+        cloud_api_key=SecretStr("test-key"),
+        model_profile="cloud-balanced",
+    )
+    model = build_pydantic_ai_model("cloud-balanced", settings)
+    assert model.provider.client.max_retries == 0

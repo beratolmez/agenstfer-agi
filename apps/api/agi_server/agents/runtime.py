@@ -19,6 +19,7 @@ from agi_server.agents.contracts import (
 from agi_server.agents.model_gateway import build_pydantic_ai_agent, resolve_model_profile
 from agi_server.agents.registry import AgentRegistry, ManagedAgentSpec
 from agi_server.config import Settings
+from agi_server.logging_utils import logger
 from agi_server.context import ExecutionContext
 from agi_server.db import CanonicalEntity, EvidenceItem
 from agi_server.domain.metrics import MetricSnapshot
@@ -237,8 +238,17 @@ async def run_managed_agent(
         model_override=model_override,
         tools=tools.for_spec(spec, capability_allowlist),
     )
-    async with asyncio.timeout(spec.timeout_seconds):
-        result = await agent.run(prompt)
+    try:
+        async with asyncio.timeout(spec.timeout_seconds):
+            result = await agent.run(prompt)
+    except Exception as exc:
+        err_str = str(exc)
+        if "429" in err_str or "quota" in err_str.lower() or "rate_limit" in err_str.lower() or "resource_exhausted" in err_str.lower():
+            logger.error("Model Rate Limit / Quota Exceeded (429) for agent %s on profile %s: %s", spec.id, profile.id, exc)
+            raise RuntimeError(
+                f"Model kota veya istek limiti aşıldı (429 Rate Limit / Quota Exceeded). Lütfen kota sıfırlanana kadar bekleyin veya alternatif model kullanın: {exc}"
+            ) from exc
+        raise
     return AgentExecution(
         spec=spec,
         profile_id=profile.id,

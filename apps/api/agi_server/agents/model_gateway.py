@@ -103,6 +103,7 @@ def resolve_model_profile(profile_id: str, settings: Settings) -> ModelProfile:
 
 
 def build_pydantic_ai_model(profile_id: str, settings: Settings):
+    from openai import AsyncOpenAI
     from pydantic_ai.models.openai import OpenAIChatModel
     from pydantic_ai.providers.ollama import OllamaProvider
     from pydantic_ai.providers.openai import OpenAIProvider
@@ -113,10 +114,12 @@ def build_pydantic_ai_model(profile_id: str, settings: Settings):
     else:
         assert profile.base_url is not None and settings.cloud_api_key is not None
         key_val = settings.cloud_api_key.get_secret_value()
-        provider = OpenAIProvider(
+        client = AsyncOpenAI(
             base_url=profile.base_url,
             api_key=key_val,
+            max_retries=0,
         )
+        provider = OpenAIProvider(openai_client=client)
     return OpenAIChatModel(profile.model_name, provider=provider)
 
 
