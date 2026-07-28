@@ -1,31 +1,12 @@
-import os
-import sys
-from unittest.mock import MagicMock, patch
+"""Typed contract tests for the diagnostic output schemas.
 
-# Mock optional dependencies before importing agent modules
-mock_rag = MagicMock()
-mock_rag.retrieve.retrieve_knowledge.return_value = {
-    "documents": [["Mock doc"]],
-    "metadatas": [[{"source": "mock.md"}]],
-    "distances": [[0.5]],
-}
-sys.modules["rag_service"] = mock_rag
-sys.modules["rag_service.retrieve"] = mock_rag.retrieve
-sys.modules["rag_service.ingest"] = mock_rag.ingest
+These five business-domain contracts (competitor, security, financial, SEO, CSAT) are
+PRD targets that no agent spec can select yet: ManagedAgentSpec.output_type only admits
+the four wired contracts. The schemas are kept under test so they stay valid until the
+corresponding agents are built.
+"""
 
-sys.path.insert(0, os.path.abspath("apps/services/ai-agent"))
-sys.path.insert(0, os.path.abspath("apps/services/rag"))
-
-# Provide a TestModel for the legacy ai-agent modules.
-# get_llm_model() now raises RuntimeError instead of silently returning TestModel
-# (ADR-0025 / LO-04). Tests must explicitly opt-in to TestModel here so that the
-# production code path is fail-loud while the test harness remains functional.
-from pydantic_ai.models.test import TestModel  # noqa: E402
-
-_test_model_patcher = patch("ai_agent.models.get_llm_model", return_value=TestModel())
-_test_model_patcher.start()
-
-from agi_server.agents.contracts import (  # noqa: E402
+from agi_server.agents.contracts import (
     CompanyAnalysis,
     CompetitorIntelligenceAnalysis,
     CustomerSatisfactionAnalysis,
@@ -34,7 +15,6 @@ from agi_server.agents.contracts import (  # noqa: E402
     SecurityAuditAnalysis,
     SEOBrandIntelligenceAnalysis,
 )
-from ai_agent.graph import create_graph  # noqa: E402
 
 
 def test_company_analysis_contract():
@@ -125,15 +105,3 @@ def test_customer_satisfaction_contract():
     )
     assert csat.nps_score == 68
     assert csat.csat_percentage == 92.0
-
-
-def test_stategraph_execution_with_kds_nodes():
-    graph = create_graph()
-    result = graph.invoke({"messages": ["Run full KDS AI ABS diagnostic"]})
-    assert "messages" in result
-    assert result.get("company_profiling_data") is not None
-    assert result.get("competitor_intelligence_data") is not None
-    assert result.get("security_audit_data") is not None
-    assert result.get("financial_diagnostics_data") is not None
-    assert result.get("seo_brand_intelligence_data") is not None
-    assert result.get("customer_satisfaction_data") is not None

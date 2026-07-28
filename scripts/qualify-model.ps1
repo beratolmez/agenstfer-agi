@@ -12,6 +12,14 @@ $hostOutput = Join-Path $root "artifacts\release\$reportName"
 
 Push-Location $root
 try {
+# The golden-evaluation harness this script used to invoke was built on the removed
+# legacy stack (chromadb + apps/services/ai-agent) and never shipped inside the image,
+# so this gate has not actually run for some time. It must be rebuilt on
+# agi_server.evaluation so that it is packaged with the application.
+Write-Error "model qualification harness is not available: rebuild it on agi_server.evaluation"
+Write-Error "see docs/REMEDIATION_ROADMAP.md (model qualification harness)"
+exit 3
+
     docker compose exec -T app python scripts/run-golden-eval.py `
         --profile $Profile `
         --attempts $Attempts `

@@ -11,8 +11,8 @@ This document is the **authoritative single source of truth** for the overarchin
 - **Agent Orchestration**: LangGraph (StateGraph execution engine in `langgraph_runtime.py` with pause/resume approval semantics)
 - **Agent Runtime & Structured Outputs**: Pydantic AI contracts and probes (`agi_server/agents/probe.py`)
 - **Model Gateway**: Provider-neutral gateway supporting Gemini API (Cloud) and Local/External GPU Inference Servers (Ollama, vLLM, LM Studio)
-- **Vector Store / RAG**: ChromaDB / QMD vector search with automatic lexical fallback (`okf/search.py`)
-- **Connector Protocol**: Approved product-owned MCP Client Gateway (`mcp.py`) with code-defined allowlists
+- **Vector Store / RAG**: `qmd` HTTP retrieval service with automatic lexical fallback (`okf/search.py`); optional, behind the `search` compose profile
+- **Connector Protocol**: MCP policy layer with code-defined allowlists (`mcp.py`); transport not implemented, see ADR-0030
 - **Operational Database**: PostgreSQL / SQLite via SQLAlchemy (`agi_server/db.py`)
 - **Frontend Console**: React UI (`apps/web` - Vite, TypeScript, Vanilla CSS, `@xyflow/react` Visual Node Editor)
 - **Observability**: Self-hosted Langfuse telemetry tracing sink boundary
@@ -114,7 +114,7 @@ flowchart TD
 | **Vector Store** | ChromaDB vector search with automatic lexical fallback (`okf/search.py`) | Integrated ChromaDB Vector Database | Phase 6 Completed |
 | **MCP Connectors** | Product-owned read-only MCP Client Gateway (`mcp.py`) | Standardized MCP Gateway | Phase 7 Completed |
 | **UI Surface** | React UI (`apps/web` with Vanilla CSS) | Single React UI Console (`apps/web`) | Active Baseline |
-| **Legacy Artifacts** | `apps/services/ai-agent`, `apps/services/rag`, `apps/frontend/*` | Deprecated / Scheduled for Pruning | Legacy (Phase 5) |
+| **Legacy Artifacts** | Removed | — | Pruned (ADR-0028) |
 
 ---
 

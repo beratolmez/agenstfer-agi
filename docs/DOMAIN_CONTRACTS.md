@@ -27,7 +27,7 @@ This document defines ownership and stable vocabulary for MVP v0.1. Pydantic sch
 - **OKF Candidate:** isolated proposed revision associated with one workflow run.
 - **OKF Active Revision:** approved Git `main` revision used for retrieval.
 
-PostgreSQL owns operational state and evidence locators. LangGraph uses PostgreSQL for Checkpointing state. ChromaDB owns RAG Vector Storage embeddings.
+PostgreSQL owns operational state and evidence locators, and is also what workflow runs are resumed from. LangGraph currently compiles with an in-memory checkpointer, so checkpoints do not survive a process restart; a PostgreSQL checkpointer is an open decision (ADR-0029). The `qmd` service owns retrieval embeddings.
 
 ## Agents, workflows, and artifacts
 
@@ -38,7 +38,7 @@ PostgreSQL owns operational state and evidence locators. LangGraph uses PostgreS
 - **Workflow Version:** immutable published LangGraph DAG.
 - **Workflow Run:** idempotent execution pinned to workflow and model profiles, managed via FastAPI.
 - **Step Run:** LangGraph node transition step.
-- **Approval Request:** handled using `interrupt_before`/`interrupt_after` in LangGraph StateGraph.
+- **Approval Request:** the run is persisted as `awaiting_approval` and resumed from the database on decision. LangGraph `interrupt_before`/`interrupt_after` is not used today (ADR-0029).
 - **Artifact:** content-addressed diagnostic, report, trace, or OKF candidate produced by a run.
 
 ## Commercial deployment contracts

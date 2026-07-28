@@ -4,9 +4,9 @@ set -euo pipefail
 source_dir="${1:?Usage: scripts/restore.sh <backup-directory>}"
 source_dir="$(cd "${source_dir}" && pwd)"
 actual_manifest="$(awk 'NF == 2 {print $2}' "${source_dir}/SHA256SUMS" | sort)"
-expected_manifest="$(printf '%s\n' dbos.dump knowledge.tar.gz postgres.dump)"
-if [[ "${actual_manifest}" != "${expected_manifest}" ]] || [[ "$(wc -l < "${source_dir}/SHA256SUMS")" -ne 3 ]]; then
-  echo "Checksum manifest must contain exactly the three expected backup files." >&2
+expected_manifest="$(printf '%s\n' knowledge.tar.gz postgres.dump)"
+if [[ "${actual_manifest}" != "${expected_manifest}" ]] || [[ "$(wc -l < "${source_dir}/SHA256SUMS")" -ne 2 ]]; then
+  echo "Checksum manifest must contain exactly the two expected backup files." >&2
   exit 1
 fi
 (cd "${source_dir}" && sha256sum --strict -c SHA256SUMS)
@@ -45,10 +45,8 @@ restore_app() {
 docker compose stop app
 trap restore_app EXIT
 docker cp "${source_dir}/postgres.dump" "${postgres_id}:/tmp/agi-postgres.dump"
-docker cp "${source_dir}/dbos.dump" "${postgres_id}:/tmp/agi-dbos.dump"
 docker compose exec -T postgres sh -c 'pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB" /tmp/agi-postgres.dump'
-docker compose exec -T postgres sh -c 'pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "${POSTGRES_DB}_dbos_sys" /tmp/agi-dbos.dump'
-docker compose exec -T postgres rm -f /tmp/agi-postgres.dump /tmp/agi-dbos.dump
+docker compose exec -T postgres rm -f /tmp/agi-postgres.dump
 docker run --rm \
   -v "${knowledge_volume}:/knowledge" \
   -v "${source_dir}:/backup:ro" \

@@ -3,7 +3,7 @@
 Status: Active target architecture
 Last updated: 17 July 2026
 
-This document turns the manager's `NEW_ARCHITECTURE_PLAN.md` into an executable product direction.
+This document turns the manager's original architecture plan (archived at `docs/archive/NEW_ARCHITECTURE_PLAN.md`) into an executable product direction.
 The product is sold and updated by the vendor, but each customer receives an isolated installation
 serving one company. Shared SaaS tenancy is not part of the current product boundary.
 

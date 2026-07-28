@@ -575,7 +575,7 @@ async def resume_persisted_workflow(
                 WorkflowStepRun.status == "running",
             )
         )
-        failed_node_id = active_step.node_id if active_step else (run.current_step or None)
+        failed_node_id = active_step.step_id if active_step else (run.current_step or None)
         failed_node = (
             nodes.get(failed_node_id)
             if failed_node_id and failed_node_id in nodes

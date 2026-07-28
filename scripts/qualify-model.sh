@@ -17,6 +17,15 @@ if [ "$ATTEMPTS" -lt 1 ] || [ "$ATTEMPTS" -gt 100 ]; then
   exit 2
 fi
 
+# The golden-evaluation harness this script used to invoke was built on the removed
+# legacy stack (chromadb + apps/services/ai-agent) and never shipped inside the image,
+# so this gate has not actually run for some time. It must be rebuilt on
+# agi_server.evaluation so that it is packaged with the application. Failing loudly
+# here is deliberate: a release gate that silently does nothing is worse than none.
+echo "model qualification harness is not available: rebuild it on agi_server.evaluation" >&2
+echo "see docs/REMEDIATION_ROADMAP.md (model qualification harness)" >&2
+exit 3
+
 REPORT="evaluation-$PROFILE.json"
 mkdir -p "$ROOT/artifacts/release"
 docker compose -f "$ROOT/docker-compose.yml" exec -T app \

@@ -1,10 +1,12 @@
-from agi_server.agents.capabilities import BUILTIN_CAPABILITIES, list_capabilities
+from dataclasses import asdict
+
+from agi_server.agents.capabilities import BUILTIN_CAPABILITIES
 from agi_server.agents.registry import ManagedAgentSpec
 from agi_server.agents.runtime import ScopedCapabilityTools
 
 
 def test_capability_registry_listing():
-    caps = list_capabilities()
+    caps = [asdict(spec) for spec in BUILTIN_CAPABILITIES.values()]
     assert len(caps) >= 6
     ids = [item["id"] for item in caps]
     assert "knowledge.search" in ids

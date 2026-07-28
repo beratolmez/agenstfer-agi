@@ -151,7 +151,7 @@ if [[ "${model_profile}" == "cloud-balanced" ]]; then
     echo "Cloud rehearsal requires AGI_CLOUD_PROVIDER and .secrets/cloud_model_api_key." >&2
     exit 2
   fi
-  full_compose+=( -f docker-compose.cloud.yml --profile cloud )
+  full_compose+=( -f docker-compose.cloud.yml )
 fi
 full_compose+=( --profile search )
 

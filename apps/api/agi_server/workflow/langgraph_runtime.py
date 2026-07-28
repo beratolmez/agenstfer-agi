@@ -3,7 +3,6 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from typing import Any, TypedDict
-from uuid import uuid4
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
@@ -36,7 +35,6 @@ class LangGraphWorkflowState(TypedDict, total=False):
     error: str | None
 
 
-GrowthWorkflowState = LangGraphWorkflowState
 
 
 class LangGraphWorkflowEngine:
@@ -287,65 +285,3 @@ class LangGraphWorkflowEngine:
             _aggregate_usage(self.db, self.run)
             self.db.commit()
             raise
-
-
-def build_langgraph_workflow(
-    definition: WorkflowDefinition | None = None,
-) -> CompiledStateGraph:
-    """Builds a compiled LangGraph StateGraph workflow foundation for the given definition."""
-    from agi_server.workflow.default import build_default_workflow
-
-    wf = definition or build_default_workflow()
-    builder = StateGraph(LangGraphWorkflowState)
-    validation = validate_workflow(wf)
-    order = validation.topological_order
-
-    for node_id in order:
-
-        def _stub_node(
-            state: LangGraphWorkflowState, n_id: str = node_id
-        ) -> LangGraphWorkflowState:
-            history = list(state.get("step_history", []))
-            history.append(n_id)
-            new_status = "completed" if n_id == "report" else state.get("status", "running")
-            return {**state, "status": new_status, "step_history": history}
-
-        builder.add_node(node_id, _stub_node)
-
-    if order:
-        builder.add_edge(START, order[0])
-        for i in range(len(order) - 1):
-            builder.add_edge(order[i], order[i + 1])
-        builder.add_edge(order[-1], END)
-
-    checkpointer = MemorySaver()
-    return builder.compile(checkpointer=checkpointer)
-
-
-class LangGraphWorkflowRuntime:
-    """Foundation runtime seam for compiling and executing LangGraph workflows."""
-
-    def __init__(self, definition: WorkflowDefinition | None = None) -> None:
-        from agi_server.workflow.default import build_default_workflow
-
-        self.definition = definition or build_default_workflow()
-        self.graph = build_langgraph_workflow(self.definition)
-
-    def execute(
-        self,
-        initial_state: LangGraphWorkflowState | None = None,
-        *,
-        thread_id: str | None = None,
-    ) -> LangGraphWorkflowState:
-        state: LangGraphWorkflowState = initial_state or {
-            "workflow_id": self.definition.id,
-            "status": "pending",
-            "state_data": {},
-            "step_history": [],
-        }
-        # The graph is compiled with a checkpointer, which refuses to run without a thread
-        # identity. Keep each execution on its own thread so checkpoints never interleave.
-        resolved_thread = (
-            thread_id or str(state.get("workflow_id") or self.definition.id) + f"-{uuid4()}"
-        )
-        return self.graph.invoke(state, {"configurable": {"thread_id": resolved_thread}})

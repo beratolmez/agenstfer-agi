@@ -1,6 +1,9 @@
-from agi_server.diagnostics.service import (
-    DiagnosticExecutionResult,
-    run_growth_diagnostic,
-)
+"""Diagnostic helpers shared by the workflow runtime.
 
-__all__ = ["DiagnosticExecutionResult", "run_growth_diagnostic"]
+The orchestration itself lives in ``agi_server.workflow``; this package provides the
+evidence gate, claim construction and report artifact writing that the workflow nodes use.
+"""
+
+from agi_server.diagnostics.service import EvidenceGateResult
+
+__all__ = ["EvidenceGateResult"]

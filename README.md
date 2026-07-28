@@ -14,11 +14,21 @@ durum:
 - [Project Architecture](./docs/PROJECT_ARCHITECTURE.md)
 - [Domain Contracts](./docs/DOMAIN_CONTRACTS.md)
 - [Product Roadmap](./docs/PRODUCT_ROADMAP_TO_GOAL.md)
-- [New Architecture Plan](./docs/NEW_ARCHITECTURE_PLAN.md)
+- [Architecture Assessment](./docs/ARCHITECTURE_ASSESSMENT.md)
+- [Remediation Roadmap](./docs/REMEDIATION_ROADMAP.md)
 - [Product Deployment Plan](./docs/PRODUCT_DEPLOYMENT_PLAN.md)
 - [Implementation Status](./docs/IMPLEMENTATION_STATUS.md)
+- [API Reference](./docs/API_REFERENCE.md)
+- [Security Controls](./docs/SECURITY_CONTROLS.md)
+- [Capacity and Quota](./docs/CAPACITY_AND_QUOTA.md)
 - [Operations Runbook](./docs/OPERATIONS_RUNBOOK.md)
 - [Release Checklist](./docs/RELEASE_CHECKLIST.md)
+
+Henüz uygulanmamış PRD çekirdek bileşenleri için kapsam dokümanları:
+
+- [Policy Engine](./docs/design/POLICY_ENGINE.md)
+- [Consent Ledger](./docs/design/CONSENT_LEDGER.md)
+- [Growth Context Graph](./docs/design/GROWTH_CONTEXT_GRAPH.md)
 
 ## Mevcut durum
 
@@ -135,9 +145,8 @@ consent/legal, capability ve rollback kapıları olmadan eklenmez.
 ## Repository haritası
 
 ```text
-apps/api/       FastAPI, domain, Pydantic AI agents, OKF, LangGraph runtime, Chroma RAG, MCP gateway ve event inbox
+apps/api/       FastAPI, domain, Pydantic AI agents, OKF, LangGraph runtime, qmd retrieval, MCP gateway ve event inbox
 apps/web/       React + TypeScript web console control plane
-apps/services/  Unintegrated legacy microservice stubs (ADR-0016)
 knowledge/      Immutable raw vault ve active/candidate OKF bilgi alanı
 docs/           Mimari, ADR, plan, eval, threat, operasyon ve release belgeleri
 infra/          Nginx, qmd ve allowlisted egress

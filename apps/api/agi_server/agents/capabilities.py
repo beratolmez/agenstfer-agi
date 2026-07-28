@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 
 @dataclass(frozen=True)
@@ -104,17 +103,3 @@ BUILTIN_CAPABILITIES: dict[str, CapabilitySpec] = {
         status="available",
     ),
 }
-
-
-def list_capabilities() -> list[dict[str, Any]]:
-    """Return serializable capability registry items for API / UI consumption."""
-    return [
-        {
-            "id": item.id,
-            "name": item.name,
-            "description": item.description,
-            "category": item.category,
-            "status": item.status,
-        }
-        for item in BUILTIN_CAPABILITIES.values()
-    ]

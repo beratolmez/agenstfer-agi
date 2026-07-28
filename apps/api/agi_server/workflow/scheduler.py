@@ -14,6 +14,7 @@ from agi_server.db import (
     WorkflowDefinitionRow,
     WorkflowSchedule,
 )
+from agi_server.logging_utils import logger
 from agi_server.workflow.persistent_runtime import expire_approval_state, start_persisted_workflow
 
 
@@ -175,9 +176,20 @@ async def dispatch_queued_events(
 
 
 async def scheduler_loop(settings: Settings) -> None:
+    """Run the background tick forever.
+
+    One bad tick must not end the loop. Without this guard a single database error
+    killed the task outright, and every schedule and queued event stayed unprocessed
+    for the rest of the process lifetime with nothing logged.
+    """
     while True:
-        with SessionLocal() as db:
-            expire_approvals(db)
-            await run_due_schedules(db, settings)
-            await dispatch_queued_events(db, settings)
+        try:
+            with SessionLocal() as db:
+                expire_approvals(db)
+                await run_due_schedules(db, settings)
+                await dispatch_queued_events(db, settings)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Scheduler tick failed; continuing with the next tick")
         await asyncio.sleep(30)

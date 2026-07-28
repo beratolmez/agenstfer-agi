@@ -4,6 +4,7 @@ from pathlib import Path
 from agi_server.config import Settings
 from agi_server.db import (
     ApprovalRequest,
+    Artifact,
     Base,
     OKFCandidate,
     WorkflowDefinitionRow,
@@ -80,6 +81,25 @@ def test_langgraph_engine_execution_and_pause_resume(tmp_path: Path) -> None:
             )
             is not None
         )
+
+        # Report artifacts are written to disk and registered against the run.
+        artifacts = list(db.scalars(select(Artifact).where(Artifact.run_id == run.id)))
+        assert {artifact.kind for artifact in artifacts} == {
+            "diagnostic-markdown",
+            "diagnostic-html",
+            "okf-candidate-diff",
+        }
+        for artifact in artifacts:
+            if artifact.kind.startswith("diagnostic-"):
+                assert (knowledge_root / artifact.uri).is_file()
+
+        # Re-running with the same idempotency key must reuse the run, not start a second one.
+        repeated = asyncio.run(
+            start_persisted_workflow(
+                db, settings, workflow_row, "lg-workflow-test-001", None, model_overrides=models
+            )
+        )
+        assert repeated.id == run.id
 
         candidate_id = db.scalar(select(OKFCandidate.id).where(OKFCandidate.run_id == run.id))
         assert candidate_id is not None

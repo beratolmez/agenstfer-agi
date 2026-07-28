@@ -1551,7 +1551,9 @@ def source_test_mcp(
     import httpx
 
     if db is not None:
-        profile = db.scalar(select(MCPProfile).where(MCPProfile.server_url == payload.mcp_url))
+        profile = db.scalar(
+            select(MCPProfile).where(MCPProfile.server_identity == payload.mcp_url)
+        )
         if profile is None and not payload.mcp_url.startswith("http://localhost") and not payload.mcp_url.startswith("http://127.0.0.1"):
             raise HTTPException(
                 status_code=400,

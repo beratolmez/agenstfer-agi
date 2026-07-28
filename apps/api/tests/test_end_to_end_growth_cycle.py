@@ -1,26 +1,6 @@
 # ruff: noqa: E402, E501
 import asyncio
-import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-# Mock optional dependencies before importing agent modules if needed
-mock_rag = MagicMock()
-mock_rag.retrieve.retrieve_knowledge.return_value = {
-    "documents": [["Mock doc"]],
-    "metadatas": [[{"source": "mock.md"}]],
-    "distances": [[0.5]],
-}
-sys.modules.setdefault("rag_service", mock_rag)
-sys.modules.setdefault("rag_service.retrieve", mock_rag.retrieve)
-sys.modules.setdefault("rag_service.ingest", mock_rag.ingest)
-
-# Provide a TestModel for legacy ai-agent modules (ADR-0025 / LO-04).
-# get_llm_model() is now fail-loud; tests must explicitly opt-in to TestModel.
-from pydantic_ai.models.test import TestModel as _TestModel  # noqa: E402
-
-_test_model_patcher = patch("ai_agent.models.get_llm_model", return_value=_TestModel())
-_test_model_patcher.start()
 
 from agi_server.agents.contracts import (
     CompanyAnalysis,
@@ -52,7 +32,6 @@ from agi_server.workflow.persistent_runtime import (
 )
 from agi_server.workflow.registry_service import ensure_platform_registry
 from agi_server.workflow.triggers import trigger_engine
-from ai_agent.graph import create_graph
 from fastapi.testclient import TestClient
 from pydantic_ai.models.test import TestModel
 from sqlalchemy import create_engine, select
@@ -160,25 +139,6 @@ def test_step_2_trigger_rule_matching():
     matched_growth = trigger_engine.match_rules("growth.opportunity_detected")
     assert len(matched_growth) >= 1
     assert any(r.target_workflow_id == "builtin-growth-diagnostic" for r in matched_growth)
-
-
-def test_step_3_stategraph_execution_all_7_kds_agents():
-    """Step 3: Run and verify StateGraph execution across all 7 KDS AI ABS Agent Nodes."""
-    graph = create_graph()
-    initial_state = {
-        "messages": ["Execute complete KDS AI ABS diagnostic for Anka Endüstriyel Otomasyon A.Ş."],
-        "company_name": "Anka Endüstriyel Otomasyon A.Ş.",
-    }
-    result = graph.invoke(initial_state)
-    assert "messages" in result
-    # Verify outputs from all 7 specialized nodes
-    assert result.get("company_profiling_data") is not None
-    assert result.get("lead_opportunity_data") is not None
-    assert result.get("competitor_intelligence_data") is not None
-    assert result.get("security_audit_data") is not None
-    assert result.get("financial_diagnostics_data") is not None
-    assert result.get("seo_brand_intelligence_data") is not None
-    assert result.get("customer_satisfaction_data") is not None
 
 
 def test_step_4_5_6_full_persisted_workflow_and_approval_candidate_lifecycle(tmp_path: Path):
