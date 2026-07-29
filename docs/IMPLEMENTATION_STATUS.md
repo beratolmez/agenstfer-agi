@@ -2,7 +2,15 @@
 
 Last verified: 28 July 2026
 
-This document is the authoritative statement of what the repository actually does versus the target architecture (ADR-0016).
+This document is the authoritative statement of what the repository actually does versus the
+target architecture.
+
+**How to read it.** The two sections below — *Implemented and Verified* and *Current
+Architecture Gaps* — are the current state; that is what a new session needs. The phase log
+further down is an append-only history of how the project got here and does **not** need to be
+read to work on the project. See [`AI_DEVELOPMENT_GUIDE.md`](./AI_DEVELOPMENT_GUIDE.md).
+
+Markers: `[x]` works and is verified · `[~]` partially true, with the scope stated inline.
 
 ## Implemented and Verified (Active Baseline)
 
@@ -45,15 +53,20 @@ This document is the authoritative statement of what the repository actually doe
 
 The following components exist as target specifications, test stubs, or legacy artifacts, and are **NOT** active production capabilities in the current runtime:
 
-1. **LangGraph Orchestrator**: LangGraph `StateGraph` execution engine (`LangGraphWorkflowEngine`) is active for the primary `builtin-growth-diagnostic` workflow with control-plane prepared `ExecutionContext` memory and unified capability allowlist tool injection. Custom fallback runtime remains for non-built-in workflows, and native Postgres checkpointers will be enabled in subsequent phases.
-2. **ChromaDB Integration**: ChromaDB / QMD vector search is active in `okf/search.py` with automatic lexical fallback when unreachable; active OKF bundle remains sole source of truth and candidate bundles are never indexed.
-3. **MCP Protocol**: Product-owned approved MCP Client Gateway (`mcp.py`) is active for read-only tools on code-defined allowlists; arbitrary user-provided URL execution is strictly disabled.
-4. **Event Log & Tracing**: Basic audit logging is persisted to PostgreSQL, but full self-hosted Langfuse telemetry pipeline integration is target specification.
-5. **Legacy Microservices & Mock UIs**: removed. `apps/services/*`, `apps/frontend/*`, `apps/modules/*`, `apps/api-gateway`, `apps/backend` and the dead `apps/api/main.py` shim were deleted (ADR-0028). `apps/api/agi_server` and `apps/web` are the only application code in the repository.
+1. **Orchestration depth**: the `LangGraphWorkflowEngine` runs `builtin-growth-diagnostic` and `growth-diagnostic`; every other workflow id falls through to a second, copy-pasted runtime. The compiled graph is the straight chain of the topological order — no conditional edges, no `interrupt_*`, and an in-memory checkpointer rebuilt per run, so resume is reconstructed from persisted step rows rather than from a checkpoint. ADR-0029 accepts moving to a PostgreSQL checkpointer with interrupts and converging on one engine selected by a definition property; neither is implemented yet.
+2. **Retrieval**: ADR-0031 defines retrieval as one layer with two paths over the active OKF bundle — structural/lexical over the wiki plus a derived vector index. Today only the lexical path runs in a default install: the vector service sits behind `profiles: [search]`, the `knowledge_search` workflow node performs no retrieval, and some lexical results carry synthesised `ev_concept_…` locators that do not resolve to a persisted `EvidenceItem`. Roadmap T10, T11 and SB-10.
+3. **MCP**: a target specification (ADR-0030). The policy layer is real and tested — approval, read-only, data classification, tool allowlist, and rejection of arbitrary URLs. There is no transport: `invoke_tool` returns a fixed dictionary, no production path constructs an `MCPGateway`, and no `MCPProfile` row is ever seeded. Tools ship as native capabilities instead.
+4. **Observability**: audit records and content-safe HTTP telemetry are persisted; the self-hosted Langfuse pipeline and per-agent attribution are target specification (ADR-0010, ADR-0033 step 3). Individual tool calls are counted but not recorded.
+5. **Model selection**: profiles are literal names resolved from global settings, and cloud provider configuration lives only in the in-memory `Settings` singleton, so it is lost on restart while `setup_completed` stays true. ADR-0033 accepts persistence, then a tier vocabulary, then governance.
+6. **Legacy Microservices & Mock UIs**: removed. `apps/services/*`, `apps/frontend/*`, `apps/modules/*`, `apps/api-gateway`, `apps/backend` and the dead `apps/api/main.py` shim were deleted (ADR-0028). `apps/api/agi_server` and `apps/web` are the only application code in the repository.
 
 ---
 
-## Unified Target Architecture Migration Roadmap (ADR-0016)
+## Phase log — history, not required reading
+
+Append-only record of how the project reached the state described above. New entries go at the
+bottom. To find what is *left* to do, read [`REMEDIATION_ROADMAP.md`](./REMEDIATION_ROADMAP.md)
+instead.
 
 - **Phase 1 (Completed)**: Architectural audit, documentation alignment, and ADR-0016 creation.
 - **Phase 2 (Completed Foundation Seam)**: Typed LangGraph `StateGraph` foundation module (`langgraph_runtime.py`) and unit tests implemented.
