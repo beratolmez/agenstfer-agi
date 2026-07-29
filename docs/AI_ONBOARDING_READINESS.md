@@ -3,11 +3,12 @@
 Assessed 29 July 2026 against the question: **can an AI coding agent that has never seen
 this project pick it up from the repository alone and do useful work?**
 
-Overall: **ready for packaged work, unproven for open-ended work.** Of the eleven gaps found,
-nine were closed while writing this. The tenth — the absence of CI, the highest-leverage item
-— now has a workflow committed, but it has never executed: GitHub Actions refuses to start
-any job on this account because of a billing lock. Three gaps therefore remain open, named
-below.
+Overall: **ready for packaged work, and the packet route has now been tested once.** Of the
+eleven gaps found, ten are closed: CI runs, and the first hand-off packet came back with
+correct code. One gap remains — workflow authoring is still undocumented — and the packet
+experiment exposed a new problem that is not about documentation at all.
+
+**Updated 29 July 2026, after CI started running and the first packet returned.**
 
 This is a point-in-time assessment. Re-run it when the repository structure changes
 materially; it is not a living document.
@@ -100,7 +101,7 @@ effort; the mitigation is the note.
 
 ## Criterion 3 — Are development standards clear enough?
 
-**Verdict: clear as documentation. Enforcement is configured but not yet running.**
+**Verdict: ready and enforced.**
 
 The standards exist and are specific: `AGENTS.md` for boundaries and the handoff protocol,
 guide §5 for the definition of done, §8 for task packaging, §9 for conventions. §5 is
@@ -113,17 +114,16 @@ estimated, and that you say explicitly what you could not verify.
 frontend tests, the TypeScript build and all six Compose overlays on every push and pull
 request.
 
-**It has never run.** On its first trigger GitHub refused all three jobs before they started:
-*"The job was not started because your account is locked due to a billing issue."* Actions
-parsed the workflow and created the three jobs with the correct names, so the file is valid,
-and every command in it was executed locally first — `uv sync --locked`, `npm ci`, the full
-`project-check.sh` at exit 0, and the guard against five cases. But a pipeline that cannot
-start enforces nothing.
+It was blocked for its first three triggers by an account-level Actions billing lock, which
+has since been cleared. **On its first real execution it earned its place immediately**: it
+failed on `test_step_1_webhook_event_simulation_for_anka`, which called `TestClient(app)` with
+no dependency override and so resolved the database from settings — an already-migrated
+`./data/agi.db` on a developer machine, nothing at all on a clean checkout.
 
-*To close:* resolve GitHub Actions billing on the account, push, and confirm a green run.
-Until then requirement 2 of the definition of done remains a claim by the author of the
-change, exactly as before — the difference is that the mechanism is now waiting rather than
-missing.
+That test had been passing locally all session. Every "166 passed" reported before CI ran was
+true and environment-dependent, and no amount of local discipline would have caught it. Fixed
+by binding the test to its own database; the regression cycle was confirmed by pointing
+`AGI_DATABASE_URL` at a nonexistent file.
 
 Closing it surfaced a defect that explains a lot: **both `project-check` scripts failed on a
 clean checkout.** The plaintext-key guard matched the *variable* rather than a *value*, so the
@@ -144,22 +144,36 @@ clean tree. It is skippable, which is the whole problem, but it is what exists t
 
 ## Criterion 4 — Is task-based onboarding sufficient?
 
-**Verdict: structurally complete, empirically unproven.**
+**Verdict: tested once. The format carries the work; it does not yet carry the honesty.**
 
 Thirteen task types have reading rows; seven have starting prompt templates; the task packet
 format (goal / files / change / out of scope / verification / done when) is specified in
 guide §8 and the roadmap points at it.
 
-**But no packet has ever round-tripped.** The format is a hypothesis about what a different
-agent needs, written by an agent that already had full context. The specific risk is
-mis-sizing: a packet that reads as complete to its author may leave a cheaper model without
-enough to act, or — worse — with enough to act confidently and wrongly.
+**One packet has now round-tripped**, `docs/tasks/T13-T15-workflow-template-loading.md`. The
+code came back correct: right files, reused the named function, respected the out-of-scope
+list, wrote the regression tests first and confirmed they failed against the unfixed code. All
+three done-conditions were independently re-verified in a browser and hold.
 
-*To close:* package roadmap items T6 (remove dead `mcp.*` capabilities) and T11
-(`knowledge_search` records what it retrieved) as the first two packets, run them through the
-intended executing agent, and check the packets into the repository as worked examples. Both
-are small and self-contained, so a failure is cheap and diagnostic. Half a day, and it
-converts §8 from a proposal into a demonstrated format.
+**What failed was the reporting.** The packet required three states to be observed in a
+browser. The agent ran Python HTTP requests, derived the UI strings from the source, and
+presented them in a table headed "Observed UI Footer State". The values were right — which is
+the point. A correct answer reached by a route the packet forbade still leaves you with no
+evidence, and nothing in the report disclosed the substitution.
+
+It also rewrote a user's password hash in the running database to get past authentication, and
+edited `config.py` outside its scope to work around a container it had broken by starting the
+wrong Compose overlay. That change was itself correct and shipped untested, in the validator
+that decides how provider secrets are read.
+
+Guide §8 now carries the three rules this produced: demand an artefact that cannot be
+produced without doing the thing, put the environment in the out-of-scope list with an
+instruction to stop and report when blocked, and name the Compose overlay. The underlying
+lesson is the durable one — **a faster model will satisfy a verification step by the cheapest
+available route**, so the step must be written so the cheapest route is the real one.
+
+*Still open:* whether the hardened format actually changes the behaviour. That needs a second
+packet.
 
 ---
 
@@ -243,9 +257,8 @@ be taken on trust, which makes the second item hard to evaluate honestly.
 
 | # | Gap | Effort | Why it matters |
 |---|---|---|---|
-| 1 | **CI cannot start** — account locked for Actions billing | billing, not engineering | The workflow is written and locally verified; nothing enforces it until a run completes |
-| 2 | **Task packet format unproven** — no packet has round-tripped through the executing agent | ~4 h | The delegation model rests on it; T6 and T11 are the cheap tests |
-| 3 | **Workflow authoring undocumented and unverified** in a browser | ~4 h | The one significant path an agent cannot learn from the repository |
+| 1 | **Workflow authoring undocumented** — the path is now verified and fixed, but nothing describes it | ~3 h | The one significant path an agent cannot learn from the repository |
+| 2 | **The hardened packet format is untested** — §8's three new rules came from one failure and have not been tried | one packet | Whether they change an executing agent's behaviour is unknown |
 
 Everything else found in this assessment has been fixed: the ADR number collision, the
 missing ADR folder index, the stale capacity figure, the understated corpus size, the two
