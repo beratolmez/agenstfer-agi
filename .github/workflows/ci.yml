@@ -46,6 +46,13 @@ jobs:
       - name: Tests
         run: uv run pytest
 
+      # alembic check compares the models against a migrated database, so the migrations
+      # have to be applied first. On a developer machine ./data/agi.db already is; on a
+      # clean checkout there is no database at all and check reports "Target database is
+      # not up to date" regardless of whether any drift exists.
+      - name: Apply migrations
+        run: uv run alembic upgrade head
+
       # Fails when a model change has no matching migration -- the drift that silently
       # breaks a deployment rather than a test.
       - name: Migration drift
