@@ -61,9 +61,15 @@ invisible until someone relies on it.
 | **T11** | **`knowledge_search` records what it retrieved** (query, mode, concept paths, resolved locators) into run state. Minimal version of ADR-0031 §6; makes retrieval auditable before the hybrid build | **S** | **🔜** |
 | T6 | Remove the two dead `mcp.*` capabilities and reclassify MCP as target specification across the docs (ADR-0030) | S | 🔜 |
 | T12 | Amend PRD §9 to deployment-level tenant isolation (ADR-0032) | S | ✅ |
+| **T13** | **Templates load into an unusable state.** `/api/workflows/templates` serves the raw dicts from `list_workflow_templates()`, which carry no `version`. Validate and save both return 422, so all five templates are dead ends. `template_to_workflow_definition()` already supplies `version=1` but is only reachable through `get_executable_templates()`, which no production code calls | **S** | **🔜** |
+| **T14** | **`validate()` is the only editor action without error handling** (`WorkflowEditor.tsx:418-423`). `save`, `dryRun`, `publish` and `run` all catch and surface failures; validate lets the rejection escape, so a 422 naming the exact missing field is shown as nothing at all | **S** | **🔜** |
+| **T15** | **The validation indicator defaults to its own success string** (`WorkflowEditor.tsx:300`, `useState("Geçerli graph")`). Untouched, successful and failed states are visually identical, so the editor asserts the graph is valid before anything has checked it | **S** | **🔜** |
+| T16 | `api.ts:127` types the templates response as `WorkflowDefinition[]`, which it is not — the absent `version` is what T13 trips over. Fixing T13 makes the type honest | S | ⬜ |
+| T17 | Both workflow selector entries render as "Growth Diagnostic" (`builtin-growth-diagnostic` and `growth-diagnostic`); loading a template also leaves the selector pointing at a different workflow than the canvas holds | S | ⬜ |
+| T18 | Sidebar navigation and template-picker buttons expose no accessible name — the label sits in a nested span the button does not reference | S | ⬜ |
 | T4 | Rebuild the model qualification harness on `agi_server.evaluation` so it ships inside the image; the gate has not run for some time | M | ⬜ |
 | T7 | Four of five trigger rules target workflow ids that are never seeded; `EventInbox` reports `no_match` when a rule matched but the target was unpublished | S | ⬜ |
-| T8 | `test_workflow_templates.py:69` reads the wrong node shape and asserts nothing | S | ⬜ |
+| T8 | `test_workflow_templates.py:69` reads the wrong node shape and asserts nothing. Related: the suite exercises `get_executable_templates()` and `get_catalog_templates()`, neither of which any production path calls, while the endpoint that is served is untested — a green suite over a broken feature | S | ⬜ |
 
 ---
 
