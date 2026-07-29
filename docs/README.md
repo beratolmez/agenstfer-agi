@@ -49,6 +49,13 @@ Open questions and constraints, not specifications. Read when scoping one of the
 - [design/GROWTH_CONTEXT_GRAPH.md](./design/GROWTH_CONTEXT_GRAPH.md)
 - [design/DESIGN_SYSTEM.md](./design/DESIGN_SYSTEM.md) — UI conventions
 
+## Task packets
+
+[`tasks/`](./tasks/) holds work packaged for hand-off to another session or agent, in the
+format defined in [AI_DEVELOPMENT_GUIDE.md](./AI_DEVELOPMENT_GUIDE.md) §8. A packet states its
+own goal, files, boundary, verification command and observable done-condition, so it can be
+executed without this repository's chat history. Delete a packet once its work has landed.
+
 ## Decisions
 
 [`adr/`](./adr/) holds every durable architectural decision. There is no other place.
