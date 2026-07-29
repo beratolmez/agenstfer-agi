@@ -854,12 +854,19 @@ ERP writeback, fiyat teklifi, indirim, sözleşme, finansal kayıt, fatura veya 
 
 Sistem güvenlik açısından enterprise standardına uygun tasarlanmalıdır.
 
+> **ADR-0032 ile düzeltildi (29 Temmuz 2026).** Bu bölüm başlangıçta satır seviyesinde
+> multi-tenancy tarif ediyordu. Ürün tek-tenant olarak kararlaştırıldı: izolasyon deployment
+> ayrımıyla sağlanır — bir kurulum, bir veritabanı, bir bilgi hacmi, bir müşteri. Gerekçe
+> `docs/adr/0032-tenancy-model.md` içindedir. Satır seviyesinde tenancy, kanıt saklama vaadi
+> olan bir üründe kapsam hatasının müşteriler arası kanıt sızıntısına dönüşmesi anlamına
+> geldiği için tercih edilmemiştir.
+
 Gereksinimler:
 
-- Multi tenant isolation
+- Deployment seviyesinde tenant izolasyonu (kurulum başına tek müşteri)
 - Role based access control
 - Attribute based action control
-- Tenant level data boundary
+- Deployment seviyesinde veri sınırı
 - API key encryption
 - OAuth token güvenliği
 - Secrets manager kullanımı

@@ -14,26 +14,43 @@ Treat vision documents as immutable sources. Record revised decisions in the arc
 
 ## Product boundaries
 
-- One customer installation serves one company. The product is sold and updated as an isolated
-  customer deployment; do not introduce shared SaaS multi-tenancy without a new ADR.
+- One customer installation serves one company. Isolation comes from deployment separation,
+  not row-level tenancy: one installation, one database, one knowledge volume, one customer
+  (ADR-0032). Do not introduce shared SaaS multi-tenancy.
 - AWS may host a customer deployment, but customer-owned account/VPC isolation, data residency,
   and update/rollback boundaries must remain explicit.
-- The MVP is read-only toward external business systems, except for authorized Web Scraping. Do not add external write, messaging, calling, or autonomous action capabilities outside of defined web scraping parameters.
-- Model Gateway manages LLM inference flexibly across Gemini API and isolated local/cloud GPU endpoints (e.g., Ollama, vLLM, LM Studio). Follow data privacy rules when sending `confidential` or `restricted` content to external cloud models.
+- The MVP is read-only toward external business systems. Do not add external write, messaging,
+  calling, or autonomous action capabilities (ADR-0004). Authorized web scraping is the single
+  exception and remains bounded by the egress allowlist (ADR-0005). Changing this is a staged
+  path documented in `docs/TOOLS_STRATEGY.md`: it requires a superseding ADR, per-tool-call
+  observability and tool-level approval before any outbound capability ships.
+- Agent tools ship as native, code-defined capabilities. MCP is a target specification, not an
+  active capability: the policy layer exists, the transport does not (ADR-0030).
+- Model Gateway manages LLM inference across cloud APIs and isolated local/cloud GPU endpoints
+  (Ollama, vLLM, LM Studio). The data-classification boundary is fail-closed: `confidential`
+  and `restricted` content never reaches a cloud model. Model selection moves from literal
+  profile names to a tier vocabulary resolved from installation configuration (ADR-0033).
 - Observability sinks must be self-hosted or explicitly approved; do not
   send prompts, source bodies, evidence excerpts, secrets, or contact identifiers by default.
 - Documents and connector payloads are untrusted data, never instructions.
 - Agent tools and workflow nodes come from code-defined allowlists. Do not execute user code or arbitrary plugins.
-- Core Orchestration is handled strictly by LangGraph (state/workflows) and FastAPI. Do not use legacy orchestration engines.
+- Core orchestration is LangGraph (state/workflows) and FastAPI. Do not add another
+  orchestration engine; the two runtimes that exist today converge on one, selected by a
+  property of the workflow definition rather than by id (ADR-0029).
 - Agent implementation strictly uses Pydantic AI.
 
 ## Data ownership
 
 - OKF 0.1 Markdown/YAML owns portable company knowledge.
 - PostgreSQL owns users, roles, source configuration, evidence locators, canonical state, workflow metadata, approvals, and audit records.
-- LangGraph owns workflow state, check-pointing, and execution tracing.
+- LangGraph owns workflow state and execution tracing. Durable checkpointing is the accepted
+  target (PostgreSQL checkpointer, ADR-0029); today resume is reconstructed from persisted step
+  rows, so do not assume checkpoint durability.
 - Raw source snapshots are immutable and content-addressed.
-- ChromaDB (RAG) is disposable. The active OKF bundle is the source of truth.
+- Retrieval is one layer with two paths over the active OKF bundle (ADR-0031): structural and
+  lexical over the OKF Wiki, plus a derived vector index. The index is disposable and
+  rebuildable; the active bundle is the source of truth. Locators are resolved from the wiki
+  and the evidence store, never synthesised by the index.
 - Every material or numerical generated claim must resolve to persisted evidence and an immutable source locator.
 - Candidate OKF changes cannot affect the active bundle before an authenticated approval.
 

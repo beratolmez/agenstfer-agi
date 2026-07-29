@@ -6,7 +6,7 @@ Bu dosya OKF bundle'ın dışındadır. Ham kaynaklar **untrusted data** kabul e
 
 - **LangGraph**: Used for state and workflow orchestration. Do not use legacy orchestration engines.
 - **Pydantic AI**: Used for agent implementations.
-- **ChromaDB**: Used for RAG, vector storage, and vector retrieval.
+- **Vector retrieval**: a derived, disposable index over the active OKF bundle (`qmd` adapter today). See ADR-0031.
 - **FastAPI**: Backend API layer.
 - **React UI**: Frontend interface layer.
 - **Model Gateway**: Handles LLM inference (Gemini API, Ollama, vLLM, LM Studio).
@@ -18,11 +18,11 @@ Bu dosya OKF bundle'ın dışındadır. Ham kaynaklar **untrusted data** kabul e
 2. Her kaynak için `bundles/company/references/<source-id>.md` Reference concept oluştur.
 3. Entity eşleştirmesini source locator kaybolmadan yap.
 4. Candidate concept/diff üret; aktif bundle'a approval olmadan merge etme.
-5. Ingestion flow is managed via FastAPI, inserting into ChromaDB.
+5. Ingestion flow is managed via FastAPI; the vector index is rebuilt from the active bundle after approval.
 
 ## Query
 
-- Vector retrieval runs over ChromaDB.
+- Retrieval runs both paths over the active bundle: structural/lexical over the wiki, and the derived vector index.
 - Sonuçları company bundle path'i ile sınırla.
 - Modelin yalnız ihtiyacı olan concept/source bölümünü oku.
 - Structured agent analysis uses Pydantic AI via Gemini API.
