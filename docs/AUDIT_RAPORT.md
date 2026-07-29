@@ -1,5 +1,11 @@
 # Proje Teknik Denetim Raporu
 
+> **Historical record — closed.** Kept for traceability. Do not read this for working
+> context and do not add to it: the findings that are still open live in
+> [`REMEDIATION_ROADMAP.md`](./REMEDIATION_ROADMAP.md), and the reasoning behind them in
+> [`ARCHITECTURE_ASSESSMENT.md`](./ARCHITECTURE_ASSESSMENT.md). See
+> [`AI_DEVELOPMENT_GUIDE.md`](./AI_DEVELOPMENT_GUIDE.md) §3.
+
 **Proje**: Agentic Growth Intelligence  
 **Tarih**: 25 Temmuz 2026  
 **Rol**: Senior Software Architect / Tech Lead / Code Auditor  

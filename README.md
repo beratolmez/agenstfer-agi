@@ -7,6 +7,11 @@ bilgi tabanına dönüştüren ve kaynak satırına kadar izlenebilen bir **Grow
 aksiyon planı** üreten local-first üründür. Bu ürün ortak SaaS tenancy varsaymaz; her kurulum tek bir
 şirkete hizmet eder.
 
+**Projeye devam edecek geliştirici veya AI agent'lar buradan başlar:**
+[docs/AI_DEVELOPMENT_GUIDE.md](./docs/AI_DEVELOPMENT_GUIDE.md) — hangi görev için hangi dokümanın
+hangi sırayla okunacağını, "tamamlandı" tanımını ve görev paketleme kurallarını içerir.
+Doküman haritası: [docs/README.md](./docs/README.md).
+
 Kaynak [PRD](./Agentic_Growth_Intelligence_Server_PRD.md) ve
 [yönetici mimarisi](./docs/SYSTEM_ARCHITECTURE.md) değiştirilmeden korunur. Güncel kararlar ve gerçek
 durum:
