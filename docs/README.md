@@ -64,6 +64,9 @@ Kept for traceability. Do not read for working context, do not add to them.
 - [AUDIT_FINDINGS.md](./AUDIT_FINDINGS.md), [AUDIT_RAPORT.md](./AUDIT_RAPORT.md) — earlier
   audit rounds, superseded by the two documents above.
 - [archive/](./archive/) — deprecated plans.
+- [AI_ONBOARDING_READINESS.md](./AI_ONBOARDING_READINESS.md) — point-in-time assessment of
+  whether the repository can be picked up without chat history, and the three gaps that
+  remain. Re-run it when the structure changes materially; do not maintain it.
 
 ---
 
