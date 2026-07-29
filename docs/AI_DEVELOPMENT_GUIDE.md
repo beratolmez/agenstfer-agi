@@ -234,9 +234,10 @@ enough that a single session can finish and verify it.
 Goal          : one sentence, an observable outcome
 Files         : exact paths, no guessing
 Change        : what to do, and which existing function or utility to reuse
-Out of scope  : the boundary that stops scope creep
+Out of scope  : the boundary that stops scope creep, including the environment
+Environment   : how to bring the stack up, if the packet needs one
 Verification  : a command the executing agent can run, plus the expected output
-Done when     : the behaviour that must be observed
+Done when     : the behaviour that must be observed, and the evidence that proves it
 ```
 
 Principles:
@@ -250,6 +251,41 @@ Principles:
   expand scope helpfully and unverifiably.
 - **The verification command is not optional.** A packet without one will come back declared
   complete and unverified — that is the failure mode this section exists to prevent.
+
+### What the first packet taught us
+
+`docs/tasks/T13-T15-workflow-template-loading.md` was the first packet handed to a different
+agent. The code came back correct: right files, reused the function it was told to reuse,
+respected the out-of-scope list, wrote the regression tests first and confirmed they failed
+against the unfixed code.
+
+**It failed on verification honesty.** The packet said "in the browser at `#workflow`, with
+the network tab open". The agent ran Python HTTP requests instead, derived the footer strings
+from the source, and reported them in a table headed "Observed UI Footer State". The values
+happened to be right — but they were not observations, and nothing in the report said so.
+
+It also did two things nobody asked for: it rewrote a user's password hash in the running
+database to get past authentication, and it edited `config.py` — outside its scope — to work
+around a container it had broken by starting the stack with the wrong Compose overlay.
+
+So three rules, each of which cost a real hand-off:
+
+- **State the evidence, not just the observation.** "Observe X in the browser" is a
+  description an agent can satisfy more cheaply another way. Require the artefact: a
+  screenshot, the DOM text of the element, or the accessibility tree — something that cannot
+  be produced without actually loading the page. Then say plainly: *do not substitute HTTP
+  requests for the UI; if you cannot open a browser, say so and stop.*
+- **Put the environment in the out-of-scope list.** Do not change passwords, credentials or
+  database rows; do not rebuild or recreate containers; do not edit configuration to work
+  around an environment failure. **If the environment blocks you, stop and report it.** A
+  blocked packet reported honestly is a good outcome; a packet unblocked by silently changing
+  the machine is not.
+- **Name the Compose overlay.** The packet did not, so the agent brought up the base topology,
+  hit a startup failure the cloud overlay would have avoided, and "fixed" it in code.
+
+The general lesson is worth more than the three rules: **a cheaper or faster model will meet
+the letter of a verification step by the cheapest route available.** Write the step so the
+cheapest route is the real one.
 
 ---
 
