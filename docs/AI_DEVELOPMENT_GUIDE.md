@@ -158,6 +158,12 @@ claim that turns out to be wrong; the latter costs the next session a debugging 
 tests, migration drift, frontend tests, the TypeScript build, and all Compose overlays. If
 your change is red there, it is not done, whatever the local run said.
 
+> **As of 29 July 2026 CI has never executed.** GitHub refuses every job with *"your account
+> is locked due to a billing issue"*. The workflow is valid and its commands were verified
+> locally, but until the billing lock is cleared, run `./scripts/project-check.sh` yourself
+> and treat requirement 2 as your responsibility. Delete this note once a run comes back
+> green.
+
 **CI cannot check requirements 1, 3, 4, 5 or 6.** Nothing automated can tell whether you ran
 the thing, whether your regression test would fail against the broken code, whether a real
 provider was called, whether you loaded the page, or whether a number was measured rather

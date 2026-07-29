@@ -4,9 +4,10 @@ Assessed 29 July 2026 against the question: **can an AI coding agent that has ne
 this project pick it up from the repository alone and do useful work?**
 
 Overall: **ready for packaged work, unproven for open-ended work.** Of the eleven gaps found,
-nine were closed while writing this and a tenth — the absence of CI, which was the
-highest-leverage item — was closed immediately after. Two remain, named below with what it
-would take to close them.
+nine were closed while writing this. The tenth — the absence of CI, the highest-leverage item
+— now has a workflow committed, but it has never executed: GitHub Actions refuses to start
+any job on this account because of a billing lock. Three gaps therefore remain open, named
+below.
 
 This is a point-in-time assessment. Re-run it when the repository structure changes
 materially; it is not a living document.
@@ -99,7 +100,7 @@ effort; the mitigation is the note.
 
 ## Criterion 3 — Are development standards clear enough?
 
-**Verdict: ready, and now partially enforced.**
+**Verdict: clear as documentation. Enforcement is configured but not yet running.**
 
 The standards exist and are specific: `AGENTS.md` for boundaries and the handoff protocol,
 guide §5 for the definition of done, §8 for task packaging, §9 for conventions. §5 is
@@ -107,10 +108,22 @@ deliberately behavioural rather than procedural — it requires that you ran the
 regression test fails against the broken code, that numbers are measured rather than
 estimated, and that you say explicitly what you could not verify.
 
-**This was the largest gap in the original assessment and has since been closed.**
-`.github/workflows/ci.yml` runs lint, the backend suite, migration drift, frontend tests, the
-TypeScript build and all six Compose overlays on every push and pull request. Requirement 2
-of the definition of done is now a fact rather than a claim by the author of the change.
+**This was the largest gap in the original assessment. It is addressed but not closed.**
+`.github/workflows/ci.yml` is committed and runs lint, the backend suite, migration drift,
+frontend tests, the TypeScript build and all six Compose overlays on every push and pull
+request.
+
+**It has never run.** On its first trigger GitHub refused all three jobs before they started:
+*"The job was not started because your account is locked due to a billing issue."* Actions
+parsed the workflow and created the three jobs with the correct names, so the file is valid,
+and every command in it was executed locally first — `uv sync --locked`, `npm ci`, the full
+`project-check.sh` at exit 0, and the guard against five cases. But a pipeline that cannot
+start enforces nothing.
+
+*To close:* resolve GitHub Actions billing on the account, push, and confirm a green run.
+Until then requirement 2 of the definition of done remains a claim by the author of the
+change, exactly as before — the difference is that the mechanism is now waiting rather than
+missing.
 
 Closing it surfaced a defect that explains a lot: **both `project-check` scripts failed on a
 clean checkout.** The plaintext-key guard matched the *variable* rather than a *value*, so the
@@ -124,8 +137,8 @@ called, whether you loaded the page, whether a number was measured. Those remain
 by nature, and they are where every model-layer and UI defect in this project's history hid.
 The guide now says this explicitly rather than letting a green badge imply more than it means.
 
-*Remaining, optional:* a pre-commit hook would shorten the feedback loop, but CI is the gate
-that matters because it cannot be skipped.
+*Interim:* `scripts/project-check.sh` / `.ps1` is the same set of checks and now passes on a
+clean tree. It is skippable, which is the whole problem, but it is what exists today.
 
 ---
 
@@ -213,15 +226,16 @@ definition of done and the decision record all support this, and the traps most 
 burn a session are written down.
 
 **Not ready:** handing an agent an open-ended goal ("improve retrieval", "make the workflow
-builder work") and expecting a sound result. Two things block it:
+builder work") and expecting a sound result. Three things block it:
 
-1. The packet format has not been validated against the model that will execute it
+1. CI is configured but blocked at the account level, so "the tests pass" is still the
+   author's word (criterion 3). This one is not engineering work — it is a billing setting.
+2. The packet format has not been validated against the model that will execute it
    (criterion 4).
-2. One significant path — workflow authoring — is undocumented and unverified (criterion 1).
+3. One significant path — workflow authoring — is undocumented and unverified (criterion 1).
 
-Neither is expensive; together roughly a day. The third blocker, the absence of CI, is now
-closed, and it was the one that made the other two hard to evaluate: a packet that comes back
-green from a cheaper model can now be checked independently instead of taken on trust.
+The order matters: until CI runs, a packet that comes back green from a cheaper model has to
+be taken on trust, which makes the second item hard to evaluate honestly.
 
 ---
 
@@ -229,18 +243,20 @@ green from a cheaper model can now be checked independently instead of taken on 
 
 | # | Gap | Effort | Why it matters |
 |---|---|---|---|
-| 1 | **Task packet format unproven** — no packet has round-tripped through the executing agent | ~4 h | The delegation model rests on it; T6 and T11 are the cheap tests |
-| 2 | **Workflow authoring undocumented and unverified** in a browser | ~4 h | The one significant path an agent cannot learn from the repository |
+| 1 | **CI cannot start** — account locked for Actions billing | billing, not engineering | The workflow is written and locally verified; nothing enforces it until a run completes |
+| 2 | **Task packet format unproven** — no packet has round-tripped through the executing agent | ~4 h | The delegation model rests on it; T6 and T11 are the cheap tests |
+| 3 | **Workflow authoring undocumented and unverified** in a browser | ~4 h | The one significant path an agent cannot learn from the repository |
 
 Everything else found in this assessment has been fixed: the ADR number collision, the
 missing ADR folder index, the stale capacity figure, the understated corpus size, the two
-pieces of chat-only knowledge, the absent CI, and the broken secret guard that closing the CI
-gap exposed.
+pieces of chat-only knowledge, and the broken secret guard that writing the CI workflow
+exposed — both `project-check` scripts had been failing on a clean checkout.
 
 ---
 
 ## What would change the verdict to "ready"
 
-Close the three items above, then re-run this assessment the only way that proves anything:
+Close the three items above — the first is a billing setting, not a day of work — then
+re-run this assessment the only way that proves anything:
 give a fresh agent a packet and the repository, no conversation, and see where it stops. What
 it asks for is the real gap list. Everything in this document is a prediction of that result.
