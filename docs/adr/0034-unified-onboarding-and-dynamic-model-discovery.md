@@ -1,8 +1,12 @@
-# ADR-004: Unified 6-Step Onboarding Flow and Dynamic LLM Model Discovery
+# ADR-0034: Unified 6-Step Onboarding Flow and Dynamic LLM Model Discovery
 
 - **Status**: Approved
 - **Date**: 2026-07-24
 - **Authors**: Core Engineering Team
+- **Renumbered**: 29 July 2026, from `ADR-004` / `ADR-004-UNIFIED-ONBOARDING-AND-DYNAMIC-MODEL-DISCOVERY.md`.
+  That number collided with [ADR-0004](./0004-no-external-write-in-mvp.md), a different and
+  still-binding decision. References to "ADR-004" in `docs/AUDIT_FINDINGS.md` mean this document;
+  references to "ADR-0004" anywhere else mean the no-external-write boundary.
 
 ## Context
 
