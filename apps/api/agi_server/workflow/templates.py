@@ -209,7 +209,7 @@ def template_to_workflow_definition(template: dict[str, Any]) -> WorkflowDefinit
 
 def list_workflow_templates() -> list[dict[str, Any]]:
     """Return serializable growth workflow templates."""
-    return GROWTH_WORKFLOW_TEMPLATES
+    return [template_to_workflow_definition(t).model_dump(mode="json") for t in GROWTH_WORKFLOW_TEMPLATES]
 
 
 def get_executable_templates() -> list[dict[str, Any]]:

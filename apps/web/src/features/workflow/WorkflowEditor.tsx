@@ -297,7 +297,7 @@ function EditorSurface({ userRoles }: { userRoles: string[] }) {
   const [cron, setCron] = useState("0 9 * * 1-5");
   const [timezone, setTimezone] = useState("Europe/Istanbul");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [validation, setValidation] = useState("Geçerli graph");
+  const [validation, setValidation] = useState("Doğrulanmadı");
   const [saved, setSaved] = useState("Yükleniyor…");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -418,8 +418,13 @@ function EditorSurface({ userRoles }: { userRoles: string[] }) {
   async function validate() {
     const dto = buildDto();
     if (!dto) return;
-    const result = await api.validateWorkflow(dto);
-    setValidation(result.valid ? "Geçerli graph" : `${result.issues.length} doğrulama hatası`);
+    setBusy(true);
+    setActionError(null);
+    try {
+      const result = await api.validateWorkflow(dto);
+      setValidation(result.valid ? "Geçerli graph" : `${result.issues.length} doğrulama hatası`);
+    } catch (reason) { setActionError(reason instanceof Error ? reason.message : "Doğrulama gerçekleştirilemedi"); }
+    finally { setBusy(false); }
   }
   async function save() {
     const dto = buildDto();

@@ -39,6 +39,16 @@ def test_list_workflow_templates():
     assert "enterprise-expansion-blueprint" in ids
 
 
+def test_workflow_templates_endpoint_items_parse_as_workflow_definition():
+    from agi_server.main import workflow_templates_list
+    res = workflow_templates_list()
+    assert "items" in res
+    assert len(res["items"]) >= 5
+    for item in res["items"]:
+        wf = WorkflowDefinition.model_validate(item)
+        assert wf.version == 1
+
+
 def test_executable_vs_catalog_templates_distinction():
     exec_templates = get_executable_templates()
     catalog_templates = get_catalog_templates()

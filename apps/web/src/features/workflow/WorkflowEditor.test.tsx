@@ -69,4 +69,28 @@ describe("WorkflowEditor", () => {
       { ...draft, status: "published" }, "0 9 * * 1-5", "Europe/Istanbul",
     ));
   });
+
+  it("surfaces validation error when validate API call fails", async () => {
+    vi.spyOn(api, "workflow").mockResolvedValue(published);
+    vi.spyOn(api, "workflows").mockResolvedValue({ items: [{
+      id: "builtin-growth-diagnostic", version: 3, name: "Built-in Growth Diagnostic",
+      status: "published", created_at: "2026-07-15T10:00:00Z", updated_at: "2026-07-15T10:00:00Z",
+    }] });
+    vi.spyOn(api, "workflowVersions").mockResolvedValue({ items: [draft, published] });
+    vi.spyOn(api, "workflowSchedules").mockResolvedValue({ items: [] });
+    vi.spyOn(api, "agents").mockResolvedValue({ items: [] });
+    vi.spyOn(api, "capabilities").mockResolvedValue({ items: [] });
+    vi.spyOn(api, "modelProfiles").mockResolvedValue({ items: [{
+      id: "local-balanced", provider: "ollama", model: "qwen3.5:9b", local: true,
+      enabled: true, configured: true, selected: true, available: true,
+    }] });
+    vi.spyOn(api, "cloneWorkflow").mockResolvedValue(draft);
+    vi.spyOn(api, "validateWorkflow").mockRejectedValue(new Error("Doğrulama hatası: 422 Unprocessable Entity"));
+
+    render(<WorkflowEditor userRoles={["admin", "analyst"]} />);
+    await screen.findByText("Taslak v2");
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Doğrula" })[0]);
+    await waitFor(() => expect(screen.getByText("Doğrulama hatası: 422 Unprocessable Entity")).toBeInTheDocument());
+  });
 });

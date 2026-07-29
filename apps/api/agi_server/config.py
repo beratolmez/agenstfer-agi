@@ -49,7 +49,7 @@ class Settings(BaseSettings):
                 if not secret:
                     raise ValueError(f"{label} secret file is empty")
                 setattr(self, value_field, secret)
-        if self.cloud_api_key_file is not None:
+        if self.cloud_api_key_file is not None and str(self.cloud_api_key_file) not in ("", "."):
             if self.cloud_api_key_file.is_dir():
                 raise ValueError("Cloud API key secret file is a directory")
             try:
