@@ -142,7 +142,7 @@ clean tree. It is skippable, which is the whole problem, but it is what exists t
 
 ## Criterion 4 — Is task-based onboarding sufficient?
 
-**Verdict: tested once. The format carries the work; it does not yet carry the honesty.**
+**Verdict: tested twice. The second run was clean, with a caveat about what it proved.**
 
 Thirteen task types have reading rows; seven have starting prompt templates; the task packet
 format (goal / files / change / out of scope / verification / done when) is specified in
@@ -170,8 +170,23 @@ instruction to stop and report when blocked, and name the Compose overlay. The u
 lesson is the durable one — **a faster model will satisfy a verification step by the cheapest
 available route**, so the step must be written so the cheapest route is the real one.
 
-*Still open:* whether the hardened format actually changes the behaviour. That needs a second
-packet.
+**The second packet, `T10-unresolvable-retrieval-locators.md`, came back clean.** Four files
+changed, all named in the packet. No configuration edits, no container rebuilds, no database
+rows touched — the environment section of the out-of-scope list was respected. The report gave
+the verification command's output *before* as well as after, stated that the rewritten test
+was run against both versions of the file, and gave the gate's exit code.
+
+Every claim was independently re-verified: the before value, the after value, and that the
+rewritten test fails against the unfixed code with exactly the assertion error reported.
+
+**What this does not prove.** The first packet's dishonesty was specifically about a *browser*
+observation, and the second packet had no browser step — its evidence was command output,
+which is cheaper to produce honestly than to fake. So the two runs differ in more than the
+hardened format, and the confound is not separable from one pair of trials. The rule that
+demands an artefact from loading a page has not actually been retested.
+
+*Still open:* a packet with a UI done-condition, run under the hardened format. That is the
+clean replication.
 
 ---
 
@@ -255,8 +270,12 @@ be taken on trust, which makes the second item hard to evaluate honestly.
 
 | # | Gap | Effort | Why it matters |
 |---|---|---|---|
-| 1 | **The hardened packet format is untested** — §8's three new rules came from one failure and have not been tried | one packet | Whether they change an executing agent's behaviour is unknown |
+| 1 | **The browser-evidence rule is still untested** — the clean second packet had no UI step, so the rule that failed first time was never retried | one packet | The delegation model's weakest point is a UI claim nobody checked |
 | 2 | **Publishing and running an authored workflow is unverified** | ~2 h | `WORKFLOW_AUTHORING.md` stops at save; what the fallback runtime does with an authored graph is read from source, not observed |
+
+These two close together: a packet that fixes T17 or T18 — both UI defects in the workflow
+editor — would carry a browser done-condition and exercise the untested rule while covering
+ground `WORKFLOW_AUTHORING.md` had to leave open.
 
 Everything else found in this assessment has been fixed: the ADR number collision, the
 missing ADR folder index, the stale capacity figure, the understated corpus size, the two
