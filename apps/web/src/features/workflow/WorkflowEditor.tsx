@@ -182,9 +182,13 @@ function Inspector({
   if (!node) return <aside className="node-inspector node-inspector--empty"><SlidersHorizontal size={28} /><h2>Node seçin</h2><p>Konfigürasyonu burada düzenleyebilirsiniz.</p></aside>;
   const currentNode = node;
   const config = currentNode.data.config;
-  const availableCapIds = capabilities.length > 0
-    ? capabilities.map((c) => c.id)
-    : ["knowledge.search", "web.scrape", "crm.read", "erp.read", "metrics.calculate", "battlecard.generate", "mcp.query", "mcp.read_resource"];
+  // Only offer what the registry actually reports. The previous hard-coded fallback listed
+  // six capabilities that do nothing and omitted two that work, so a node could be assigned
+  // skills that silently never run.
+  const availableCapIds = capabilities.map((c) => c.id);
+  const plannedCapIds = new Set(
+    capabilities.filter((c) => c.definition?.availability === "planned").map((c) => c.id),
+  );
 
   function updateConfig(key: string, value: unknown) {
     onChange({ ...currentNode, data: { ...currentNode.data, config: { ...config, [key]: value } } });
@@ -221,10 +225,15 @@ function Inspector({
               {availableCapIds.map((cap) => {
                 const currentCaps = Array.isArray(config.capabilities) ? (config.capabilities as string[]) : ["knowledge.search"];
                 const active = currentCaps.includes(cap);
+                // A planned capability has no handler behind it. Assigning one used to look
+                // identical to assigning a working skill and then silently did nothing.
+                const planned = plannedCapIds.has(cap);
                 return (
                   <button
                     type="button"
                     key={cap}
+                    disabled={planned}
+                    title={planned ? "Bu skill henüz uygulanmadı; ajana atanamaz." : undefined}
                     onClick={() => {
                       const next = active ? currentCaps.filter((c) => c !== cap) : [...currentCaps, cap];
                       updateConfig("capabilities", next);
@@ -235,11 +244,11 @@ function Inspector({
                       borderRadius: "4px",
                       border: active ? "1px solid #3b82f6" : "1px solid #cbd5e1",
                       background: active ? "#eff6ff" : "#f8fafc",
-                      color: active ? "#1d4ed8" : "#475569",
-                      cursor: "pointer",
+                      color: planned ? "#94a3b8" : active ? "#1d4ed8" : "#475569",
+                      cursor: planned ? "not-allowed" : "pointer",
                     }}
                   >
-                    {active ? "✓ " : "+ "}{cap}
+                    {planned ? "◦ " : active ? "✓ " : "+ "}{cap}{planned ? " (planlandı)" : ""}
                   </button>
                 );
               })}

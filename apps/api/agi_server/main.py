@@ -420,9 +420,10 @@ async def model_discover(
     if not discovered_models:
         if provider == "gemini":
             discovered_models = [
+                "gemini-3.1-flash-lite",
                 "gemini-3.6-flash",
                 "gemini-3.5-flash",
-                "gemini-2.0-flash",
+                "gemini-flash-lite-latest",
             ]
         elif provider == "groq":
             discovered_models = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"]

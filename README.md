@@ -18,6 +18,8 @@ durum:
 - [Remediation Roadmap](./docs/REMEDIATION_ROADMAP.md)
 - [Product Deployment Plan](./docs/PRODUCT_DEPLOYMENT_PLAN.md)
 - [Implementation Status](./docs/IMPLEMENTATION_STATUS.md)
+- [Demo Script](./docs/DEMO_SCRIPT.md)
+- [Tool Stratejisi](./docs/TOOLS_STRATEGY.md)
 - [API Reference](./docs/API_REFERENCE.md)
 - [Security Controls](./docs/SECURITY_CONTROLS.md)
 - [Capacity and Quota](./docs/CAPACITY_AND_QUOTA.md)

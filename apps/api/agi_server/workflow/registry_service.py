@@ -60,6 +60,9 @@ def ensure_platform_registry(db: Session, settings: Settings | None = None) -> N
                         "description": cap_spec.description,
                         "category": cap_spec.category,
                         "handler_name": cap_spec.handler_name,
+                        # Without this the API cannot distinguish a working capability from a
+                        # planned stub, so the editor offered both as if they were equivalent.
+                        "availability": cap_spec.status,
                     },
                 )
             )

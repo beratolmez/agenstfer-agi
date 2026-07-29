@@ -33,7 +33,7 @@ def build_default_workflow(model_profile: str | None = None) -> WorkflowDefiniti
             220,
             {
                 "agent_id": "company-analyst",
-                "agent_version": 4,
+                "agent_version": 5,
                 "model_profile": profile,
                 "output_type": "CompanyAnalysis",
             },

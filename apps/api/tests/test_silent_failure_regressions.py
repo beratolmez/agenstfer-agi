@@ -147,3 +147,24 @@ def test_source_test_mcp_finds_an_approved_profile_by_server_identity(tmp_path: 
             source_test_mcp(payload, db=db, actor=None)
         assert "Onaylanmamış MCP sunucusu" not in exc_info.value.detail
     engine.dispose()
+
+
+# R4 -------------------------------------------------------------------------
+
+
+def test_cloud_redaction_preserves_evidence_identifiers() -> None:
+    """Redaction must not corrupt the identifiers the evidence gate resolves against.
+
+    The phone pattern previously guarded only digit boundaries, so a digit run inside a hex
+    evidence id matched. Prompts sent to a cloud model carried "ev-ca2e[REDACTED_PHONE]f026",
+    the model cited that mangled id, and the gate rejected the claim as unresolvable.
+    """
+    from agi_server.agents.runtime import redact_identifiers
+
+    evidence_id = "ev-2a0cc365f38caa31f118cb0dfbfa984f0ed675c176fe7cf9e0b7d55e45e63c4d"
+    prompt = f"Bu iddiayi {evidence_id} kanitina bagla."
+    assert redact_identifiers(prompt) == prompt
+
+    # Real contact identifiers must still be removed before a cloud call.
+    assert "[REDACTED_PHONE]" in redact_identifiers("Bize +90 212 555 0000 numarasindan ulasin")
+    assert "[REDACTED_EMAIL]" in redact_identifiers("info@aisfer.com adresine yazin")

@@ -8,9 +8,17 @@ const PROVIDERS = [
     id: "gemini",
     name: "Google Gemini API",
     tag: "Free & Fast (Recommended)",
-    description: "Gemini 3.6 Flash, 3.5 Flash-Lite, 2.5 Flash & 2.0 Flash via Google AI Studio API key.",
-    defaultModel: "gemini-3.6-flash",
-    modelOptions: ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash"],
+    description: "Gemini 3.x Flash ailesi, Google AI Studio API key ile.",
+    // Flash-Lite is the default because the diagnostic issues several agent calls back to
+    // back: heavier Gemini models cap free-tier requests per minute and reject the run
+    // partway through. Models with a zero or retired free-tier quota are not offered.
+    defaultModel: "gemini-3.1-flash-lite",
+    modelOptions: [
+      "gemini-3.1-flash-lite",
+      "gemini-3.6-flash",
+      "gemini-3.5-flash",
+      "gemini-flash-lite-latest",
+    ],
   },
   {
     id: "groq",
@@ -53,14 +61,17 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   // Step 2: Model Provider & Discovery
   const [selectedProvider, setSelectedProvider] = useState("gemini");
   const [apiKey, setApiKey] = useState("");
-  const [modelName, setModelName] = useState("gemini-3.6-flash");
+  const [modelName, setModelName] = useState("gemini-3.1-flash-lite");
   const [dynamicModels, setDynamicModels] = useState<string[]>([]);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [probing, setProbing] = useState(false);
   const [probeSuccess, setProbeSuccess] = useState(false);
+  // The deployment can arrive already configured from env or mounted secrets. That is
+  // not the same as having verified the model here, and must not read as if it were.
+  const [configuredByDeployment, setConfiguredByDeployment] = useState(false);
 
   // Step 3 & 4: Data & RAG
-  const [connectorTab, setConnectorTab] = useState<"mcp" | "db" | "demo">("mcp");
+  const [connectorTab, setConnectorTab] = useState<"mcp" | "db" | "demo">("demo");
   const [mcpUrl, setMcpUrl] = useState("http://localhost:8000/mcp");
   const [mcpTesting, setMcpTesting] = useState(false);
   const [mcpResult, setMcpResult] = useState<{ status: string; mcp_url: string; protocol_version: string; tools_discovered: Array<{ name: string; description: string }>; message: string } | null>(null);
@@ -127,6 +138,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
         const cloudProf = profs.items.find((p) => p.id === "cloud-balanced" || p.id.startsWith("cloud-"));
         if (cloudProf && cloudProf.configured) {
           setProbeSuccess(true);
+          setConfiguredByDeployment(true);
         }
         setLoading(false);
       })
@@ -176,9 +188,8 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
           if (!isMounted) return;
           if (res.models && res.models.length > 0) {
             setDynamicModels(res.models);
-            if (!res.models.includes(modelName)) {
-              setModelName(res.models[0]);
-            }
+            // Keep the operator's choice. Overwriting it with res.models[0] silently
+            // swapped in whatever the provider happened to list first.
           }
         })
         .catch(() => {})
@@ -561,7 +572,9 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
 
               {probeSuccess && (
                 <span style={{ color: "#059669", fontWeight: 600, fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                  <CheckCircle2 size={16} /> Model Gateway ve Structured Output probe testi başarılı!
+                  <CheckCircle2 size={16} /> {configuredByDeployment
+                    ? "Model Gateway bu kurulumda önceden yapılandırılmış. Doğrulamak için canlı testi çalıştırın."
+                    : "Model Gateway ve Structured Output probe testi başarılı!"}
                 </span>
               )}
             </div>

@@ -63,7 +63,7 @@ def test_langgraph_engine_execution_and_pause_resume(tmp_path: Path) -> None:
 
         assert run.status == "awaiting_approval"
         assert run.agent_versions == {
-            "company-analyst": 4,
+            "company-analyst": 5,
             "growth-opportunity-analyst": 4,
             "evidence-reviewer": 3,
             "wiki-curator": 3,

@@ -24,9 +24,20 @@ describe("ApprovalCenter", () => {
     const diffButton = await screen.findByRole("button", { name: "Diff" });
     fireEvent.click(diffButton);
     expect(await screen.findByText("+ evidence-reviewed report")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Onayla" }));
+
+    // The API rejects a decision without an 8+ character reason, so the button stays
+    // disabled until one is written rather than failing with a 422 the operator never sees.
+    const approveButton = screen.getByRole("button", { name: "Onayla" });
+    expect(approveButton).toBeDisabled();
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Kanıtlar incelendi ve yeterli bulundu." },
+    });
+    expect(approveButton).toBeEnabled();
+
+    fireEvent.click(approveButton);
     await waitFor(() => expect(decide).toHaveBeenCalledWith(
-      "approval-1", "approved", "",
+      "approval-1", "approved", "Kanıtlar incelendi ve yeterli bulundu.",
     ));
   });
 });

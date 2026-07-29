@@ -5,15 +5,25 @@ import type { UserView } from "../types";
 
 export function Topbar({ user, onLogout }: { user: UserView; onLogout: () => Promise<void> }) {
   const [model, setModel] = useState<{ ready: boolean; profile: string; provider: string; model?: string; local?: boolean; message: string } | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
   useEffect(() => {
     api.modelStatus().then(setModel).catch(() => setModel({ ready: false, profile: "unknown", provider: "unknown", message: "Model durumu alınamadı" }));
+    // The company entered during setup, not a build-time constant: showing a different
+    // company here than the one the operator configured undermines the whole console.
+    api
+      .setupProgress()
+      .then((progress) => {
+        const name = progress.configuration?.company_name;
+        if (typeof name === "string" && name.trim()) setCompanyName(name);
+      })
+      .catch(() => setCompanyName(null));
   }, []);
   const label = model?.local ? "Yerel model" : model?.provider === "unknown" ? "Model" : "Cloud model";
   return (
     <header className="topbar">
       <button className="topbar__company" type="button">
         <Building2 size={18} />
-        <span>Anka Endüstriyel Otomasyon</span>
+        <span>{companyName ?? "Şirket profili tanımlanmadı"}</span>
       </button>
       <div className="topbar__right">
         <div className="model-status">

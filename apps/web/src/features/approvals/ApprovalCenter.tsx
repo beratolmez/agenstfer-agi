@@ -9,6 +9,10 @@ export function ApprovalCenter() {
   const [selected, setSelected] = useState<string | null>(null);
   const [diff, setDiff] = useState("");
   const [reason, setReason] = useState("");
+  // The API rejects a decision without an 8+ character reason. The field used to live
+  // only inside the diff drawer, so approving without opening the diff first sent an
+  // empty reason and failed with a 422 the operator never saw.
+  const reasonReady = reason.trim().length >= 8;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +54,25 @@ export function ApprovalCenter() {
         <div><a className="secondary-button" href="/api/okf/export"><Download size={17} /> Active OKF export</a><button type="button" onClick={load} className="secondary-button"><RefreshCw size={17} /> Yenile</button></div>
       </header>
       {error ? <div className="inline-alert inline-alert--error" role="alert">{error}</div> : null}
+
+      <section className="opportunity-section" style={{ maxWidth: 1180, margin: "0 auto 18px" }}>
+        <label style={{ display: "block" }}>
+          Karar gerekçesi <span style={{ color: "#64748b", fontWeight: 400 }}>(zorunlu, en az 8 karakter)</span>
+          <textarea
+            value={reason}
+            minLength={8}
+            rows={2}
+            placeholder="Bu kararı neden verdiğinizi yazın; audit kaydına bu gerekçe işlenir."
+            onChange={(event) => setReason(event.target.value)}
+            style={{ width: "100%", marginTop: 6 }}
+          />
+        </label>
+        {!reasonReady ? (
+          <p style={{ color: "#64748b", margin: "6px 0 0", fontSize: 13 }}>
+            Onayla ve Reddet, gerekçe yazılana kadar devre dışıdır.
+          </p>
+        ) : null}
+      </section>
       
       <section className="opportunity-section" style={{ maxWidth: 1180, margin: "0 auto 30px" }}>
         <h2>Workflow Onayları</h2>
@@ -73,8 +96,8 @@ export function ApprovalCenter() {
               <div className="approval-actions" style={{ marginLeft: "auto" }}>
                 {item.candidate_id ? <button type="button" onClick={() => showDiff(item.candidate_id!)}><GitCompare size={14} /> Diff</button> : null}
                 {item.status === "pending" ? <>
-                  <button type="button" disabled={busy} onClick={() => decideWorkflow(item, "rejected")} aria-label="Reddet"><X size={14} /></button>
-                  <button className="primary-button" type="button" disabled={busy} onClick={() => decideWorkflow(item, "approved")} aria-label="Onayla" style={{ padding: "0 10px", minHeight: 32 }}><Check size={14} /></button>
+                  <button type="button" disabled={busy || !reasonReady} onClick={() => decideWorkflow(item, "rejected")} aria-label="Reddet"><X size={14} /></button>
+                  <button className="primary-button" type="button" disabled={busy || !reasonReady} onClick={() => decideWorkflow(item, "approved")} aria-label="Onayla" style={{ padding: "0 10px", minHeight: 32 }}><Check size={14} /></button>
                 </> : null}
               </div>
             </div>
@@ -108,7 +131,7 @@ export function ApprovalCenter() {
           ))}
         </div>
       </section>
-      {selected ? <div className="diff-review"><header><div><h2>Candidate diff</h2><p>{selected}</p></div><button type="button" aria-label="Diff kapat" onClick={() => setSelected(null)}><X size={18} /></button></header><label>Karar gerekçesi<textarea value={reason} minLength={8} placeholder="İnceleme ve onay gerekçenizi buraya yazınız (En az 8 karakter)..." onChange={(event) => setReason(event.target.value)} /></label><pre>{diff || "Bu candidate dosya farkı içermiyor."}</pre></div> : null}
+      {selected ? <div className="diff-review"><header><div><h2>Candidate diff</h2><p>{selected}</p></div><button type="button" aria-label="Diff kapat" onClick={() => setSelected(null)}><X size={18} /></button></header><pre>{diff || "Bu candidate dosya farkı içermiyor."}</pre></div> : null}
     </main>
   );
 }

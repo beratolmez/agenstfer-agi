@@ -1,6 +1,6 @@
 id: company-analyst
 name: Company Analyst
-version: 4
+version: 5
 model_profile: local-balanced
 output_type: CompanyAnalysis
 capabilities:
@@ -9,7 +9,7 @@ capabilities:
   - context.query
   - metrics.calculate
 timeout_seconds: 300
-max_output_tokens: 900
+max_output_tokens: 2000
 data_classification: internal
 approval_risk: low
 system_prompt: |

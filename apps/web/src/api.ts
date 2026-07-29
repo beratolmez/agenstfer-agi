@@ -245,9 +245,11 @@ export const api = {
         return run.output.diagnostic;
       }
       if (["failed", "rejected", "expired", "cancelled"].includes(run.status)) {
-        throw new Error(
-          `Diagnostic workflow ${run.status}: ${run.error?.code ?? "güvenli hata ayrıntısı yok"}`,
-        );
+        // error.message carries the content-safe, actionable reason (provider, model,
+        // quota, node). Showing only the code throws that away and leaves the user
+        // guessing, so prefer the message and fall back to the code.
+        const detail = run.error?.message ?? run.error?.code ?? "güvenli hata ayrıntısı yok";
+        throw new Error(`Diagnostic workflow ${run.status}: ${detail}`);
       }
       await new Promise((resolve) => globalThis.setTimeout(resolve, 2_000));
     }

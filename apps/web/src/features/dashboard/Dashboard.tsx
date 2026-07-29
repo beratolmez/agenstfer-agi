@@ -174,7 +174,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (id: ViewId) => void }) 
       <Database size={42} strokeWidth={1.5} />
       <h1>Henüz Growth Diagnostic yok</h1>
       <p>Dashboard yalnız başarıyla tamamlanmış ve evidence review kapısından geçmiş model run’larını gösterir. Sentetik preview, agent sonucu gibi sunulmaz.</p>
-      {runError ? <div className="inline-alert inline-alert--error" role="alert"><strong>Tanı çalıştırılamadı.</strong> {runError} Model profilini Kurulum ekranında test edin; sistem başka bir provider'a otomatik geçmez.</div> : null}
+      {runError ? <div className="inline-alert inline-alert--error" role="alert"><strong>Tanı çalıştırılamadı.</strong> {runError}</div> : null}
       <button className="primary-button" type="button" onClick={rerun} disabled={running}><PlayCircle size={18} />{running ? "Tanı çalışıyor…" : "İlk tanıyı çalıştır"}</button>
     </main>
   );

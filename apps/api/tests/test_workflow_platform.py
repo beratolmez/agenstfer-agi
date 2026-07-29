@@ -164,9 +164,9 @@ def test_registry_versions_are_seeded_cloned_and_immutable(tmp_path: Path) -> No
                 None,
             )
 
-        agent = db.get(AgentDefinitionRow, ("company-analyst", 4))
+        agent = db.get(AgentDefinitionRow, ("company-analyst", 5))
         assert agent is not None
-        assert agent.definition["max_output_tokens"] == 900
+        assert agent.definition["max_output_tokens"] == 2000
         growth_agent = db.get(AgentDefinitionRow, ("growth-opportunity-analyst", 4))
         assert growth_agent is not None
         # Five Turkish hypotheses with rationales measured at ~1360 output tokens; 900 truncated
@@ -176,7 +176,7 @@ def test_registry_versions_are_seeded_cloned_and_immutable(tmp_path: Path) -> No
         assert evidence_agent is not None
         assert evidence_agent.definition["max_output_tokens"] == 1800
         agent_draft = clone_agent_version(db, agent, None)
-        assert agent_draft.version == 5
+        assert agent_draft.version == 6
         spec = agent_draft.definition | {"version": agent_draft.version}
         parsed = save_agent_draft(
             db,
@@ -252,7 +252,7 @@ def test_workflow_publish_pins_exact_agent_versions(tmp_path: Path) -> None:
             for node in pinned.nodes
             if node.kind == NodeKind.AGENT_RUN
         } == {
-            "company-analyst": 4,
+            "company-analyst": 5,
             "growth-opportunity-analyst": 4,
             "evidence-reviewer": 3,
             "wiki-curator": 3,
@@ -470,7 +470,7 @@ def test_published_workflow_pauses_and_resumes_after_restart(tmp_path: Path) -> 
         assert run.status == "awaiting_approval"
         assert run.model_profile in {"local-balanced", "cloud-groq"}
         assert run.agent_versions == {
-            "company-analyst": 4,
+            "company-analyst": 5,
             "growth-opportunity-analyst": 4,
             "evidence-reviewer": 3,
             "wiki-curator": 3,

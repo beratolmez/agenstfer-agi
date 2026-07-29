@@ -146,10 +146,10 @@ def test_admin_agent_detail_survives_refresh_with_the_versioned_prompt(tmp_path:
     with local_session() as db:
         ensure_platform_registry(db)
 
-        detail = agent_version_detail("company-analyst", 4, db, None)
+        detail = agent_version_detail("company-analyst", 5, db, None)
 
         assert detail["id"] == "company-analyst"
-        assert detail["version"] == 4
+        assert detail["version"] == 5
         assert detail["status"] == "published"
         assert "system_prompt" in detail
         assert len(detail["system_prompt"]) > 20
@@ -241,7 +241,7 @@ def test_ensure_platform_registry_preserves_archived_status_on_existing_rows(tmp
         ensure_platform_registry(db)
 
         # Archive an agent and workflow row
-        agent_row = db.get(AgentDefinitionRow, ("company-analyst", 4))
+        agent_row = db.get(AgentDefinitionRow, ("company-analyst", 5))
         assert agent_row is not None
         agent_row.status = "archived"
 
@@ -254,7 +254,7 @@ def test_ensure_platform_registry_preserves_archived_status_on_existing_rows(tmp
         ensure_platform_registry(db)
 
         # Verify status remained archived and was not overwritten
-        re_agent = db.get(AgentDefinitionRow, ("company-analyst", 4))
+        re_agent = db.get(AgentDefinitionRow, ("company-analyst", 5))
         assert re_agent.status == "archived"
 
         re_wf = db.get(WorkflowDefinitionRow, ("builtin-growth-diagnostic", 3))

@@ -33,7 +33,12 @@ OUTPUT_TYPES = {
     "OKFChangeSet": OKFChangeSet,
 }
 EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
-PHONE_PATTERN = re.compile(r"(?<!\d)(?:\+?\d[\d ()-]{7,}\d)(?!\d)")
+# The boundaries exclude word characters and hyphens, not just digits. Guarding only digits
+# let a run of digits inside a hex identifier match: evidence ids such as
+# "ev-ca2e0731...f026" were rewritten to "ev-ca2e[REDACTED_PHONE]f026" on the way into a
+# cloud prompt, so the model cited an id that could no longer be resolved and the evidence
+# gate rejected an otherwise supported claim.
+PHONE_PATTERN = re.compile(r"(?<![\w-])(?:\+?\d[\d ()-]{7,}\d)(?![\w-])")
 DATA_CLASSIFICATION_ORDER = {
     "public": 0,
     "internal": 1,
@@ -207,6 +212,38 @@ class ScopedCapabilityTools:
         return tools
 
 
+RATE_LIMIT_MAX_ATTEMPTS = 3
+RATE_LIMIT_FALLBACK_DELAY = 20.0
+RATE_LIMIT_MAX_DELAY = 60.0
+_RETRY_DELAY_PATTERN = re.compile(r"['\"]retryDelay['\"]\s*:\s*['\"](\d+(?:\.\d+)?)s?['\"]")
+_RETRY_IN_PATTERN = re.compile(r"retry in (\d+(?:\.\d+)?)s", re.IGNORECASE)
+
+
+def rate_limit_retry_after(error: Exception) -> float | None:
+    """Return how long to wait for a rate-limit error, or None if this is not one.
+
+    A 429 means the request was refused, not consumed, so waiting and retrying is not the
+    same as blind retry: it does not multiply quota usage. Providers tell us how long to
+    wait, so honour that rather than guessing. Per-minute limits are the common case — the
+    diagnostic issues several agent calls back to back and free tiers cap requests/minute.
+    """
+    text = str(error)
+    lowered = text.lower()
+    is_rate_limited = (
+        "429" in text
+        or "rate_limit" in lowered
+        or "rate limit" in lowered
+        or "resource_exhausted" in lowered
+        or "quota" in lowered
+    )
+    if not is_rate_limited:
+        return None
+    match = _RETRY_DELAY_PATTERN.search(text) or _RETRY_IN_PATTERN.search(text)
+    delay = float(match.group(1)) if match else RATE_LIMIT_FALLBACK_DELAY
+    # A daily-quota rejection can report a very long delay; do not stall a run on it.
+    return min(max(delay, 1.0), RATE_LIMIT_MAX_DELAY)
+
+
 async def run_managed_agent(
     agent_id: str,
     prompt: str,
@@ -238,17 +275,34 @@ async def run_managed_agent(
         model_override=model_override,
         tools=tools.for_spec(spec, capability_allowlist),
     )
-    try:
-        async with asyncio.timeout(spec.timeout_seconds):
-            result = await agent.run(prompt)
-    except Exception as exc:
-        err_str = str(exc)
-        if "429" in err_str or "quota" in err_str.lower() or "rate_limit" in err_str.lower() or "resource_exhausted" in err_str.lower():
-            logger.error("Model Rate Limit / Quota Exceeded (429) for agent %s on profile %s: %s", spec.id, profile.id, exc)
-            raise RuntimeError(
-                f"Model kota veya istek limiti aşıldı (429 Rate Limit / Quota Exceeded). Lütfen kota sıfırlanana kadar bekleyin veya alternatif model kullanın: {exc}"
-            ) from exc
-        raise
+    for attempt in range(RATE_LIMIT_MAX_ATTEMPTS):
+        try:
+            async with asyncio.timeout(spec.timeout_seconds):
+                result = await agent.run(prompt)
+            break
+        except Exception as exc:
+            retry_after = rate_limit_retry_after(exc)
+            if retry_after is None:
+                raise
+            if attempt == RATE_LIMIT_MAX_ATTEMPTS - 1:
+                logger.error(
+                    "Model rate limit / quota exceeded for agent %s on profile %s after %d attempts",
+                    spec.id,
+                    profile.id,
+                    RATE_LIMIT_MAX_ATTEMPTS,
+                )
+                raise RuntimeError(
+                    "Model kota veya istek limiti aşıldı (429). Dakikalık limit için kısa süre "
+                    f"bekleyin, günlük kota için alternatif model kullanın: {exc}"
+                ) from exc
+            logger.warning(
+                "Model rate limited for agent %s; waiting %.1fs before retry %d/%d",
+                spec.id,
+                retry_after,
+                attempt + 2,
+                RATE_LIMIT_MAX_ATTEMPTS,
+            )
+            await asyncio.sleep(retry_after)
     return AgentExecution(
         spec=spec,
         profile_id=profile.id,
