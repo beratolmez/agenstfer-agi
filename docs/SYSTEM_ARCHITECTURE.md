@@ -11,8 +11,8 @@ This document is the **authoritative single source of truth** for the overarchin
 - **Agent Orchestration**: LangGraph (StateGraph execution engine in `langgraph_runtime.py` with pause/resume approval semantics)
 - **Agent Runtime & Structured Outputs**: Pydantic AI contracts and probes (`agi_server/agents/probe.py`)
 - **Model Gateway**: Provider-neutral gateway supporting Gemini API (Cloud) and Local/External GPU Inference Servers (Ollama, vLLM, LM Studio)
-- **Vector Store / RAG**: `qmd` HTTP retrieval service with automatic lexical fallback (`okf/search.py`); optional, behind the `search` compose profile
-- **Connector Protocol**: MCP policy layer with code-defined allowlists (`mcp.py`); transport not implemented, see ADR-0030
+- **Retrieval**: one layer, two paths over the active OKF bundle (ADR-0031) — structural/lexical over the wiki, plus a derived vector index (`qmd` adapter today) with lexical fallback. Currently behind the `search` compose profile; ADR-0031 moves it into the default topology
+- **Connector Protocol**: MCP is a target specification (ADR-0030). The policy layer with code-defined allowlists is real (`mcp.py`); the transport is not implemented, and tools ship as native capabilities
 - **Operational Database**: PostgreSQL / SQLite via SQLAlchemy (`agi_server/db.py`)
 - **Frontend Console**: React UI (`apps/web` - Vite, TypeScript, Vanilla CSS, `@xyflow/react` Visual Node Editor)
 - **Observability**: Self-hosted Langfuse telemetry tracing sink boundary

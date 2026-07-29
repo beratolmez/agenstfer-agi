@@ -1,6 +1,6 @@
 # ADR-0032: Tenancy Model — Resolving the PRD / AGENTS.md Contradiction
 
-- **Status:** Proposed — decision required
+- **Status:** Accepted — Option A
 - **Date:** 28 July 2026
 - **Blocks:** the data-boundary architecture; gates ADR-0030 option B
 - **Relates to:** ADR-0009 (productized isolated customer deployments)
@@ -61,3 +61,16 @@ threat model — not an incremental change layered onto the current schema.
 Every downstream boundary decision inherits the ambiguity. ADR-0030 option B (a live MCP
 egress path) cannot be scoped without knowing whether one process may hold more than one
 customer's data, and neither can the model-tiering and quota work in ADR-0033.
+
+## Decision taken
+
+**Option A, approved 29 July 2026.** The product is single-tenant by construction:
+isolation is achieved by deployment separation — one installation, one database, one
+knowledge volume, one customer. PRD §9 is amended so `Multi tenant isolation` reads as
+deployment-level isolation, matching what ADR-0009, the schema and the deployment tooling
+already do.
+
+This is the stronger posture for a product whose promise is evidence custody: a
+tenant-scoped query bug under row-level tenancy would be a cross-customer evidence leak.
+Row-level multi-tenancy, if ever required commercially, is a deliberate re-platforming
+with its own threat model.

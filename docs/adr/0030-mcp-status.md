@@ -1,6 +1,6 @@
 # ADR-0030: MCP Status — Finish the Transport or Reclassify
 
-- **Status:** Proposed — decision required
+- **Status:** Accepted — Option A
 - **Date:** 28 July 2026
 - **Amends:** ADR-0016 Phase 7, which recorded the MCP gateway as delivered
 - **Blocks:** T6 in `docs/REMEDIATION_ROADMAP.md`
@@ -67,3 +67,16 @@ deployment is single-tenant.
 
 Administrators can assign `mcp.query` to an agent through the UI today and get silent
 no-ops, with nothing in the interface indicating the capability does nothing.
+
+## Decision taken
+
+**Option A, approved 29 July 2026.** MCP is reclassified as a target specification. The
+policy layer and its tests stay as the governance skeleton; the two dead `mcp.*`
+capabilities are removed from the registry so they stop appearing as assignable skills,
+and the documents stop describing MCP as active.
+
+The tools the product actually needs — web search, and later messaging — are delivered as
+native capabilities, which cost three files rather than a transport, handshake, session
+layer and a new external-execution surface. MCP's value is a customer bringing their own
+tools; it is revisited when a customer integration requires it, and not before ADR-0032
+settled the tenancy boundary (it now has).

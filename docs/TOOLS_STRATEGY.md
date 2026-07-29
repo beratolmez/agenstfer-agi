@@ -114,6 +114,6 @@ Kademe 3'e 1-4 tamamlanmadan girmeyin: onaysız ve izlenemez bir dış-yazma yol
 
 - ADR-0004 — MVP'de dış yazma yok (Kademe 3'ün önündeki asıl kapı)
 - ADR-0005 — ingress/egress sınırları (Kademe 2'nin darboğazı)
-- ADR-0030 — MCP statüsü, karar bekliyor
-- ADR-0032 — tenancy; MCP transport'u bundan önce başlamamalı
+- ADR-0030 — MCP hedef spesifikasyon olarak sınıflandırıldı (kabul edildi)
+- ADR-0032 — tek-tenant kabul edildi; MCP transport'u için tenancy sınırı artık net
 - `docs/design/POLICY_ENGINE.md`, `docs/design/CONSENT_LEDGER.md` — Kademe 3'ün ön koşulları

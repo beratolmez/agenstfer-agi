@@ -140,7 +140,7 @@ Göstermeye değer iki ekran daha:
 
 ## Bilinen sınırlar — sorulmadan söyleme, sorulursa dürüst ol
 
-- Vektör arama varsayılan kurulumda kapalı; lexical fallback çalışıyor (ADR-0031)
-- MCP taşıma katmanı yok, politika katmanı var (ADR-0030)
+- Vektör arama varsayılan kurulumda henüz kapalı; lexical yol çalışıyor. ADR-0031 ikisini tek retrieval katmanı olarak birleştirip vektörü varsayılana alıyor
+- MCP hedef spesifikasyon (ADR-0030); politika katmanı hazır, taşıma katmanı yok. Tool'lar native capability olarak geliyor
 - Fırsat taksonomisi şu an demo veri setine bağlı; ikinci müşteri için soyutlanması gerekiyor
 - Aynı anda tek tanı çalıştırılabilir

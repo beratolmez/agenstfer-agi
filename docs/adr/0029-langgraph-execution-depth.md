@@ -1,6 +1,6 @@
 # ADR-0029: LangGraph Execution Depth
 
-- **Status:** Proposed — decision required
+- **Status:** Accepted — Option C, plus engine consolidation
 - **Date:** 28 July 2026
 - **Blocks:** SB-5, SB-4 in `docs/REMEDIATION_ROADMAP.md`
 
@@ -77,3 +77,15 @@ execute under the same semantics.
 
 The fallback loop and the LangGraph engine keep drifting — they already handle errors
 differently, which is how the `step_id` defect (ADR-0028) survived in one and not the other.
+
+## Decision taken
+
+**Option C, approved 29 July 2026.** Add the PostgreSQL checkpointer and interrupts;
+keep the chain topology for now. Durable pause and resume is the real gap — approvals
+can sit for seven days and the current checkpointer dies with the engine object. Parallel
+branches are not needed by any shipped workflow, so the state-reducer work is deferred
+until one requires it.
+
+Engine selection stops being a hardcoded id set in the same change: it is driven by a
+property of the workflow definition, so user-authored workflows execute under the same
+semantics as built-in ones. The two runtimes converge on one.

@@ -1,6 +1,6 @@
 # ADR-0033: Model Tiering and Usage Governance
 
-- **Status:** Proposed — decision required
+- **Status:** Accepted — staged, in three steps
 - **Date:** 28 July 2026
 - **Blocks:** SB-6 in `docs/REMEDIATION_ROADMAP.md`
 - **Relates to:** ADR-0003 (local-first policy), ADR-0006 (cloud opt-in), ADR-0010
@@ -82,3 +82,21 @@ Do not build billing before step 3: without usage attribution there is nothing t
 Every customer installation runs one global model for every task regardless of cost or
 sensitivity, provider configuration is lost on restart, and free-tier quota exhaustion
 continues to surface as a mid-run failure rather than a pre-flight refusal.
+
+## Decision taken
+
+**Approved 29 July 2026, in the three stages proposed above.**
+
+1. **Persistence first.** Move provider, model and encrypted key out of the in-memory
+   `Settings` singleton into the database. This is a prerequisite for everything else and
+   independently fixes a real defect: configuration entered at onboarding is lost on
+   restart while `setup_completed` stays true.
+2. **Tier indirection.** Agent specs declare a tier (`low` / `standard` / `high`) rather
+   than a literal profile; the tier resolves to a model from installation-scoped
+   configuration, with an optional per-agent override. Spec version bumps carry the
+   migration under ADR-0008.
+3. **Governance.** Budgets, pre-flight rejection before a request is spent, and
+   content-safe per-agent attribution through the ADR-0010 Langfuse boundary.
+
+Billing is not built before step 3: without usage attribution there is nothing to bill
+from. Installation scope follows ADR-0032's deployment-level tenancy.

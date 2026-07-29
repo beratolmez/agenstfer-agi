@@ -202,15 +202,20 @@ Decisions that work today but will not survive a second customer or the first re
 
 ## Missing Decisions
 
-1. Multi-tenancy contradiction (PRD §9 ↔ AGENTS.md) — recorded nowhere
-2. LangGraph depth — straight chain, or `interrupt_*` plus a PostgreSQL checkpointer
-3. Engine consolidation — two runtimes or one
-4. The future of MCP — finish the transport or reclassify as target spec
-5. Retrieval identity — ChromaDB or qmd; does RAG enter the graph
+**Settled on 29 July 2026** — the five that blocked the most work:
+
+1. ✅ Multi-tenancy → single-tenant, isolation by deployment separation (ADR-0032)
+2. ✅ LangGraph depth → PostgreSQL checkpointer and `interrupt_*`, chain topology retained (ADR-0029)
+3. ✅ Engine consolidation → one engine, selected by a definition property (ADR-0029)
+4. ✅ MCP → target specification; tools ship as native capabilities (ADR-0030)
+5. ✅ Retrieval → OKF Wiki and vector are **one layer with two paths**, not a choice (ADR-0031)
+
+Still open:
+
 6. Local model set — the diagram says GLM 5.2 / QWEN 3.7 Max, the code says `qwen3.5:9b/27b`
 7. Deployment target — Compose or Kubernetes/Terraform
 8. Demo-data decoupling — when does `SignalId` stop being a `Literal`
-9. The fate of `planned` capabilities — implement or remove from registry and UI
+9. The fate of `planned` capabilities beyond `web.scrape`
 10. Mature form of the evidence gate — should narrative claims be repaired rather than withheld
 
 ---
