@@ -19,9 +19,10 @@ repository, you have everything you need.
 
 That is roughly 15 minutes. Do not read more until you know your task type.
 
-**Then read only what section 3 lists for your task.** The repository contains ~3,800 lines
-of documentation and 34 ADRs. Reading it all is not thoroughness, it is context exhaustion —
-you will run out of budget before you write code.
+**Then read only what section 3 lists for your task.** The repository holds ~7,950 lines of
+documentation across 67 Markdown files, 34 of them ADRs. Reading it all is not thoroughness,
+it is context exhaustion — you will run out of budget before you write any code. The floor
+above is ~600 lines; a typical task row in section 3 adds 300–800 more.
 
 ---
 
