@@ -83,7 +83,9 @@ Before presenting completion, perform these without waiting to be reminded:
 3. Update `docker-compose.yml` and run `docker compose up -d --build --force-recreate` if
    compose configuration or UI assets changed.
 4. Run `scripts/project-check.ps1` (Windows) or `scripts/project-check.sh` (Linux) and require
-   a clean pass.
+   a clean pass. `.github/workflows/ci.yml` runs the same checks on push, so a local pass is
+   the cheap way to find out; it is not a substitute for the verification in step 1, which
+   nothing automated can perform.
 5. Commit and push to `origin main`. One purpose per commit; the message explains why.
 
 If you could not complete a verification step, say which one and why. Reporting unverified

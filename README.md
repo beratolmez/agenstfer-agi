@@ -1,5 +1,7 @@
 # Agentic Growth Intelligence
 
+[![CI](https://github.com/beratolmez/agenstfer-agi/actions/workflows/ci.yml/badge.svg)](https://github.com/beratolmez/agenstfer-agi/actions/workflows/ci.yml)
+
 Agentic Growth Intelligence; şirket başına izole kurulup satılan ve güncellemeleri vendor tarafından
 sağlanan, dağınık şirket bilgisini
 taşınabilir [Open Knowledge Format 0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)

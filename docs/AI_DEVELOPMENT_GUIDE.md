@@ -128,13 +128,15 @@ Before you say a task is complete, all of these must be true:
 
 1. **You ran the thing you changed** and observed the expected behaviour. Not "the tests
    pass" — the specific behaviour.
-2. **The full suite is green:**
+2. **The full suite is green.** Run the whole gate rather than the pieces:
    ```bash
-   uv run ruff check apps/api
-   uv run pytest apps/api/tests/
-   npm --prefix apps/web test
-   docker compose config --quiet
+   ./scripts/project-check.sh
    ```
+   (`scripts\project-check.ps1` on Windows.) It runs lint, the backend suite, migration
+   drift, the frontend tests and build, and every Compose overlay. The individual commands
+   are `uv run ruff check apps/api`, `uv run pytest`, `npm --prefix apps/web test`,
+   `docker compose config --quiet` — but the script is the definition, because CI runs the
+   same checks and will contradict you otherwise.
 3. **For a bug fix:** you wrote a regression test, then reverted the fix and watched that test
    fail. A test that passes against the broken code proves nothing.
 4. **For anything on the model path:** you made a real provider call. `TestModel` proves the
@@ -149,6 +151,18 @@ Before you say a task is complete, all of these must be true:
 If you could not verify something — no quota, no data, no credentials — **say so explicitly**
 and name what is unverified. An honest "I could not test this" is worth more than a confident
 claim that turns out to be wrong; the latter costs the next session a debugging session.
+
+### What is checked for you, and what is not
+
+`.github/workflows/ci.yml` runs requirement 2 on every push and pull request: lint, backend
+tests, migration drift, frontend tests, the TypeScript build, and all Compose overlays. If
+your change is red there, it is not done, whatever the local run said.
+
+**CI cannot check requirements 1, 3, 4, 5 or 6.** Nothing automated can tell whether you ran
+the thing, whether your regression test would fail against the broken code, whether a real
+provider was called, whether you loaded the page, or whether a number was measured rather
+than guessed. Those remain yours. A green CI badge means the change did not break what was
+already covered — it does not mean the change works.
 
 ---
 
@@ -172,6 +186,10 @@ docker run -d --name agi-check -p 8097:8080 \
 
 The UI is served by the same container at `/`. `docs/DEMO_SCRIPT.md` is the verified
 click path through it.
+
+Before handing work over, run `./scripts/project-check.sh` (or `.ps1`). It is the same set of
+checks CI runs, so a clean local pass predicts a green pipeline. If you add a check to one,
+add it to the other — two gates that disagree are worse than one gate.
 
 **Before running anything that calls a model, read `docs/CAPACITY_AND_QUOTA.md`.** One
 diagnostic costs 4–7 provider requests and free tiers cap requests per minute. Burning the

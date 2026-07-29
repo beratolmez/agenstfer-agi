@@ -1,11 +1,12 @@
 # AI Onboarding Readiness
 
-Assessed 29 July 2026, at commit `abbdd6f`, against the question: **can an AI coding agent
-that has never seen this project pick it up from the repository alone and do useful work?**
+Assessed 29 July 2026 against the question: **can an AI coding agent that has never seen
+this project pick it up from the repository alone and do useful work?**
 
-Overall: **ready for packaged work, unproven for open-ended work.** Nine of the eleven gaps
-found have been closed. The two that remain are named below with what it would take to close
-them.
+Overall: **ready for packaged work, unproven for open-ended work.** Of the eleven gaps found,
+nine were closed while writing this and a tenth — the absence of CI, which was the
+highest-leverage item — was closed immediately after. Two remain, named below with what it
+would take to close them.
 
 This is a point-in-time assessment. Re-run it when the repository structure changes
 materially; it is not a living document.
@@ -98,7 +99,7 @@ effort; the mitigation is the note.
 
 ## Criterion 3 — Are development standards clear enough?
 
-**Verdict: ready as documentation. Not enforced by anything.**
+**Verdict: ready, and now partially enforced.**
 
 The standards exist and are specific: `AGENTS.md` for boundaries and the handoff protocol,
 guide §5 for the definition of done, §8 for task packaging, §9 for conventions. §5 is
@@ -106,17 +107,25 @@ deliberately behavioural rather than procedural — it requires that you ran the
 regression test fails against the broken code, that numbers are measured rather than
 estimated, and that you say explicitly what you could not verify.
 
-**The gap is enforcement.** There is no CI: no `.github/workflows`, no pre-commit hook.
-`scripts/project-check.ps1` and `.sh` exist but nothing runs them. Every quality gate in this
-repository is honour-system, which is precisely the condition that produced twenty-eight
-phases of work declared complete while the first diagnostic did not run.
+**This was the largest gap in the original assessment and has since been closed.**
+`.github/workflows/ci.yml` runs lint, the backend suite, migration drift, frontend tests, the
+TypeScript build and all six Compose overlays on every push and pull request. Requirement 2
+of the definition of done is now a fact rather than a claim by the author of the change.
 
-This matters more, not less, when work is delegated to cheaper models: a model optimising for
-task completion will report success, and nothing currently contradicts it.
+Closing it surfaced a defect that explains a lot: **both `project-check` scripts failed on a
+clean checkout.** The plaintext-key guard matched the *variable* rather than a *value*, so the
+correct secret-free state — `AGI_CLOUD_API_KEY: ""` — tripped it. A gate that fails on an
+untouched tree teaches people to stop running it, which is roughly how this repository arrived
+at honour-system quality control. Fixed in both shells and verified against five cases.
 
-*To close:* a GitHub Actions workflow running `ruff`, `pytest`, `npm test` and
-`docker compose config` on push. Roughly two hours. This is the single highest-leverage item
-in this document — it converts the definition of done from a request into a fact.
+**What CI still cannot check** is requirements 1, 3, 4, 5 and 6: whether you ran the thing,
+whether your regression test would fail against the broken code, whether a real provider was
+called, whether you loaded the page, whether a number was measured. Those remain honour-system
+by nature, and they are where every model-layer and UI defect in this project's history hid.
+The guide now says this explicitly rather than letting a green badge imply more than it means.
+
+*Remaining, optional:* a pre-commit hook would shorten the feedback loop, but CI is the gate
+that matters because it cannot be skipped.
 
 ---
 
@@ -204,16 +213,15 @@ definition of done and the decision record all support this, and the traps most 
 burn a session are written down.
 
 **Not ready:** handing an agent an open-ended goal ("improve retrieval", "make the workflow
-builder work") and expecting a sound result. Three things block it, in order of weight:
+builder work") and expecting a sound result. Two things block it:
 
-1. Nothing enforces the definition of done (criterion 3). Without CI, "the tests pass" is a
-   claim, not a fact.
-2. The packet format has not been validated against the model that will execute it
+1. The packet format has not been validated against the model that will execute it
    (criterion 4).
-3. One significant path — workflow authoring — is undocumented and unverified (criterion 1).
+2. One significant path — workflow authoring — is undocumented and unverified (criterion 1).
 
-None is expensive. Together they are roughly a day and a half, and they are sequenced in the
-order above because CI makes the other two verifiable.
+Neither is expensive; together roughly a day. The third blocker, the absence of CI, is now
+closed, and it was the one that made the other two hard to evaluate: a packet that comes back
+green from a cheaper model can now be checked independently instead of taken on trust.
 
 ---
 
@@ -221,13 +229,13 @@ order above because CI makes the other two verifiable.
 
 | # | Gap | Effort | Why it matters |
 |---|---|---|---|
-| 1 | **No CI.** Quality gates are honour-system | ~2 h | Converts the definition of done from a request into a fact. Highest leverage item here |
-| 2 | **Task packet format unproven** — no packet has round-tripped through the executing agent | ~4 h | The delegation model rests on it; T6 and T11 are the cheap tests |
-| 3 | **Workflow authoring undocumented and unverified** in a browser | ~4 h | The one significant path an agent cannot learn from the repository |
+| 1 | **Task packet format unproven** — no packet has round-tripped through the executing agent | ~4 h | The delegation model rests on it; T6 and T11 are the cheap tests |
+| 2 | **Workflow authoring undocumented and unverified** in a browser | ~4 h | The one significant path an agent cannot learn from the repository |
 
-Everything else found in this assessment was fixed while writing it: the ADR number
-collision, the missing ADR folder index, the stale capacity figure, the understated corpus
-size, and the two pieces of chat-only knowledge.
+Everything else found in this assessment has been fixed: the ADR number collision, the
+missing ADR folder index, the stale capacity figure, the understated corpus size, the two
+pieces of chat-only knowledge, the absent CI, and the broken secret guard that closing the CI
+gap exposed.
 
 ---
 
