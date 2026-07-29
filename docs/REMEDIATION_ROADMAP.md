@@ -60,7 +60,7 @@ invisible until someone relies on it.
 | **T10** | **Retrieval emits `ev_concept_…` locators with no `EvidenceItem` behind them.** Per ADR-0031 §4 a result carries a resolved locator or none — never a synthesised one | **S** | **🔜** |
 | **T11** | **`knowledge_search` records what it retrieved** (query, mode, concept paths, resolved locators) into run state. Minimal version of ADR-0031 §6; makes retrieval auditable before the hybrid build | **S** | **🔜** |
 | T6 | Remove the two dead `mcp.*` capabilities and reclassify MCP as target specification across the docs (ADR-0030) | S | 🔜 |
-| T12 | Amend PRD §9 to deployment-level tenant isolation (ADR-0032) | S | 🔜 |
+| T12 | Amend PRD §9 to deployment-level tenant isolation (ADR-0032) | S | ✅ |
 | T4 | Rebuild the model qualification harness on `agi_server.evaluation` so it ships inside the image; the gate has not run for some time | M | ⬜ |
 | T7 | Four of five trigger rules target workflow ids that are never seeded; `EventInbox` reports `no_match` when a rule matched but the target was unpublished | S | ⬜ |
 | T8 | `test_workflow_templates.py:69` reads the wrong node shape and asserts nothing | S | ⬜ |

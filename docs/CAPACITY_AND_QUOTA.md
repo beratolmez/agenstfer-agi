@@ -57,6 +57,23 @@ HTTP 400 and must not be carried over from the Ollama path.
 Gemini 3.x also requires `thought_signature` to be echoed on every follow-up tool turn, which
 the OpenAI-compatibility shim drops — hence the native transport (ADR-0026).
 
+### Routing Gemini through an aggregator re-introduces that bug
+
+`NATIVE_CLOUD_PROVIDERS = {"gemini"}` in `agents/model_gateway.py`. Only the direct Gemini
+provider uses the native transport; every other provider, including OpenRouter, goes through
+`OpenAIChatModel`. **A Gemini 3.x model reached via OpenRouter therefore drops
+`thought_signature` again and fails with HTTP 400 on the first parallel tool call** — the same
+defect ADR-0026 fixed.
+
+Use OpenRouter for non-Gemini families (Qwen, DeepSeek, Llama, Mistral), which have no such
+requirement, and call Gemini directly. Egress is already prepared: `.openrouter.ai` is in the
+Squid allowlist. If Gemini must be routed through an aggregator, the native path has to be
+extended to that provider first.
+
+Measured on this codebase, not inferred: asked for one tool call with
+`parallel_tool_calls: false`, Gemini returned three and the follow-up turn without the
+signature returned 400; with the signature preserved it returned 200.
+
 ---
 
 ## Timeouts

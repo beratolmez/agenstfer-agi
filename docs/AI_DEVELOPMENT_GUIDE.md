@@ -362,3 +362,17 @@ Each of these cost a real session:
   change did not work.
 - **`ensure_platform_registry` seeds by `(id, version)`.** It will not overwrite an existing
   row.
+- **Routing Gemini through OpenRouter re-introduces the `thought_signature` failure.** Only the
+  direct Gemini provider uses the native transport. See `docs/CAPACITY_AND_QUOTA.md`.
+
+### The UI's characteristic failure mode
+
+Four of the six defects found when the console was first driven in a browser shared one shape:
+**the interface hid what was required and swallowed what went wrong.** A mandatory field lived
+behind another button; the backend's actionable error was discarded and replaced with a fixed
+hint that was wrong for the actual cause; a success badge appeared for a probe that never ran;
+non-functional capabilities looked identical to working ones.
+
+The visual design is not the problem. When adding or changing a screen, ask: *how would the
+operator know this is required, and how would they know it failed?* If the answer is "they
+would not", that is the defect — before anything about layout.
