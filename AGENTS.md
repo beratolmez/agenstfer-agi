@@ -2,7 +2,11 @@
 
 ## Read order
 
-Before changing the product, read:
+**Start with [`docs/AI_DEVELOPMENT_GUIDE.md`](docs/AI_DEVELOPMENT_GUIDE.md).** It maps each
+task type to the documents it needs, so you load working context instead of the whole
+repository. It also defines what "done" means here and how work is packaged between sessions.
+
+The full set, in priority order when the guide points you at it:
 
 1. `docs/IMPLEMENTATION_STATUS.md`
 2. `docs/SYSTEM_ARCHITECTURE.md`
@@ -67,9 +71,20 @@ Treat vision documents as immutable sources. Record revised decisions in the arc
 
 ## Mandatory Task Handoff Protocol
 
-Before presenting completion to the user, the agent MUST strictly perform the following steps automatically without waiting for user reminders:
+Before presenting completion, perform these without waiting to be reminded:
 
-1. Update `docs/IMPLEMENTATION_STATUS.md` and add/update an ADR in `docs/adr/`.
-2. Update `docker-compose.yml` and execute `docker compose up -d --build --force-recreate` if compose configs or UI assets change.
-3. Run `scripts/project-check.ps1` on Windows or `scripts/project-check.sh` on Linux to verify 100% clean test passes.
-4. Commit and push all changes to the remote Git repository (`origin main`).
+1. **Verify the outcome, not the diff.** Run the thing you changed and observe the expected
+   behaviour. The full definition of done — including the regression-test cycle for bug fixes
+   and the real-provider requirement for model-path work — is
+   [`docs/AI_DEVELOPMENT_GUIDE.md`](docs/AI_DEVELOPMENT_GUIDE.md) §5. Work is not complete
+   because it was written; it is complete because it was observed to work.
+2. Update `docs/IMPLEMENTATION_STATUS.md` and add or supersede an ADR in `docs/adr/`. Where
+   other knowledge belongs is in the guide §7.
+3. Update `docker-compose.yml` and run `docker compose up -d --build --force-recreate` if
+   compose configuration or UI assets changed.
+4. Run `scripts/project-check.ps1` (Windows) or `scripts/project-check.sh` (Linux) and require
+   a clean pass.
+5. Commit and push to `origin main`. One purpose per commit; the message explains why.
+
+If you could not complete a verification step, say which one and why. Reporting unverified
+work as complete is the failure this protocol exists to prevent.

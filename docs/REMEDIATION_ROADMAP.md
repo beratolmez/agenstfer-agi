@@ -9,6 +9,11 @@ loss outranks an expensive refactor carrying the same label.
 **Size:** S ≈ under a day · M ≈ a few days · L ≈ a week or more.
 **Status:** ✅ done · 🔜 next · ⬜ open.
 
+**Picking up work from here:** turn a row into a task packet before starting — goal, files,
+change, out of scope, verification command, done-when. The structure and the reasoning are in
+[`AI_DEVELOPMENT_GUIDE.md`](./AI_DEVELOPMENT_GUIDE.md) §8. One row is usually one packet; a
+whole priority band never is.
+
 ---
 
 ## What the decisions changed
