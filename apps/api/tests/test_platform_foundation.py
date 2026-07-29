@@ -76,6 +76,17 @@ def test_production_cloud_key_must_come_from_secret_file(tmp_path: Path) -> None
     assert settings.cloud_api_key.get_secret_value() == "provider-secret"
 
 
+def test_unset_cloud_api_key_file_is_not_treated_as_a_directory() -> None:
+    """The base Compose topology renders AGI_CLOUD_API_KEY_FILE as an empty string.
+
+    Pydantic coerces that to Path("."), which is a directory, so the secret-file branch
+    used to reject it and the container refused to start whenever the cloud overlay was
+    absent. An unset value must simply mean "no secret file".
+    """
+    settings = Settings(cloud_api_key_file=Path(""))
+    assert settings.cloud_api_key is None
+
+
 def test_bootstrap_creates_one_admin_with_roles_and_audit(tmp_path: Path) -> None:
     url = sqlite_url(tmp_path / "bootstrap.db")
     engine = create_engine(url)
