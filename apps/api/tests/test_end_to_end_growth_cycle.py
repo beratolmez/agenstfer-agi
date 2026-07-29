@@ -18,6 +18,7 @@ from agi_server.db import (
     EvidenceItem,
     OKFCandidate,
     WorkflowDefinitionRow,
+    get_db,
 )
 from agi_server.diagnostics.service import _material_claims
 from agi_server.domain.metrics import calculate_verified_growth_metrics
@@ -114,8 +115,34 @@ def _mock_model_outputs(db):
     }
 
 
-def test_step_1_webhook_event_simulation_for_anka():
+def test_step_1_webhook_event_simulation_for_anka(tmp_path: Path):
     """Step 1: Simulate webhook event POST /api/webhooks/src-crm-001 for Anka Endüstriyel Otomasyon A.Ş."""
+    # Bind the request to its own database. Without the override the endpoint resolves
+    # get_db from settings, which on a developer machine is an already-migrated
+    # ./data/agi.db and on a clean checkout is nothing at all -- the test then passed
+    # locally and failed in CI for reasons unrelated to the code under test.
+    engine, session_factory = _setup_test_db(tmp_path)
+    seed = session_factory()
+    ensure_platform_registry(seed)
+    seed.commit()
+    seed.close()
+
+    def _override_get_db():
+        session = session_factory()
+        try:
+            yield session
+        finally:
+            session.close()
+
+    app.dependency_overrides[get_db] = _override_get_db
+    try:
+        _assert_webhook_triggers_growth_diagnostic()
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        engine.dispose()
+
+
+def _assert_webhook_triggers_growth_diagnostic():
     client = TestClient(app)
     payload = {
         "event_type": "growth.opportunity_detected",
