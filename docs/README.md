@@ -51,8 +51,9 @@ Open questions and constraints, not specifications. Read when scoping one of the
 
 ## Decisions
 
-[`adr/`](./adr/) holds every durable architectural decision. There is no other place. The
-index with current relevance is in [AI_DEVELOPMENT_GUIDE.md](./AI_DEVELOPMENT_GUIDE.md) §4.
+[`adr/`](./adr/) holds every durable architectural decision. There is no other place.
+[adr/README.md](./adr/README.md) is the index: which ADRs are load-bearing today, which are
+change logs, which references are broken, and how to write a new one.
 
 ## Historical record — closed
 

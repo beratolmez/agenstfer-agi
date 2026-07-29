@@ -85,7 +85,9 @@ problems that are already fixed.
 If you cannot find the reason for something, it is either in an ADR or it was never decided —
 and "never decided" is itself information worth acting on.
 
-The ones that shape current work:
+[`docs/adr/README.md`](./adr/README.md) is the full index, including which ADRs are change
+logs rather than decisions and how to write a new one. The short version — the ones that
+shape current work:
 
 | ADR | Decision |
 |---|---|
@@ -107,10 +109,9 @@ The ones that shape current work:
 ADR-0002 and ADR-0011 are gutted "DELETED" stubs with no superseding pointer. That is known
 traceability debt; do not treat their absence as meaningful.
 
-**Writing a new ADR:** copy the shape of ADR-0029 — Status, Date, what it supersedes or
-relates to, Context with `file:line` evidence, Options with costs, Decision, Consequences,
-Verification. Status is `Proposed` until a human approves it. Never mark your own ADR
-`Accepted`.
+**Writing a new ADR:** the conventions are in [`docs/adr/README.md`](./adr/README.md). The
+one rule worth repeating here: status is `Proposed` until a human approves it — never mark
+your own ADR `Accepted`.
 
 ---
 
