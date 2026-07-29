@@ -12,7 +12,7 @@ The `builtin-growth-diagnostic` workflow has 12 nodes, four of which call a mode
 
 | Agent | Output contract | Output budget | Measured need |
 |---|---|---|---|
-| `company-analyst` v4 | `CompanyAnalysis` | 900 | ~760 tokens |
+| `company-analyst` v5 | `CompanyAnalysis` | 2000 | **1180 tokens** (v4's 900 budget truncated it once ADR-0026 required every supporting evidence id to be cited) |
 | `growth-opportunity-analyst` v4 | `OpportunityHypotheses` | 2000 | **1357 tokens** (measured against the real 8.8 KB prompt) |
 | `evidence-reviewer` v3 | `EvidenceReview` | 1800 | varies with claim count; batched |
 | `wiki-curator` v3 | `OKFChangeSet` | 1200 | ~500 tokens |
