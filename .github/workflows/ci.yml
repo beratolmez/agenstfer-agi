@@ -1,0 +1,115 @@
+name: CI
+
+# This is the same gate as scripts/project-check.ps1 / project-check.sh, split into three
+# jobs so a failure names its own cause. The correspondence is deliberate: if you add a
+# check to one, add it to the other. Two gates that disagree are worse than one gate.
+#
+# The point of running it here is that the definition of done in
+# docs/AI_DEVELOPMENT_GUIDE.md section 5 stops depending on the author's word.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — lint, tests, migration drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      # .python-version pins 3.12; pyproject allows >=3.12,<3.15.
+      - name: Sync locked dependencies
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check apps/api
+
+      # No .env and no database service: every setting in config.py has a development
+      # default, and the suite runs against SQLite.
+      - name: Tests
+        run: uv run pytest
+
+      # Fails when a model change has no matching migration -- the drift that silently
+      # breaks a deployment rather than a test.
+      - name: Migration drift
+        run: uv run alembic check
+
+  frontend:
+    name: Frontend — tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Tests
+        run: npm test
+
+      # tsc -b runs here, so type errors fail the build rather than reaching a container.
+      - name: Build
+        run: npm run build
+
+  compose:
+    name: Compose — topology and secret guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # Deterministic interpolation from the committed example; it carries no secrets,
+      # which is what makes the guard below meaningful.
+      - name: Seed environment
+        run: cp .env.example .env
+
+      - name: Validate base topology
+        run: docker compose config --quiet
+
+      # The base topology always renders AGI_CLOUD_API_KEY. What must never appear is a
+      # value: a key reaching the committed configuration is the failure being prevented.
+      - name: Base topology must not carry a plaintext API key
+        run: |
+          injected_key="$(docker compose config \
+            | sed -nE 's/^[[:space:]]+AGI_CLOUD_API_KEY:[[:space:]]*//p' \
+            | tr -d "\"' \t\r")"
+          if [ -n "${injected_key}" ]; then
+            echo "Base Compose must not inject a plaintext AGI_CLOUD_API_KEY." >&2
+            exit 1
+          fi
+
+      - name: Validate overlays
+        run: |
+          set -e
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.cloud.yml --profile cloud config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.production.yml config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.observability.yml --profile observability config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.model-download.yml config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.e2e.yml config --quiet
