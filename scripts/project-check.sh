@@ -18,7 +18,12 @@ echo "== Frontend build =="
 npm --prefix apps/web run build
 echo "== Compose validation =="
 base_compose="$(docker compose config)"
-if grep -Eq '^[[:space:]]+AGI_CLOUD_API_KEY:[[:space:]]' <<<"${base_compose}"; then
+# The base topology always renders the variable; what must never appear is a value.
+# Match the value and strip quotes and whitespace, so `AGI_CLOUD_API_KEY: ""` -- the
+# correct state -- passes and only a real secret fails.
+injected_key="$(sed -nE 's/^[[:space:]]+AGI_CLOUD_API_KEY:[[:space:]]*//p' <<<"${base_compose}" \
+  | tr -d "\"' \t\r")"
+if [[ -n "${injected_key}" ]]; then
   echo "Base Compose must not inject a plaintext AGI_CLOUD_API_KEY." >&2
   exit 1
 fi

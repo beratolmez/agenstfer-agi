@@ -41,7 +41,13 @@ try {
     Write-Host "== Compose validation =="
     $baseCompose = docker compose config
     Assert-NativeSuccess "Base Compose validation"
-    if ($baseCompose -match "(?m)^\s+AGI_CLOUD_API_KEY:\s") {
+    # The base topology always renders the variable; what must never appear is a value.
+    # Strip quotes and whitespace from the value so `AGI_CLOUD_API_KEY: ""` -- the correct
+    # state -- passes and only a real secret fails.
+    $injectedKey = [regex]::Matches(($baseCompose -join "`n"), "(?m)^\s+AGI_CLOUD_API_KEY:\s*(.*)$") |
+        ForEach-Object { $_.Groups[1].Value.Trim().Trim('"').Trim("'").Trim() } |
+        Where-Object { $_ -ne "" }
+    if ($injectedKey) {
         throw "Base Compose must not inject a plaintext AGI_CLOUD_API_KEY."
     }
     docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
