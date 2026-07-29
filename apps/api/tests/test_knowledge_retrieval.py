@@ -100,7 +100,32 @@ async def test_knowledge_search_maps_chroma_hits(tmp_path, monkeypatch):
     assert hit.title == "Pricing Strategy"
     assert hit.engine == "chroma"
     assert len(hit.snippet) <= 320
-    assert hit.locator == "ev_concept_pricing.md"
+    assert hit.locator is None
+
+    from agi_server.db import Base, EvidenceItem
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    SessionFactory = sessionmaker(bind=engine)
+    db = SessionFactory()
+    db.add(
+        EvidenceItem(
+            id="ev_concept_pricing.md",
+            source_id="src1",
+            snapshot_sha256="s123",
+            locator={"path": "pricing.md"},
+            excerpt_hash="h123",
+        )
+    )
+    db.commit()
+
+    searcher_db = KnowledgeSearch(bundle=bundle, qmd_url="http://mock-chroma:8181", db=db)
+    hits_db = await searcher_db.search("pricing")
+    assert len(hits_db) == 1
+    assert hits_db[0].locator == "ev_concept_pricing.md"
+
 
 
 @pytest.mark.asyncio

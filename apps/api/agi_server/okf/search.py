@@ -41,7 +41,7 @@ class KnowledgeSearch:
                 if row is not None:
                     return raw_loc
                 return None
-            return raw_loc
+            return None
         if self.db is not None and default_path:
             from agi_server.db import EvidenceItem
             row = self.db.get(EvidenceItem, default_path)

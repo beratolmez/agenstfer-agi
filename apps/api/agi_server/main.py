@@ -1826,11 +1826,12 @@ async def approve_okf_diff(
 @app.get("/api/knowledge")
 async def knowledge_list(
     settings: Annotated[Settings, Depends(get_settings)],
+    db: Annotated[Session, Depends(get_db)],
     query: str = Query(default="", max_length=500),
 ) -> dict[str, Any]:
     bundle = FileSystemOKFBundle(settings.company_bundle)
     if query:
-        hits = await KnowledgeSearch(bundle, settings.qmd_url).search(query)
+        hits = await KnowledgeSearch(bundle, settings.qmd_url, db=db).search(query)
         return {"query": query, "items": [hit.__dict__ for hit in hits]}
     backlinks = bundle.backlinks()
     return {
