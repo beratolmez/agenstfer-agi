@@ -67,6 +67,7 @@ invisible until someone relies on it.
 | T16 | `api.ts:127` types the templates response as `WorkflowDefinition[]`, which it is not — the absent `version` is what T13 trips over. Fixing T13 makes the type honest | S | ⬜ |
 | T17 | Both workflow selector entries render as "Growth Diagnostic" (`builtin-growth-diagnostic` and `growth-diagnostic`); loading a template also leaves the selector pointing at a different workflow than the canvas holds | S | ⬜ |
 | T18 | Sidebar navigation and template-picker buttons expose no accessible name — the label sits in a nested span the button does not reference | S | ⬜ |
+| T19 | No way to create a workflow from scratch. The selector lists existing workflows and nothing creates an empty one, so loading a template is the only route to a new id — which bounds what can be authored to the five templates. See [WORKFLOW_AUTHORING.md](./WORKFLOW_AUTHORING.md) | M | ⬜ |
 | T4 | Rebuild the model qualification harness on `agi_server.evaluation` so it ships inside the image; the gate has not run for some time | M | ⬜ |
 | T7 | Four of five trigger rules target workflow ids that are never seeded; `EventInbox` reports `no_match` when a rule matched but the target was unpublished | S | ⬜ |
 | T8 | `test_workflow_templates.py:69` reads the wrong node shape and asserts nothing. Related: the suite exercises `get_executable_templates()` and `get_catalog_templates()`, neither of which any production path calls, while the endpoint that is served is untested — a green suite over a broken feature | S | ⬜ |

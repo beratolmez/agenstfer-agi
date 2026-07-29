@@ -48,7 +48,7 @@ Read the floor (section 1), then your row. `+` means additionally.
 | **Architecture decision** | `docs/SYSTEM_ARCHITECTURE.md` → `docs/DOMAIN_CONTRACTS.md` → the ADR index (section 4) → `docs/REMEDIATION_ROADMAP.md` open decisions |
 | **Backend development** | `docs/SYSTEM_ARCHITECTURE.md` → `docs/DOMAIN_CONTRACTS.md` → `docs/API_REFERENCE.md` + ADRs touching your area |
 | **Frontend development** | `docs/API_REFERENCE.md` → `docs/DEMO_SCRIPT.md` (the verified user path) → `apps/web/src/api.ts` and `types.ts` |
-| **Workflow design** | `docs/SYSTEM_ARCHITECTURE.md` §3 → ADR-0029 (execution) → `apps/api/agi_server/workflow/validator.py` (the 14 rules a workflow must satisfy) → `apps/api/agi_server/workflow/default.py` (the reference workflow) |
+| **Workflow design** | `docs/WORKFLOW_AUTHORING.md` (what the editor does, which node kinds are real, which engine runs what) → `docs/SYSTEM_ARCHITECTURE.md` §3 → ADR-0029 (execution) → `apps/api/agi_server/workflow/validator.py` (the 14 rules) → `apps/api/agi_server/workflow/default.py` (the reference workflow) |
 | **Agent or tool work** | `docs/TOOLS_STRATEGY.md` → ADR-0030 → `agents/capabilities.py` and `agents/runtime.py` |
 | **Model gateway / provider** | `docs/CAPACITY_AND_QUOTA.md` → ADR-0026 → ADR-0033 → `agents/model_gateway.py` |
 | **Retrieval / knowledge** | ADR-0031 → ADR-0001 → `knowledge/AGENTS.md` → `okf/search.py` |

@@ -18,6 +18,7 @@ Engineering documents and ADRs are English. Stakeholder-facing documents are Tur
 | [DOMAIN_CONTRACTS.md](./DOMAIN_CONTRACTS.md) | What does each term mean, and which store owns it? |
 | [REMEDIATION_ROADMAP.md](./REMEDIATION_ROADMAP.md) | What is left to do, in what order, and what is still undecided? |
 | [API_REFERENCE.md](./API_REFERENCE.md) | What endpoints exist, and which role does each need? |
+| [WORKFLOW_AUTHORING.md](./WORKFLOW_AUTHORING.md) | How is a workflow designed in the console, and what can the editor not do? |
 | [SECURITY_CONTROLS.md](./SECURITY_CONTROLS.md) | Which control is enforced by which code, and proven by which test? |
 | [CAPACITY_AND_QUOTA.md](./CAPACITY_AND_QUOTA.md) | What does a run cost, what are the limits, what concurrency is supported? |
 | [THREAT_MODEL.md](./THREAT_MODEL.md) | What are we defending against? |

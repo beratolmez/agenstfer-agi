@@ -63,16 +63,14 @@ Eleven of the twelve cold-start questions resolve to a specific document and sec
 | Where do I put what I learn? | Guide §7 |
 | What traps have cost time before? | Guide §11 |
 
-**The hole: workflow authoring.** The guide's workflow row points at `validator.py` and
-`default.py` — the rules and the reference implementation — but no document explains how a
-user authors a workflow through the UI, and that path has never been driven end-to-end in a
-browser. `IMPLEMENTATION_STATUS.md` records the consequence (a user-authored workflow routes
-to the fallback engine, not the LangGraph one) but not the authoring experience itself. An
-agent asked to fix a workflow-builder defect would be working blind.
+**The hole is closed.** `docs/WORKFLOW_AUTHORING.md` now describes the editor from having
+driven it: the authoring loop, what the inspector can change, which node kinds do real work
+versus write a constant string, the 14 validation rules, and which engine a given workflow id
+will actually run on. As predicted, driving the path first surfaced six defects; three made
+the feature unusable and are fixed.
 
-*To close:* drive the authoring path in a browser the way the demo path was driven, then
-write `docs/WORKFLOW_AUTHORING.md`. Half a day, and it will surface defects — the same
-exercise on the demo path found six.
+It records what was *not* verified — publishing and running an authored workflow — rather than
+describing those from the source.
 
 ---
 
@@ -257,8 +255,8 @@ be taken on trust, which makes the second item hard to evaluate honestly.
 
 | # | Gap | Effort | Why it matters |
 |---|---|---|---|
-| 1 | **Workflow authoring undocumented** — the path is now verified and fixed, but nothing describes it | ~3 h | The one significant path an agent cannot learn from the repository |
-| 2 | **The hardened packet format is untested** — §8's three new rules came from one failure and have not been tried | one packet | Whether they change an executing agent's behaviour is unknown |
+| 1 | **The hardened packet format is untested** — §8's three new rules came from one failure and have not been tried | one packet | Whether they change an executing agent's behaviour is unknown |
+| 2 | **Publishing and running an authored workflow is unverified** | ~2 h | `WORKFLOW_AUTHORING.md` stops at save; what the fallback runtime does with an authored graph is read from source, not observed |
 
 Everything else found in this assessment has been fixed: the ADR number collision, the
 missing ADR folder index, the stale capacity figure, the understated corpus size, the two
