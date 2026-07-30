@@ -192,3 +192,31 @@ replaced during a recovery drill.
 - Preserve run IDs, safe audit rows, artifact hashes, LangGraph state, and OKF Git revisions.
 - Reject/expire candidates whose evidence or base revision is no longer trustworthy.
 - Restore application DB, LangGraph DB, and knowledge from the same backup generation.
+
+---
+
+## Restoring an installation whose database volume is gone
+
+Symptom: the console shows the bootstrap screen, `GET /api/setup/status` reports
+`bootstrap_required: true` and `setup_completed: false`, and the database has zero users while
+the knowledge bundle is intact.
+
+Check whether the volume actually exists — Compose declares `postgres_data`, `knowledge_data`
+and `ollama_data`:
+
+```bash
+docker volume ls | grep agentic-growth-intelligence
+```
+
+A missing `agentic-growth-intelligence_postgres_data` means users, runs, evidence rows,
+approvals and workflow definitions are gone. The OKF bundle lives in `knowledge_data` and
+survives independently, which is why the knowledge base can look healthy while the control
+plane is empty.
+
+There is no recovery without a backup: PostgreSQL owns that state by design (ADR-0001). Bring
+the installation back by re-running bootstrap with the token from `.env`, then the setup
+wizard. Note that `docker compose up --force-recreate` does **not** remove volumes; a volume
+disappearing means `down -v`, an explicit `volume rm`, or a prune.
+
+Back up before any operation that touches volumes — the runbook's backup section is the
+procedure.
